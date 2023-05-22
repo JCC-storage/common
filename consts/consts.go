@@ -6,8 +6,7 @@ const (
 )
 
 const (
-	IPFS_STATUS_OK      = "OK"
-	LOCAL_DIR_STATUS_OK = "OK"
+	IPFS_STATUS_OK = "OK"
 
 	NODE_STATE_NORMAL      = "Normal"
 	NODE_STATE_UNAVAILABLE = "Unavailable"
