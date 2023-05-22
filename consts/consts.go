@@ -8,6 +8,8 @@ const (
 const (
 	IPFS_STATUS_OK = "OK"
 
+	STORAGE_DIRECTORY_STATUS_OK = "OK"
+
 	NODE_STATE_NORMAL      = "Normal"
 	NODE_STATE_UNAVAILABLE = "Unavailable"
 )
