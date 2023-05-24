@@ -1,7 +1,8 @@
 package event
 
 const (
-	UPDATE_CACHE_OP_UNTEMP = "UnTemp"
+	UPDATE_CACHE_UNTEMP      = "UnTemp"
+	UPDATE_CACHE_CREATE_TEMP = "CreateTemp"
 )
 
 const (

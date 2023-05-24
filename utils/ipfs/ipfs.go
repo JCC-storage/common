@@ -1,6 +1,7 @@
 package ipfs
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -59,6 +60,10 @@ func (fs *IPFS) Pin(hash string) error {
 
 func (fs *IPFS) Unpin(hash string) error {
 	return fs.shell.Unpin(hash)
+}
+
+func (fs *IPFS) GetPinnedFiles() (map[string]shell.PinInfo, error) {
+	return fs.shell.PinsOfType(context.Background(), shell.RecursivePin)
 }
 
 type ipfsWriter struct {
