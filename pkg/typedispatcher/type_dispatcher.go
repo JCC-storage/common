@@ -12,6 +12,12 @@ type TypeDispatcher[TRet any] struct {
 	handlers map[reflect.Type]HandlerFn[TRet]
 }
 
+func NewTypeDispatcher[TRet any]() TypeDispatcher[TRet] {
+	return TypeDispatcher[TRet]{
+		handlers: make(map[reflect.Type]HandlerFn[TRet]),
+	}
+}
+
 func (t *TypeDispatcher[TRet]) Add(typ reflect.Type, fn HandlerFn[TRet]) {
 	t.handlers[typ] = fn
 }
