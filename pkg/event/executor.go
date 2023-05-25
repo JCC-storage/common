@@ -110,5 +110,7 @@ func (e *Executor[TArgs]) popFrontEvent() *postedEvent[TArgs] {
 		return nil
 	}
 
-	return &e.events.Front.Value
+	val := &e.events.Front.Value
+	e.events.Remove(e.events.Front)
+	return val
 }

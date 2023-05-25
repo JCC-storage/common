@@ -22,7 +22,12 @@ func (r *TypeNameResolver) Register(typ reflect.Type) {
 }
 
 func (r *TypeNameResolver) TypeToString(typ reflect.Type) (string, error) {
-	return makeTypeString(typ, r.includePackagePath), nil
+	typeStr := makeTypeString(typ, r.includePackagePath)
+	if _, ok := r.types[typeStr]; !ok {
+		return "", fmt.Errorf("type %s is not registered before", typeStr)
+	}
+
+	return typeStr, nil
 }
 
 func (r *TypeNameResolver) StringToType(typeStr string) (reflect.Type, error) {
