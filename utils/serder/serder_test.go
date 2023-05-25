@@ -67,7 +67,7 @@ func Test_TypedMapToObject(t *testing.T) {
 	}
 
 	nameResovler := NewTypeNameResolver(true)
-	nameResovler.Register(myreflect.GetGenericType[Struct]())
+	nameResovler.Register(myreflect.TypeOf[Struct]())
 
 	Convey("结构体", t, func() {
 		st := Struct{

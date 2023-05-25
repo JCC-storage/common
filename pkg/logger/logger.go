@@ -1,12 +1,8 @@
 package logger
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
+	"reflect"
 
-	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,94 +29,26 @@ var loggerLevels = map[string]logrus.Level{
 	PANIC_LEVEL: logrus.PanicLevel,
 }
 
-// Init 初始化全局默认的日志器
-func Init(cfg *Config) error {
-	logrus.SetFormatter(&nested.Formatter{
-		TimestampFormat: "2006-01-02 15:04:05",
-		NoColors:        true,
-		NoFieldsColors:  true,
-	})
+type Logger interface {
+	Debug(args ...interface{})
+	Debugf(format string, args ...interface{})
 
-	level, ok := loggerLevels[strings.ToUpper(cfg.Level)]
-	if !ok {
-		return fmt.Errorf("invalid log level: %s", cfg.Level)
-	}
+	Info(args ...interface{})
+	Infof(format string, args ...interface{})
 
-	logrus.SetLevel(level)
+	Warn(args ...interface{})
+	Warnf(format string, args ...interface{})
 
-	output := strings.ToUpper(cfg.Output)
+	Error(args ...interface{})
+	Errorf(format string, args ...interface{})
 
-	if output == OUTPUT_FILE {
-		logFilePath := filepath.Join(cfg.OutputDirectory, cfg.OutputFileName+".log")
+	Fatal(args ...interface{})
+	Fatalf(format string, args ...interface{})
 
-		if err := os.MkdirAll(cfg.OutputDirectory, 0644); err != nil {
-			return err
-		}
+	Panic(args ...interface{})
+	Panicf(format string, args ...interface{})
 
-		file, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE, 0644)
-		if err != nil {
-			return err
-		}
-		logrus.SetOutput(file)
+	WithField(key string, val any) Logger
 
-	} else if output == OUTPUT_STDOUT {
-		logrus.SetOutput(os.Stdout)
-	} else {
-		logrus.SetOutput(os.Stdout)
-		logrus.Warnf("unsupported output: %s, will output to stdout", output)
-	}
-
-	return nil
-}
-
-func Debug(args ...interface{}) {
-	logrus.Debug(args...)
-}
-
-func Debugf(format string, args ...interface{}) {
-	logrus.Debugf(format, args...)
-}
-
-func Info(args ...interface{}) {
-	logrus.Info(args...)
-}
-
-func Infof(format string, args ...interface{}) {
-	logrus.Infof(format, args...)
-}
-
-func Warn(args ...interface{}) {
-	logrus.Warn(args...)
-}
-
-func Warnf(format string, args ...interface{}) {
-	logrus.Warnf(format, args...)
-}
-
-func Error(args ...interface{}) {
-	logrus.Error(args...)
-}
-
-func Errorf(format string, args ...interface{}) {
-	logrus.Errorf(format, args...)
-}
-
-func Fatal(args ...interface{}) {
-	logrus.Fatal(args...)
-}
-
-func Fatalf(format string, args ...interface{}) {
-	logrus.Fatalf(format, args...)
-}
-
-func Panic(args ...interface{}) {
-	logrus.Panic(args...)
-}
-
-func Panicf(format string, args ...interface{}) {
-	logrus.Panicf(format, args...)
-}
-
-func WithField(key string, val any) *logrus.Entry {
-	return logrus.WithField(key, val)
+	WithType(key string, typ reflect.Type) Logger
 }

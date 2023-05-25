@@ -2,12 +2,19 @@ package reflect
 
 import "reflect"
 
-// GetGenericType 获得泛型的类型
-func GetGenericType[T any]() reflect.Type {
+type Type = reflect.Type
+
+// TypeOfValue 获得实际值的类型
+func TypeOfValue(val any) reflect.Type {
+	return reflect.TypeOf(val)
+}
+
+// TypeOf 获得泛型的类型
+func TypeOf[T any]() reflect.Type {
 	return reflect.TypeOf([0]T{}).Elem()
 }
 
-// GetGenericElemType 获得泛型的类型。适用于数组、指针类型
-func GetGenericElemType[T any]() reflect.Type {
+// ElemTypeOf 获得泛型的类型。适用于数组、指针类型
+func ElemTypeOf[T any]() reflect.Type {
 	return reflect.TypeOf([0]T{}).Elem().Elem()
 }
