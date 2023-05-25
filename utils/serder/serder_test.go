@@ -2,6 +2,7 @@ package serder
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
@@ -31,6 +32,31 @@ func Test_MapToObject(t *testing.T) {
 		So(st.C, ShouldEqual, 1234)
 	})
 
+	Convey("包含Time，先从结构体转为JSON，再从JSON转为Map，最后变回结构体", t, func() {
+		type Struct struct {
+			Time    time.Time
+			NilTime *time.Time
+		}
+
+		var st = Struct{
+			Time:    time.Now(),
+			NilTime: nil,
+		}
+
+		data, err := ObjectToJSON(st)
+		So(err, ShouldBeNil)
+
+		var mp map[string]any
+		err = JSONToObject(data, &mp)
+		So(err, ShouldBeNil)
+
+		var st2 Struct
+		err = MapToObject(mp, &st2)
+		So(err, ShouldBeNil)
+
+		So(st.Time, ShouldEqual, st2.Time)
+		So(st.NilTime, ShouldEqual, st2.NilTime)
+	})
 }
 
 func Test_TypedMapToObject(t *testing.T) {
