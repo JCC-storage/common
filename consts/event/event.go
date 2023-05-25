@@ -1,7 +1,7 @@
 package event
 
 const (
-	UPDATE_CACHE_UNTEMP      = "UnTemp"
+	UPDATE_CACHE_DELETE_TEMP = "DeleteTemp"
 	UPDATE_CACHE_CREATE_TEMP = "CreateTemp"
 )
 
