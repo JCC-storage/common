@@ -16,9 +16,19 @@ func (f *structFormatter) String() string {
 
 	kind := typ.Kind()
 
-	if kind != reflect.Struct {
-		return fmt.Sprintf("%v", f.val)
+	if kind == reflect.Struct {
+		return f.structString(val)
 	}
+
+	if kind == reflect.Pointer {
+		return f.structString(val.Elem())
+	}
+
+	return fmt.Sprintf("%v", f.val)
+}
+
+func (f *structFormatter) structString(val reflect.Value) string {
+	typ := val.Type()
 
 	strBuilder := strings.Builder{}
 	for i := 0; i < val.NumField(); i++ {
@@ -76,6 +86,10 @@ func (f *structFormatter) String() string {
 	return strBuilder.String()
 }
 
+// FormatStruct 输出结构体的内容。
+// 1. 数组类型只会输出长度
+// 2. 内部的结构体的内容不会再输出
+// 3. 支持参数是一层的指针
 func FormatStruct(val any) any {
 	return &structFormatter{
 		val: val,
