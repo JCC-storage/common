@@ -18,3 +18,7 @@ func TypeOf[T any]() reflect.Type {
 func ElemTypeOf[T any]() reflect.Type {
 	return reflect.TypeOf([0]T{}).Elem().Elem()
 }
+
+func TypeNameOf[T any]() string {
+	return TypeOf[T]().Name()
+}
