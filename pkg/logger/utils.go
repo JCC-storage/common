@@ -17,53 +17,63 @@ func (f *structFormatter) String() string {
 	kind := typ.Kind()
 
 	if kind == reflect.Struct {
-		return f.structString(val)
+		sb := strings.Builder{}
+		f.structString(val, &sb)
+		return sb.String()
 	}
 
 	if kind == reflect.Pointer {
-		return f.structString(val.Elem())
+		sb := strings.Builder{}
+		f.structString(val.Elem(), &sb)
+		return sb.String()
 	}
 
 	return fmt.Sprintf("%v", f.val)
 }
 
-func (f *structFormatter) structString(val reflect.Value) string {
+func (f *structFormatter) structString(val reflect.Value, strBuilder *strings.Builder) {
 	typ := val.Type()
 
-	strBuilder := strings.Builder{}
 	for i := 0; i < val.NumField(); i++ {
 		fieldInfo := typ.Field(i)
 		fieldValue := val.Field(i)
 		fieldType := fieldInfo.Type
 		fieldKind := fieldType.Kind()
 
+		if i > 0 {
+			strBuilder.WriteString(", ")
+		}
+
 		switch fieldKind {
 		case reflect.Slice:
-			fallthrough
-		case reflect.Array:
-			if i > 0 {
-				strBuilder.WriteString(", ")
+			if fieldValue.IsNil() {
+				strBuilder.WriteString(fieldInfo.Name)
+				strBuilder.WriteString(": <nil>")
+
+			} else {
+				strBuilder.WriteString("len(")
+				strBuilder.WriteString(fieldInfo.Name)
+				strBuilder.WriteString("): ")
+				strBuilder.WriteString(fmt.Sprintf("%d", fieldValue.Len()))
 			}
 
+		case reflect.Array:
 			strBuilder.WriteString("len(")
 			strBuilder.WriteString(fieldInfo.Name)
 			strBuilder.WriteString("): ")
 			strBuilder.WriteString(fmt.Sprintf("%d", fieldValue.Len()))
 
 		case reflect.Struct:
-			if i > 0 {
-				strBuilder.WriteString(", ")
+			if fieldInfo.Anonymous {
+				f.structString(fieldValue, strBuilder)
+			} else {
+				strBuilder.WriteString(fieldInfo.Name)
+				strBuilder.WriteString(": <")
+				strBuilder.WriteString(fieldType.Name())
+				strBuilder.WriteString(">")
 			}
-
-			strBuilder.WriteString(fieldInfo.Name)
-			strBuilder.WriteString(": <")
-			strBuilder.WriteString(fieldType.Name())
-			strBuilder.WriteString(">")
 
 		case reflect.Pointer:
-			if i > 0 {
-				strBuilder.WriteString(", ")
-			}
 			strBuilder.WriteString(fieldInfo.Name)
 			if fieldValue.IsNil() {
 				strBuilder.WriteString(": <nil>")
@@ -74,16 +84,12 @@ func (f *structFormatter) structString(val reflect.Value) string {
 			}
 
 		default:
-			if i > 0 {
-				strBuilder.WriteString(", ")
-			}
 			strBuilder.WriteString(fieldInfo.Name)
 			strBuilder.WriteString(": ")
 			strBuilder.WriteString(fmt.Sprintf("%v", fieldValue))
 		}
 	}
 
-	return strBuilder.String()
 }
 
 // FormatStruct 输出结构体的内容。

@@ -19,6 +19,7 @@ func Test_FormatStruct(t *testing.T) {
 		St2       Struct2
 		St2Ptr    *Struct2
 		NilSt2Ptr *Struct2
+		Struct2
 	}
 
 	st := Struct{
@@ -32,9 +33,12 @@ func Test_FormatStruct(t *testing.T) {
 			Int: 456,
 		},
 		NilSt2Ptr: nil,
+		Struct2: Struct2{
+			Int: 789,
+		},
 	}
 
-	fmtedStr := "len(Arr): 4, len(NilArr): 0, len(FixedArr): 5, St2: <Struct2>, St2Ptr: &<Struct2>, NilSt2Ptr: <nil>"
+	fmtedStr := "len(Arr): 4, NilArr: <nil>, len(FixedArr): 5, St2: <Struct2>, St2Ptr: &<Struct2>, NilSt2Ptr: <nil>, Int: 789"
 
 	Convey("基本格式", t, func() {
 		So(fmt.Sprintf("%v", FormatStruct(st)), ShouldEqual, fmtedStr)
