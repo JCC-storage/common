@@ -8,37 +8,39 @@ import (
 
 func Test_CommandTrie(t *testing.T) {
 	Convey("无参数命令", t, func() {
-		trie := NewCommandTrie[int]()
+		trie := NewVoidCommandTrie[int]()
 
 		var ret string
 
-		trie.Add(func() {
+		err := trie.Add(func(int) {
 			ret = "ok"
 		}, "a")
+		So(err, ShouldBeNil)
 
-		err := trie.Execute(0, "a")
+		err = trie.Execute(0, "a")
 		So(err, ShouldBeNil)
 
 		So(ret, ShouldEqual, "ok")
 	})
 
 	Convey("各种参数", t, func() {
-		trie := NewCommandTrie[int]()
+		trie := NewVoidCommandTrie[int]()
 
 		var argI int
 		var argStr string
 		var argBl bool
 		var argFP float32
 
-		trie.Add(func(i int, str string, bl bool, fp float32) {
+		err := trie.Add(func(int, i int, str string, bl bool, fp float32) {
 			argI = i
 			argStr = str
 			argBl = bl
 			argFP = fp
 
 		}, "a", "b")
+		So(err, ShouldBeNil)
 
-		err := trie.Execute(0, "a", "b", "1", "2", "true", "3")
+		err = trie.Execute(0, "a", "b", "1", "2", "true", "3")
 		So(err, ShouldBeNil)
 
 		So(argI, ShouldEqual, 1)
@@ -48,18 +50,19 @@ func Test_CommandTrie(t *testing.T) {
 	})
 
 	Convey("有数组参数", t, func() {
-		trie := NewCommandTrie[int]()
+		trie := NewVoidCommandTrie[int]()
 
 		var argI int
 		var argArr []int64
 
-		trie.Add(func(i int, arr []int64) {
+		err := trie.Add(func(int, i int, arr []int64) {
 			argI = i
 			argArr = arr
 
 		}, "a", "b")
+		So(err, ShouldBeNil)
 
-		err := trie.Execute(0, "a", "b", "1", "2", "3", "4")
+		err = trie.Execute(0, "a", "b", "1", "2", "3", "4")
 		So(err, ShouldBeNil)
 
 		So(argI, ShouldEqual, 1)
@@ -67,21 +70,114 @@ func Test_CommandTrie(t *testing.T) {
 	})
 
 	Convey("有数组参数，但为空", t, func() {
-		trie := NewCommandTrie[int]()
+		trie := NewVoidCommandTrie[int]()
 
 		var argI int
 		var argArr []int64
 
-		trie.Add(func(i int, arr []int64) {
+		err := trie.Add(func(int, i int, arr []int64) {
 			argI = i
 			argArr = arr
 
 		}, "a", "b")
+		So(err, ShouldBeNil)
 
-		err := trie.Execute(0, "a", "b", "1")
+		err = trie.Execute(0, "a", "b", "1")
 		So(err, ShouldBeNil)
 
 		So(argI, ShouldEqual, 1)
 		So(argArr, ShouldResemble, []int64{})
+	})
+
+	Convey("带返回值", t, func() {
+		trie := NewCommandTrie[int, int]()
+
+		var argI int
+		var argArr []int64
+
+		err := trie.Add(func(int, i int, arr []int64) int {
+			argI = i
+			argArr = arr
+			return 123
+		}, "a", "b")
+		So(err, ShouldBeNil)
+
+		ret, err := trie.Execute(0, "a", "b", "1")
+		So(err, ShouldBeNil)
+
+		So(argI, ShouldEqual, 1)
+		So(argArr, ShouldResemble, []int64{})
+		So(ret, ShouldEqual, 123)
+	})
+
+	Convey("返回值是接口类型", t, func() {
+		trie := NewCommandTrie[int, any]()
+
+		var argI int
+		var argArr []int64
+
+		err := trie.Add(func(int, i int, arr []int64) int {
+			argI = i
+			argArr = arr
+			return 123
+		}, "a", "b")
+		So(err, ShouldBeNil)
+
+		err = trie.Add(func(int, i int, arr []int64) string {
+			return "123"
+		}, "a", "c")
+		So(err, ShouldBeNil)
+
+		ret, err := trie.Execute(0, "a", "b", "1")
+		So(err, ShouldBeNil)
+		So(argI, ShouldEqual, 1)
+		So(argArr, ShouldResemble, []int64{})
+		So(ret, ShouldEqual, 123)
+
+		ret2, err := trie.Execute(0, "a", "c", "1")
+		So(err, ShouldBeNil)
+		So(ret2, ShouldEqual, "123")
+	})
+
+	Convey("无Ctx参数", t, func() {
+		trie := NewStaticCommandTrie[int]()
+
+		var argI int
+		var argArr []int64
+
+		err := trie.Add(func(i int, arr []int64) int {
+			argI = i
+			argArr = arr
+			return 123
+		}, "a", "b")
+		So(err, ShouldBeNil)
+
+		ret, err := trie.Execute("a", "b", "1")
+		So(err, ShouldBeNil)
+
+		So(argI, ShouldEqual, 1)
+		So(argArr, ShouldResemble, []int64{})
+		So(ret, ShouldEqual, 123)
+	})
+
+	Convey("完全无参数", t, func() {
+		trie := NewStaticCommandTrie[int]()
+
+		var argI int
+		var argArr []int64
+
+		err := trie.Add(func() int {
+			argI = 1
+			argArr = []int64{}
+			return 123
+		}, "a", "b")
+		So(err, ShouldBeNil)
+
+		ret, err := trie.Execute("a", "b")
+		So(err, ShouldBeNil)
+
+		So(argI, ShouldEqual, 1)
+		So(argArr, ShouldResemble, []int64{})
+		So(ret, ShouldEqual, 123)
 	})
 }
