@@ -1,6 +1,7 @@
 package tickevent
 
 import (
+	"math/rand"
 	"sync/atomic"
 	"time"
 )
@@ -48,7 +49,7 @@ func (e *Executor[TArgs]) Start(event TickEvent[TArgs], intervalMs int, opts ...
 
 	go func() {
 		if opt.RandomStartDelayMs > 0 {
-			<-time.After(time.Duration(opt.RandomStartDelayMs) * time.Millisecond)
+			<-time.After(time.Duration(rand.Intn(opt.RandomStartDelayMs)) * time.Millisecond)
 		}
 
 		timeTicker := time.NewTicker(time.Duration(intervalMs) * time.Millisecond)
