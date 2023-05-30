@@ -318,11 +318,23 @@ func (t *CommandTrie[TCtx, TRet]) Add(fn any, prefixWords ...string) error {
 	return t.anyTrie.Add(fn, prefixWords...)
 }
 
+func (t *CommandTrie[TCtx, TRet]) MustAdd(fn any, prefixWords ...string) {
+	err := t.anyTrie.Add(fn, prefixWords...)
+	if err != nil {
+		panic(err.Error())
+	}
+}
+
 func (t *CommandTrie[TCtx, TRet]) Execute(ctx TCtx, cmdWords ...string) (TRet, error) {
 	retValues, err := t.anyTrie.Execute(ctx, cmdWords...)
 	if err != nil {
 		var defRet TRet
 		return defRet, err
+	}
+
+	if retValues[0].Kind() == reflect.Interface && retValues[0].IsNil() {
+		var ret TRet
+		return ret, nil
 	}
 
 	return retValues[0].Interface().(TRet), nil
@@ -340,6 +352,13 @@ func NewVoidCommandTrie[TCtx any]() VoidCommandTrie[TCtx] {
 
 func (t *VoidCommandTrie[TCtx]) Add(fn any, prefixWords ...string) error {
 	return t.anyTrie.Add(fn, prefixWords...)
+}
+
+func (t *VoidCommandTrie[TCtx]) MustAdd(fn any, prefixWords ...string) {
+	err := t.anyTrie.Add(fn, prefixWords...)
+	if err != nil {
+		panic(err.Error())
+	}
 }
 
 func (t *VoidCommandTrie[TCtx]) Execute(ctx TCtx, cmdWords ...string) error {
@@ -361,11 +380,23 @@ func (t *StaticCommandTrie[TRet]) Add(fn any, prefixWords ...string) error {
 	return t.anyTrie.Add(fn, prefixWords...)
 }
 
+func (t *StaticCommandTrie[TRet]) MustAdd(fn any, prefixWords ...string) {
+	err := t.anyTrie.Add(fn, prefixWords...)
+	if err != nil {
+		panic(err.Error())
+	}
+}
+
 func (t *StaticCommandTrie[TRet]) Execute(cmdWords ...string) (TRet, error) {
 	retValues, err := t.anyTrie.Execute(nil, cmdWords...)
 	if err != nil {
 		var defRet TRet
 		return defRet, err
+	}
+
+	if retValues[0].Kind() == reflect.Interface && retValues[0].IsNil() {
+		var ret TRet
+		return ret, nil
 	}
 
 	return retValues[0].Interface().(TRet), nil
