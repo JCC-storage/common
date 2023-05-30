@@ -1,6 +1,7 @@
 package task
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -54,6 +55,12 @@ func (m *Manager[TCtx]) Start(body TaskBody[TCtx], cmp func(self, other TaskBody
 	return task
 }
 
+func (m *Manager[TCtx]) StartCmp(body ComparableTaskBody[TCtx]) *Task[TCtx] {
+	return m.Start(body, func(self, other TaskBody[TCtx]) bool {
+		return body.Compare(other)
+	})
+}
+
 func (m *Manager[TCtx]) Find(predicate func(body TaskBody[TCtx]) bool) *Task[TCtx] {
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -69,7 +76,7 @@ func (m *Manager[TCtx]) Find(predicate func(body TaskBody[TCtx]) bool) *Task[TCt
 
 func (m *Manager[TCtx]) executeTask(task *Task[TCtx]) {
 	go func() {
-		task.body.Execute(m.ctx, func(completing func()) {
+		task.body.Execute(m.ctx, func(err error, completing func()) {
 			// 删除任务
 			m.lock.Lock()
 			for i, t := range m.tasks {
@@ -82,13 +89,40 @@ func (m *Manager[TCtx]) executeTask(task *Task[TCtx]) {
 			completing()
 			m.lock.Unlock()
 
-			// 触发waiter回调
 			task.waiterLock.Lock()
 			task.isCompleted = true
+			task.err = err
+			task.waiterLock.Unlock()
+
+			// 触发回调
 			for _, w := range task.waiters {
 				close(w)
 			}
-			task.waiterLock.Unlock()
+
+			for _, c := range task.onCompleted {
+				c(task)
+			}
 		})
+
+		// 如果Task没有调用complete函数就退出了，那么就认为是出错结束
+		notCompletedYet := false
+		task.waiterLock.Lock()
+		if !task.isCompleted {
+			task.isCompleted = true
+			task.err = fmt.Errorf("task exit without calling complete function")
+			notCompletedYet = true
+		}
+		task.waiterLock.Unlock()
+
+		if notCompletedYet {
+			// 触发回调
+			for _, w := range task.waiters {
+				close(w)
+			}
+
+			for _, c := range task.onCompleted {
+				c(task)
+			}
+		}
 	}()
 }
