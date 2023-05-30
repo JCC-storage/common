@@ -5,6 +5,10 @@ import (
 	"time"
 )
 
+type StartOption struct {
+	RandomStartDelayMs int // 第一次任务启动前增加一段随机时长的延迟，随机的最长延迟时间由这个参数指定。如果为0，则不进行延迟。
+}
+
 type ExecuteContext[TArgs any] struct {
 	Executor *Executor[TArgs]
 	Self     *EventTicker[TArgs]
@@ -28,7 +32,12 @@ func NewExecutor[TArgs any](args TArgs) Executor[TArgs] {
 	}
 }
 
-func (e *Executor[TArgs]) Start(event TickEvent[TArgs], intervalMs int) EventTicker[TArgs] {
+func (e *Executor[TArgs]) Start(event TickEvent[TArgs], intervalMs int, opts ...StartOption) EventTicker[TArgs] {
+	opt := StartOption{}
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+
 	ticker := EventTicker[TArgs]{
 		event:      event,
 		intervalMs: intervalMs,
@@ -38,6 +47,10 @@ func (e *Executor[TArgs]) Start(event TickEvent[TArgs], intervalMs int) EventTic
 	ticker.done.Store(false)
 
 	go func() {
+		if opt.RandomStartDelayMs > 0 {
+			<-time.After(time.Duration(opt.RandomStartDelayMs) * time.Millisecond)
+		}
+
 		timeTicker := time.NewTicker(time.Duration(intervalMs) * time.Millisecond)
 
 	loop:
