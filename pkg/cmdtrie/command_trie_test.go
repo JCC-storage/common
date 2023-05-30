@@ -17,7 +17,7 @@ func Test_CommandTrie(t *testing.T) {
 		}, "a")
 		So(err, ShouldBeNil)
 
-		err = trie.Execute(0, "a")
+		err = trie.Execute(0, []string{"a"})
 		So(err, ShouldBeNil)
 
 		So(ret, ShouldEqual, "ok")
@@ -40,7 +40,7 @@ func Test_CommandTrie(t *testing.T) {
 		}, "a", "b")
 		So(err, ShouldBeNil)
 
-		err = trie.Execute(0, "a", "b", "1", "2", "true", "3")
+		err = trie.Execute(0, []string{"a", "b", "1", "2", "true", "3"})
 		So(err, ShouldBeNil)
 
 		So(argI, ShouldEqual, 1)
@@ -62,7 +62,7 @@ func Test_CommandTrie(t *testing.T) {
 		}, "a", "b")
 		So(err, ShouldBeNil)
 
-		err = trie.Execute(0, "a", "b", "1", "2", "3", "4")
+		err = trie.Execute(0, []string{"a", "b", "1", "2", "3", "4"})
 		So(err, ShouldBeNil)
 
 		So(argI, ShouldEqual, 1)
@@ -82,7 +82,7 @@ func Test_CommandTrie(t *testing.T) {
 		}, "a", "b")
 		So(err, ShouldBeNil)
 
-		err = trie.Execute(0, "a", "b", "1")
+		err = trie.Execute(0, []string{"a", "b", "1"})
 		So(err, ShouldBeNil)
 
 		So(argI, ShouldEqual, 1)
@@ -102,7 +102,7 @@ func Test_CommandTrie(t *testing.T) {
 		}, "a", "b")
 		So(err, ShouldBeNil)
 
-		ret, err := trie.Execute(0, "a", "b", "1")
+		ret, err := trie.Execute(0, []string{"a", "b", "1"})
 		So(err, ShouldBeNil)
 
 		So(argI, ShouldEqual, 1)
@@ -128,13 +128,13 @@ func Test_CommandTrie(t *testing.T) {
 		}, "a", "c")
 		So(err, ShouldBeNil)
 
-		ret, err := trie.Execute(0, "a", "b", "1")
+		ret, err := trie.Execute(0, []string{"a", "b", "1"})
 		So(err, ShouldBeNil)
 		So(argI, ShouldEqual, 1)
 		So(argArr, ShouldResemble, []int64{})
 		So(ret, ShouldEqual, 123)
 
-		ret2, err := trie.Execute(0, "a", "c", "1")
+		ret2, err := trie.Execute(0, []string{"a", "c", "1"})
 		So(err, ShouldBeNil)
 		So(ret2, ShouldEqual, "123")
 	})
@@ -152,7 +152,7 @@ func Test_CommandTrie(t *testing.T) {
 		}, "a", "b")
 		So(err, ShouldBeNil)
 
-		ret, err := trie.Execute("a", "b", "1")
+		ret, err := trie.Execute([]string{"a", "b", "1"})
 		So(err, ShouldBeNil)
 
 		So(argI, ShouldEqual, 1)
@@ -173,11 +173,29 @@ func Test_CommandTrie(t *testing.T) {
 		}, "a", "b")
 		So(err, ShouldBeNil)
 
-		ret, err := trie.Execute("a", "b")
+		ret, err := trie.Execute([]string{"a", "b"})
 		So(err, ShouldBeNil)
 
 		So(argI, ShouldEqual, 1)
 		So(argArr, ShouldResemble, []int64{})
+		So(ret, ShouldEqual, 123)
+	})
+
+	Convey("空数组参数变成nil", t, func() {
+		trie := NewStaticCommandTrie[int]()
+
+		var argStrs []string
+
+		err := trie.Add(func(strs []string) int {
+			argStrs = strs
+			return 123
+		}, "a", "b")
+		So(err, ShouldBeNil)
+
+		ret, err := trie.Execute([]string{"a", "b"}, ExecuteOption{ReplaceEmptyArrayWithNil: true})
+		So(err, ShouldBeNil)
+
+		So(argStrs, ShouldBeNil)
 		So(ret, ShouldEqual, 123)
 	})
 }

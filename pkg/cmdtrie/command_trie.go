@@ -8,6 +8,10 @@ import (
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 )
 
+type ExecuteOption struct {
+	ReplaceEmptyArrayWithNil bool // 如果最后一个参数是空数组，则调用命令的时候传递nil参数
+}
+
 type command struct {
 	fn             reflect.Value
 	fnType         reflect.Type
@@ -139,7 +143,7 @@ func (t *anyCommandTrie) checkFnArgs(typ reflect.Type) error {
 	return nil
 }
 
-func (t *anyCommandTrie) Execute(ctx any, cmdWords ...string) ([]reflect.Value, error) {
+func (t *anyCommandTrie) Execute(ctx any, cmdWords []string, opt ExecuteOption) ([]reflect.Value, error) {
 	var cmd *command
 	var argWords []string
 
@@ -171,7 +175,7 @@ func (t *anyCommandTrie) Execute(ctx any, cmdWords ...string) ([]reflect.Value, 
 	}
 
 	// 解析最后一个参数
-	callArgs, err = t.parseLastArg(cmd, argWords, callArgs)
+	callArgs, err = t.parseLastArg(cmd, argWords, opt, callArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +223,7 @@ func (t *anyCommandTrie) parseFrontArgs(cmd *command, argWords []string, callArg
 	return callArgs, nil
 }
 
-func (t *anyCommandTrie) parseLastArg(cmd *command, argWords []string, callArgs []reflect.Value) ([]reflect.Value, error) {
+func (t *anyCommandTrie) parseLastArg(cmd *command, argWords []string, opt ExecuteOption, callArgs []reflect.Value) ([]reflect.Value, error) {
 	if len(cmd.staticArgTypes) > 0 {
 		lastArgType := cmd.staticArgTypes[len(cmd.staticArgTypes)-1]
 		lastArgWords := argWords[len(cmd.staticArgTypes)-1:]
@@ -239,6 +243,10 @@ func (t *anyCommandTrie) parseLastArg(cmd *command, argWords []string, callArgs 
 					return nil, fmt.Errorf("cannot parse as array element, err: %s", err.Error())
 				}
 				lastArg.Index(i).Set(eleVal)
+			}
+
+			if opt.ReplaceEmptyArrayWithNil && lastArg.Len() == 0 {
+				lastArg = reflect.Zero(lastArgType)
 			}
 
 		} else {
@@ -325,8 +333,13 @@ func (t *CommandTrie[TCtx, TRet]) MustAdd(fn any, prefixWords ...string) {
 	}
 }
 
-func (t *CommandTrie[TCtx, TRet]) Execute(ctx TCtx, cmdWords ...string) (TRet, error) {
-	retValues, err := t.anyTrie.Execute(ctx, cmdWords...)
+func (t *CommandTrie[TCtx, TRet]) Execute(ctx TCtx, cmdWords []string, opts ...ExecuteOption) (TRet, error) {
+	opt := ExecuteOption{}
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+
+	retValues, err := t.anyTrie.Execute(ctx, cmdWords, opt)
 	if err != nil {
 		var defRet TRet
 		return defRet, err
@@ -361,8 +374,13 @@ func (t *VoidCommandTrie[TCtx]) MustAdd(fn any, prefixWords ...string) {
 	}
 }
 
-func (t *VoidCommandTrie[TCtx]) Execute(ctx TCtx, cmdWords ...string) error {
-	_, err := t.anyTrie.Execute(ctx, cmdWords...)
+func (t *VoidCommandTrie[TCtx]) Execute(ctx TCtx, cmdWords []string, opts ...ExecuteOption) error {
+	opt := ExecuteOption{}
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+
+	_, err := t.anyTrie.Execute(ctx, cmdWords, opt)
 	return err
 }
 
@@ -387,8 +405,13 @@ func (t *StaticCommandTrie[TRet]) MustAdd(fn any, prefixWords ...string) {
 	}
 }
 
-func (t *StaticCommandTrie[TRet]) Execute(cmdWords ...string) (TRet, error) {
-	retValues, err := t.anyTrie.Execute(nil, cmdWords...)
+func (t *StaticCommandTrie[TRet]) Execute(cmdWords []string, opts ...ExecuteOption) (TRet, error) {
+	opt := ExecuteOption{}
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+
+	retValues, err := t.anyTrie.Execute(nil, cmdWords, opt)
 	if err != nil {
 		var defRet TRet
 		return defRet, err
