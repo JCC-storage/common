@@ -198,4 +198,27 @@ func Test_CommandTrie(t *testing.T) {
 		So(argStrs, ShouldBeNil)
 		So(ret, ShouldEqual, 123)
 	})
+
+	Convey("前缀有重叠的命令，取前缀最长的", t, func() {
+		trie := NewStaticCommandTrie[int]()
+
+		var argStrs []string
+		err := trie.Add(func(strs []string) int {
+			argStrs = strs
+			return 123
+		}, "a", "b", "c")
+		So(err, ShouldBeNil)
+
+		err = trie.Add(func(strs []string) int {
+			argStrs = strs
+			return 456
+		}, "a", "b", "c", "d")
+		So(err, ShouldBeNil)
+
+		ret, err := trie.Execute([]string{"a", "b", "c", "d", "e"}, ExecuteOption{ReplaceEmptyArrayWithNil: true})
+		So(err, ShouldBeNil)
+
+		So(argStrs, ShouldResemble, []string{"e"})
+		So(ret, ShouldEqual, 456)
+	})
 }

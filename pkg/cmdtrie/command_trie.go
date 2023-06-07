@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/samber/lo"
+	"gitlink.org.cn/cloudream/common/pkg/trie"
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 )
 
@@ -19,22 +21,14 @@ type command struct {
 	lastIsArray    bool
 }
 
-type trieNode struct {
-	nexts map[string]*trieNode
-	cmd   *command
-}
-
 type anyCommandTrie struct {
-	root    trieNode
+	trie    trie.Trie[*command]
 	ctxType reflect.Type
 	retType reflect.Type
 }
 
 func newAnyCommandTrie(ctxType reflect.Type, retType reflect.Type) anyCommandTrie {
 	return anyCommandTrie{
-		root: trieNode{
-			nexts: make(map[string]*trieNode),
-		},
 		ctxType: ctxType,
 		retType: retType,
 	}
@@ -56,17 +50,7 @@ func (t *anyCommandTrie) Add(fn any, prefixWords ...string) error {
 		return err
 	}
 
-	ptr := &t.root
-	for _, word := range prefixWords {
-		next, ok := ptr.nexts[word]
-		if !ok {
-			next = &trieNode{
-				nexts: make(map[string]*trieNode),
-			}
-			ptr.nexts[word] = next
-		}
-		ptr = next
-	}
+	node := t.trie.Create(lo.Map(prefixWords, func(val string, index int) any { return val }))
 
 	fnType := reflect.TypeOf(fn)
 	var staticArgTypes []reflect.Type
@@ -86,7 +70,7 @@ func (t *anyCommandTrie) Add(fn any, prefixWords ...string) error {
 		lastIsArray = kind == reflect.Array || kind == reflect.Slice
 	}
 
-	ptr.cmd = &command{
+	node.Value = &command{
 		fn:             reflect.ValueOf(fn),
 		fnType:         reflect.TypeOf(fn),
 		staticArgTypes: staticArgTypes,
@@ -186,19 +170,13 @@ func (t *anyCommandTrie) Execute(ctx any, cmdWords []string, opt ExecuteOption) 
 func (t *anyCommandTrie) findCommand(cmdWords []string, argWords []string) (*command, []string, error) {
 	var cmd *command
 
-	ptr := &t.root
-	for i := 0; i < len(cmdWords); i++ {
-		next, ok := ptr.nexts[cmdWords[i]]
-		if !ok {
-			break
+	t.trie.Walk(cmdWords, func(word string, index int, node *trie.Node[*command], isWordNode bool) {
+		if node.Value != nil {
+			cmd = node.Value
+			argWords = cmdWords[index+1:]
 		}
-		if next != nil {
-			cmd = next.cmd
-			argWords = cmdWords[i+1:]
-		}
+	})
 
-		ptr = next
-	}
 	if cmd == nil {
 		return nil, nil, fmt.Errorf("command not found")
 	}
