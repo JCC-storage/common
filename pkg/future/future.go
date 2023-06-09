@@ -7,9 +7,19 @@ import (
 
 var ErrWaitTimeout = fmt.Errorf("wait timeout")
 
-type Future[T any] interface {
+type Future interface {
+	Error() error
 	IsComplete() bool
 
-	Wait() (T, error)
-	WaitTimeout(timeout time.Duration) (T, error)
+	Wait() error
+	WaitTimeout(timeout time.Duration) error
+}
+
+type ValueFuture[T any] interface {
+	Future
+
+	Value() T
+
+	WaitValue() (T, error)
+	WaitValueTimeout(timeout time.Duration) (T, error)
 }
