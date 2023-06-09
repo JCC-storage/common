@@ -18,8 +18,8 @@ type mainActor struct {
 
 	commandChan *actor.CommandChannel
 
-	watchEtcd *watchEtcdActor
-	providers *providersActor
+	watchEtcdActor *watchEtcdActor
+	providersActor *providersActor
 }
 
 func newMainActor() *mainActor {
@@ -28,9 +28,9 @@ func newMainActor() *mainActor {
 	}
 }
 
-func (a *mainActor) Init(watchEtcd *watchEtcdActor, providers *providersActor) {
-	a.watchEtcd = watchEtcd
-	a.providers = providers
+func (a *mainActor) Init(watchEtcdActor *watchEtcdActor, providersActor *providersActor) {
+	a.watchEtcdActor = watchEtcdActor
+	a.providersActor = providersActor
 }
 
 // Acquire 请求一批锁。成功后返回锁请求ID
@@ -49,13 +49,13 @@ func (a *mainActor) Acquire(req LockRequest) (reqID string, err error) {
 		}
 
 		// 等待本地状态同步到最新
-		err = a.providers.WaitIndexUpdated(index)
+		err = a.providersActor.WaitIndexUpdated(index)
 		if err != nil {
 			return "", err
 		}
 
 		// 测试锁，并获得锁数据
-		reqData, err := a.providers.TestLockRequestAndMakeData(req)
+		reqData, err := a.providersActor.TestLockRequestAndMakeData(req)
 		if err != nil {
 			return "", err
 		}
@@ -125,7 +125,7 @@ func (a *mainActor) Release(reqID string) error {
 }
 
 func (a *mainActor) acquireEtcdRequestDataLock() (unlock func(), err error) {
-	lease, err := a.etcdCli.Grant(context.Background(), a.cfg.LockRequestDataConfig.LeaseTimeSec)
+	lease, err := a.etcdCli.Grant(context.Background(), a.cfg.EtcdLockLeaseTimeSec)
 	if err != nil {
 		return nil, fmt.Errorf("grant lease failed, err: %w", err)
 	}
@@ -139,7 +139,7 @@ func (a *mainActor) acquireEtcdRequestDataLock() (unlock func(), err error) {
 	mutex := concurrency.NewMutex(session, LOCK_REQUEST_LOCK_NAME)
 
 	timeout, cancelFunc := context.WithTimeout(context.Background(),
-		time.Duration(a.cfg.LockRequestDataConfig.AcquireTimeoutMs)*time.Millisecond)
+		time.Duration(a.cfg.EtcdLockAcquireTimeoutMs)*time.Millisecond)
 	defer cancelFunc()
 
 	err = mutex.Lock(timeout)
@@ -218,17 +218,17 @@ func (a *mainActor) ReloadEtcdData() error {
 
 		// 先停止监听，再重置锁状态，最后恢复监听
 
-		err = a.watchEtcd.StopWatching()
+		err = a.watchEtcdActor.StopWatching()
 		if err != nil {
 			return fmt.Errorf("stop watching etcd failed, err: %w", err)
 		}
 
-		err = a.providers.ResetState(index, reqData)
+		err = a.providersActor.ResetState(index, reqData)
 		if err != nil {
 			return fmt.Errorf("reset lock providers state failed, err: %w", err)
 		}
 
-		err = a.watchEtcd.StartWatching()
+		err = a.watchEtcdActor.StartWatching()
 		if err != nil {
 			return fmt.Errorf("start watching etcd failed, err: %w", err)
 		}
