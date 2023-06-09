@@ -21,6 +21,7 @@ func (b *LockRequest) Add(lock Lock) {
 }
 
 type lockRequestData struct {
+	ID    string     `json:"id"`
 	Locks []lockData `json:"locks"`
 }
 
