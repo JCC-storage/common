@@ -1,5 +1,7 @@
 package distlock
 
+import "fmt"
+
 type Lock struct {
 	Path   []string // 锁路径，存储的是路径的每一部分
 	Name   string   // 锁名
@@ -43,4 +45,18 @@ type LockProvider interface {
 
 	// Clear 清除内部所有状态
 	Clear()
+}
+
+type LockTargetBusyError struct {
+	lockName string
+}
+
+func (e *LockTargetBusyError) Error() string {
+	return fmt.Sprintf("the lock object is locked by %s", e.lockName)
+}
+
+func newLockTargetBusyError(lockName string) *LockTargetBusyError {
+	return &LockTargetBusyError{
+		lockName: lockName,
+	}
 }

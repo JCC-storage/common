@@ -20,6 +20,8 @@ type mainActor struct {
 
 	watchEtcdActor *watchEtcdActor
 	providersActor *providersActor
+
+	lockRequestLeaseID clientv3.LeaseID
 }
 
 func newMainActor() *mainActor {
@@ -74,7 +76,8 @@ func (a *mainActor) Acquire(req LockRequest) (reqID string, err error) {
 		txResp, err := a.etcdCli.Txn(context.Background()).
 			Then(
 				clientv3.OpPut(LOCK_REQUEST_INDEX, nextIndexStr),
-				clientv3.OpPut(makeEtcdLockRequestKey(nextIndexStr), string(reqBytes)),
+				// 归属到当前连接的租约，在当前连接断开后，能自动解锁
+				clientv3.OpPut(makeEtcdLockRequestKey(nextIndexStr), string(reqBytes), clientv3.WithLease(a.lockRequestLeaseID)),
 			).
 			Commit()
 		if err != nil {
@@ -238,6 +241,12 @@ func (a *mainActor) ReloadEtcdData() error {
 }
 
 func (a *mainActor) Serve() error {
+	lease, err := a.etcdCli.Grant(context.Background(), a.cfg.EtcdLockLeaseTimeSec)
+	if err != nil {
+		return fmt.Errorf("grant lease failed, err: %w", err)
+	}
+	a.lockRequestLeaseID = lease.ID
+
 	for {
 		select {
 		case cmd, ok := <-a.commandChan.ChanReceive():
