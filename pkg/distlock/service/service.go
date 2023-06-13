@@ -5,34 +5,18 @@ import (
 	"time"
 
 	"gitlink.org.cn/cloudream/common/pkg/distlock"
+	"gitlink.org.cn/cloudream/common/pkg/distlock/service/internal"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
-
-const (
-	LOCK_REQUEST_DATA_PREFIX = "/distlock/lockRequest/data"
-	LOCK_REQUEST_INDEX       = "/distlock/lockRequest/index"
-	LOCK_REQUEST_LOCK_NAME   = "/distlock/lockRequest/lock"
-)
-
-type lockData struct {
-	Path   []string `json:"path"`
-	Name   string   `json:"name"`
-	Target string   `json:"target"`
-}
-
-type lockRequestData struct {
-	ID    string     `json:"id"`
-	Locks []lockData `json:"locks"`
-}
 
 type Service struct {
 	cfg     *distlock.Config
 	etcdCli *clientv3.Client
 
-	mainActor      *mainActor
-	providersActor *providersActor
-	watchEtcdActor *watchEtcdActor
-	leaseActor     *leaseActor
+	mainActor      *internal.MainActor
+	providersActor *internal.ProvidersActor
+	watchEtcdActor *internal.WatchEtcdActor
+	leaseActor     *internal.LeaseActor
 }
 
 func NewService(cfg *distlock.Config) (*Service, error) {
@@ -46,10 +30,10 @@ func NewService(cfg *distlock.Config) (*Service, error) {
 		return nil, fmt.Errorf("new etcd client failed, err: %w", err)
 	}
 
-	mainActor := newMainActor()
-	providersActor := newProvidersActor()
-	watchEtcdActor := newWatchEtcdActor()
-	leaseActor := newLeaseActor()
+	mainActor := internal.NewMainActor()
+	providersActor := internal.NewProvidersActor()
+	watchEtcdActor := internal.NewWatchEtcdActor()
+	leaseActor := internal.NewLeaseActor()
 
 	mainActor.Init(watchEtcdActor, providersActor)
 	providersActor.Init()

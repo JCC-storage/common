@@ -1,4 +1,4 @@
-package service
+package internal
 
 import (
 	"fmt"
@@ -12,34 +12,34 @@ type lockRequestLease struct {
 	Deadline  time.Time
 }
 
-type leaseActor struct {
+type LeaseActor struct {
 	leases map[string]*lockRequestLease
 	ticker *time.Ticker
 
 	commandChan *actor.CommandChannel
 
-	mainActor *mainActor
+	mainActor *MainActor
 }
 
-func newLeaseActor() *leaseActor {
-	return &leaseActor{
+func NewLeaseActor() *LeaseActor {
+	return &LeaseActor{
 		leases:      make(map[string]*lockRequestLease),
 		commandChan: actor.NewCommandChannel(),
 	}
 }
 
-func (a *leaseActor) Init(mainActor *mainActor) {
+func (a *LeaseActor) Init(mainActor *MainActor) {
 	a.mainActor = mainActor
 }
 
-func (a *leaseActor) StartChecking() error {
+func (a *LeaseActor) StartChecking() error {
 	return actor.Wait(a.commandChan, func() error {
 		a.ticker = time.NewTicker(time.Second)
 		return nil
 	})
 }
 
-func (a *leaseActor) StopChecking() error {
+func (a *LeaseActor) StopChecking() error {
 	return actor.Wait(a.commandChan, func() error {
 		if a.ticker != nil {
 			a.ticker.Stop()
@@ -49,7 +49,7 @@ func (a *leaseActor) StopChecking() error {
 	})
 }
 
-func (a *leaseActor) Add(reqID string, leaseTime time.Duration) error {
+func (a *LeaseActor) Add(reqID string, leaseTime time.Duration) error {
 	return actor.Wait(a.commandChan, func() error {
 		lease, ok := a.leases[reqID]
 		if !ok {
@@ -66,7 +66,7 @@ func (a *leaseActor) Add(reqID string, leaseTime time.Duration) error {
 	})
 }
 
-func (a *leaseActor) Renew(reqID string, leaseTime time.Duration) error {
+func (a *LeaseActor) Renew(reqID string, leaseTime time.Duration) error {
 	return actor.Wait(a.commandChan, func() error {
 		lease, ok := a.leases[reqID]
 		if !ok {
@@ -80,14 +80,14 @@ func (a *leaseActor) Renew(reqID string, leaseTime time.Duration) error {
 	})
 }
 
-func (a *leaseActor) Remove(reqID string) error {
+func (a *LeaseActor) Remove(reqID string) error {
 	return actor.Wait(a.commandChan, func() error {
 		delete(a.leases, reqID)
 		return nil
 	})
 }
 
-func (a *leaseActor) Server() error {
+func (a *LeaseActor) Server() error {
 	for {
 		if a.ticker != nil {
 			select {

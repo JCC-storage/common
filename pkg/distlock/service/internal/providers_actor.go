@@ -1,4 +1,4 @@
-package service
+package internal
 
 import (
 	"fmt"
@@ -19,7 +19,7 @@ type lockRequestDataUpdateOp struct {
 	IsLock bool
 }
 
-type providersActor struct {
+type ProvidersActor struct {
 	localLockReqIndex int64
 	provdersTrie      trie.Trie[distlock.LockProvider]
 	allProviders      []distlock.LockProvider
@@ -29,16 +29,16 @@ type providersActor struct {
 	commandChan *actor.CommandChannel
 }
 
-func newProvidersActor() *providersActor {
-	return &providersActor{
+func NewProvidersActor() *ProvidersActor {
+	return &ProvidersActor{
 		commandChan: actor.NewCommandChannel(),
 	}
 }
 
-func (a *providersActor) Init() {
+func (a *ProvidersActor) Init() {
 }
 
-func (a *providersActor) WaitIndexUpdated(index int64) error {
+func (a *ProvidersActor) WaitIndexUpdated(index int64) error {
 	fut := future.NewSetVoid()
 
 	a.commandChan.Send(func() {
@@ -55,7 +55,7 @@ func (a *providersActor) WaitIndexUpdated(index int64) error {
 	return fut.Wait()
 }
 
-func (a *providersActor) BatchUpdateByLockRequestData(ops []lockRequestDataUpdateOp) error {
+func (a *ProvidersActor) BatchUpdateByLockRequestData(ops []lockRequestDataUpdateOp) error {
 	return actor.Wait(a.commandChan, func() error {
 		for _, op := range ops {
 			if op.IsLock {
@@ -82,7 +82,7 @@ func (a *providersActor) BatchUpdateByLockRequestData(ops []lockRequestDataUpdat
 	})
 }
 
-func (svc *providersActor) lockLockRequest(reqData lockRequestData) error {
+func (svc *ProvidersActor) lockLockRequest(reqData lockRequestData) error {
 	for _, lockData := range reqData.Locks {
 		node, ok := svc.provdersTrie.WalkEnd(lockData.Path)
 		if !ok || node.Value == nil {
@@ -106,7 +106,7 @@ func (svc *providersActor) lockLockRequest(reqData lockRequestData) error {
 	return nil
 }
 
-func (svc *providersActor) unlockLockRequest(reqData lockRequestData) error {
+func (svc *ProvidersActor) unlockLockRequest(reqData lockRequestData) error {
 	for _, lockData := range reqData.Locks {
 		node, ok := svc.provdersTrie.WalkEnd(lockData.Path)
 		if !ok || node.Value == nil {
@@ -131,7 +131,7 @@ func (svc *providersActor) unlockLockRequest(reqData lockRequestData) error {
 }
 
 // TestLockRequestAndMakeData 判断锁能否锁成功，并生成锁数据的字符串表示。注：不会生成请求ID
-func (a *providersActor) TestLockRequestAndMakeData(req distlock.LockRequest) (lockRequestData, error) {
+func (a *ProvidersActor) TestLockRequestAndMakeData(req distlock.LockRequest) (lockRequestData, error) {
 	return actor.WaitValue[lockRequestData](a.commandChan, func() (lockRequestData, error) {
 		reqData := lockRequestData{}
 
@@ -163,7 +163,7 @@ func (a *providersActor) TestLockRequestAndMakeData(req distlock.LockRequest) (l
 }
 
 // ResetState 重置内部状态
-func (a *providersActor) ResetState(index int64, lockRequestData []lockRequestData) error {
+func (a *ProvidersActor) ResetState(index int64, lockRequestData []lockRequestData) error {
 	return actor.Wait(a.commandChan, func() error {
 		for _, p := range a.allProviders {
 			p.Clear()
@@ -185,7 +185,7 @@ func (a *providersActor) ResetState(index int64, lockRequestData []lockRequestDa
 	})
 }
 
-func (a *providersActor) checkIndexWaiter() {
+func (a *ProvidersActor) checkIndexWaiter() {
 	var resetWaiters []indexWaiter
 	for _, waiter := range a.indexWaiters {
 		if waiter.Index <= a.localLockReqIndex {
@@ -197,7 +197,7 @@ func (a *providersActor) checkIndexWaiter() {
 	a.indexWaiters = resetWaiters
 }
 
-func (a *providersActor) Serve() error {
+func (a *ProvidersActor) Serve() error {
 	for {
 		select {
 		case cmd, ok := <-a.commandChan.ChanReceive():

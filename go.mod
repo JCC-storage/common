@@ -14,7 +14,6 @@ require (
 	github.com/smartystreets/goconvey v1.8.0
 	github.com/zyedidia/generic v1.2.1
 	gitlink.org.cn/cloudream/proto v0.0.0
-	go.etcd.io/etcd/api/v3 v3.5.9
 	go.etcd.io/etcd/client/v3 v3.5.9
 	golang.org/x/exp v0.0.0-20230519143937-03e91628a987
 )
@@ -50,6 +49,7 @@ require (
 	github.com/smartystreets/assertions v1.13.1 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c // indirect
+	go.etcd.io/etcd/api/v3 v3.5.9 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.9 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect

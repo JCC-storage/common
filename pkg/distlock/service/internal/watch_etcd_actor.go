@@ -1,4 +1,4 @@
-package service
+package internal
 
 import (
 	"context"
@@ -9,40 +9,40 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-type watchEtcdActor struct {
+type WatchEtcdActor struct {
 	etcdCli   *clientv3.Client
 	watchChan clientv3.WatchChan
 
 	commandChan *actor.CommandChannel
 
-	providers *providersActor
+	providers *ProvidersActor
 }
 
-func newWatchEtcdActor() *watchEtcdActor {
-	return &watchEtcdActor{
+func NewWatchEtcdActor() *WatchEtcdActor {
+	return &WatchEtcdActor{
 		commandChan: actor.NewCommandChannel(),
 	}
 }
 
-func (a *watchEtcdActor) Init(providers *providersActor) {
+func (a *WatchEtcdActor) Init(providers *ProvidersActor) {
 	a.providers = providers
 }
 
-func (a *watchEtcdActor) StartWatching() error {
+func (a *WatchEtcdActor) StartWatching() error {
 	return actor.Wait(a.commandChan, func() error {
 		a.watchChan = a.etcdCli.Watch(context.Background(), LOCK_REQUEST_DATA_PREFIX, clientv3.WithPrefix())
 		return nil
 	})
 }
 
-func (a *watchEtcdActor) StopWatching() error {
+func (a *WatchEtcdActor) StopWatching() error {
 	return actor.Wait(a.commandChan, func() error {
 		a.watchChan = nil
 		return nil
 	})
 }
 
-func (a *watchEtcdActor) Serve() error {
+func (a *WatchEtcdActor) Serve() error {
 	for {
 		if a.watchChan != nil {
 			select {
@@ -85,7 +85,7 @@ func (a *watchEtcdActor) Serve() error {
 	}
 }
 
-func (a *watchEtcdActor) parseEvents(watchResp clientv3.WatchResponse) ([]lockRequestDataUpdateOp, error) {
+func (a *WatchEtcdActor) parseEvents(watchResp clientv3.WatchResponse) ([]lockRequestDataUpdateOp, error) {
 	var ops []lockRequestDataUpdateOp
 
 	for _, e := range watchResp.Events {

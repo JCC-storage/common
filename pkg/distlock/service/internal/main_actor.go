@@ -1,4 +1,4 @@
-package service
+package internal
 
 import (
 	"context"
@@ -13,31 +13,48 @@ import (
 	"go.etcd.io/etcd/client/v3/concurrency"
 )
 
-type mainActor struct {
+const (
+	LOCK_REQUEST_DATA_PREFIX = "/distlock/lockRequest/data"
+	LOCK_REQUEST_INDEX       = "/distlock/lockRequest/index"
+	LOCK_REQUEST_LOCK_NAME   = "/distlock/lockRequest/lock"
+)
+
+type lockData struct {
+	Path   []string `json:"path"`
+	Name   string   `json:"name"`
+	Target string   `json:"target"`
+}
+
+type lockRequestData struct {
+	ID    string     `json:"id"`
+	Locks []lockData `json:"locks"`
+}
+
+type MainActor struct {
 	cfg     *distlock.Config
 	etcdCli *clientv3.Client
 
 	commandChan *actor.CommandChannel
 
-	watchEtcdActor *watchEtcdActor
-	providersActor *providersActor
+	watchEtcdActor *WatchEtcdActor
+	providersActor *ProvidersActor
 
 	lockRequestLeaseID clientv3.LeaseID
 }
 
-func newMainActor() *mainActor {
-	return &mainActor{
+func NewMainActor() *MainActor {
+	return &MainActor{
 		commandChan: actor.NewCommandChannel(),
 	}
 }
 
-func (a *mainActor) Init(watchEtcdActor *watchEtcdActor, providersActor *providersActor) {
+func (a *MainActor) Init(watchEtcdActor *WatchEtcdActor, providersActor *ProvidersActor) {
 	a.watchEtcdActor = watchEtcdActor
 	a.providersActor = providersActor
 }
 
 // Acquire 请求一批锁。成功后返回锁请求ID
-func (a *mainActor) Acquire(req distlock.LockRequest) (reqID string, err error) {
+func (a *MainActor) Acquire(req distlock.LockRequest) (reqID string, err error) {
 	return actor.WaitValue[string](a.commandChan, func() (string, error) {
 		// TODO 根据不同的错误设置不同的错误类型，方便上层进行后续处理
 		unlock, err := a.acquireEtcdRequestDataLock()
@@ -93,7 +110,7 @@ func (a *mainActor) Acquire(req distlock.LockRequest) (reqID string, err error) 
 }
 
 // Release 释放锁
-func (a *mainActor) Release(reqID string) error {
+func (a *MainActor) Release(reqID string) error {
 	return actor.Wait(a.commandChan, func() error {
 		// TODO 根据不同的错误设置不同的错误类型，方便上层进行后续处理
 		unlock, err := a.acquireEtcdRequestDataLock()
@@ -128,7 +145,7 @@ func (a *mainActor) Release(reqID string) error {
 	})
 }
 
-func (a *mainActor) acquireEtcdRequestDataLock() (unlock func(), err error) {
+func (a *MainActor) acquireEtcdRequestDataLock() (unlock func(), err error) {
 	lease, err := a.etcdCli.Grant(context.Background(), a.cfg.EtcdLockLeaseTimeSec)
 	if err != nil {
 		return nil, fmt.Errorf("grant lease failed, err: %w", err)
@@ -157,7 +174,7 @@ func (a *mainActor) acquireEtcdRequestDataLock() (unlock func(), err error) {
 	}, nil
 }
 
-func (a *mainActor) getEtcdLockRequestIndex() (int64, error) {
+func (a *MainActor) getEtcdLockRequestIndex() (int64, error) {
 	indexKv, err := a.etcdCli.Get(context.Background(), LOCK_REQUEST_INDEX)
 	if err != nil {
 		return 0, fmt.Errorf("get lock request index failed, err: %w", err)
@@ -175,7 +192,7 @@ func (a *mainActor) getEtcdLockRequestIndex() (int64, error) {
 	return index, nil
 }
 
-func (a *mainActor) ReloadEtcdData() error {
+func (a *MainActor) ReloadEtcdData() error {
 	return actor.Wait(a.commandChan, func() error {
 		// 使用事务一次性获取index和锁数据，就不需要加全局锁了
 		txResp, err := a.etcdCli.Txn(context.Background()).
@@ -241,7 +258,7 @@ func (a *mainActor) ReloadEtcdData() error {
 	})
 }
 
-func (a *mainActor) Serve() error {
+func (a *MainActor) Serve() error {
 	lease, err := a.etcdCli.Grant(context.Background(), a.cfg.EtcdLockLeaseTimeSec)
 	if err != nil {
 		return fmt.Errorf("grant lease failed, err: %w", err)
