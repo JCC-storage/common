@@ -1,9 +1,26 @@
 package lockprovider
 
-import "gitlink.org.cn/cloudream/common/utils/serder"
+import (
+	"fmt"
+
+	"github.com/samber/lo"
+	"gitlink.org.cn/cloudream/common/utils/serder"
+)
 
 type StringLockTarget struct {
 	Components []StringLockTargetComponet `json:"components"`
+}
+
+func NewStringLockTarget() *StringLockTarget {
+	return &StringLockTarget{}
+}
+
+func (t *StringLockTarget) AddComponent(values ...any) *StringLockTarget {
+	t.Components = append(t.Components, StringLockTargetComponet{
+		Values: lo.Map(values, func(val any, index int) string { return fmt.Sprintf("%v", val) }),
+	})
+
+	return t
 }
 
 // IsConflict 判断两个锁对象是否冲突。注：只有相同的结构的Target才有意义

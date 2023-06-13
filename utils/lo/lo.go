@@ -18,3 +18,7 @@ func RemoveAt[T any](arr []T, index int) []T {
 
 	return append(arr[:index], arr[:index+1]...)
 }
+
+func ArrayClone[T any](arr []T) []T {
+	return append([]T{}, arr...)
+}
