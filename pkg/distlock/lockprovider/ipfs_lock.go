@@ -15,14 +15,77 @@ const (
 
 	IPFS_ELEMENT_READ_LOCK  = "ElementRead"
 	IPFS_ELEMENT_WRITE_LOCK = "ElementWrite"
+
+	IPFS_NODE_ID_PATH_INDEX = 1
 )
+
+type IPFSLock struct {
+	nodeLocks map[string]*IPFSNodeLock
+}
+
+func NewIPFSLock() *IPFSLock {
+	return &IPFSLock{
+		nodeLocks: make(map[string]*IPFSNodeLock),
+	}
+}
+
+// CanLock 判断这个锁能否锁定成功
+func (l *IPFSLock) CanLock(lock distlock.Lock) error {
+	nodeLock, ok := l.nodeLocks[lock.Path[IPFS_NODE_ID_PATH_INDEX]]
+	if !ok {
+		return nil
+	}
+
+	return nodeLock.CanLock(lock)
+}
+
+// 锁定。在内部可以不用判断能否加锁，外部需要保证调用此函数前调用了CanLock进行检查
+func (l *IPFSLock) Lock(reqID string, lock distlock.Lock) error {
+	nodeID := lock.Path[IPFS_NODE_ID_PATH_INDEX]
+
+	nodeLock, ok := l.nodeLocks[nodeID]
+	if !ok {
+		nodeLock = NewIPFSNodeLock()
+		l.nodeLocks[nodeID] = nodeLock
+	}
+
+	return nodeLock.Lock(reqID, lock)
+}
+
+// 解锁
+func (l *IPFSLock) Unlock(reqID string, lock distlock.Lock) error {
+	nodeID := lock.Path[IPFS_NODE_ID_PATH_INDEX]
+
+	nodeLock, ok := l.nodeLocks[nodeID]
+	if !ok {
+		return nil
+	}
+
+	return nodeLock.Unlock(reqID, lock)
+}
+
+// GetTargetString 将锁对象序列化为字符串，方便存储到ETCD
+func (l *IPFSLock) GetTargetString(target any) (string, error) {
+	tar := target.(StringLockTarget)
+	return StringLockTargetToString(&tar)
+}
+
+// ParseTargetString 解析字符串格式的锁对象数据
+func (l *IPFSLock) ParseTargetString(targetStr string) (any, error) {
+	return StringLockTargetFromString(targetStr)
+}
+
+// Clear 清除内部所有状态
+func (l *IPFSLock) Clear() {
+	l.nodeLocks = make(map[string]*IPFSNodeLock)
+}
 
 type ipfsElementLock struct {
 	target     StringLockTarget
 	requestIDs []string
 }
 
-type IPFSLock struct {
+type IPFSNodeLock struct {
 	setReadReqIDs   []string
 	setWriteReqIDs  []string
 	setCreateReqIDs []string
@@ -30,16 +93,15 @@ type IPFSLock struct {
 	elementReadLocks  []*ipfsElementLock
 	elementWriteLocks []*ipfsElementLock
 
-	lockCompatibilityTable LockCompatibilityTable
+	lockCompatibilityTable *LockCompatibilityTable
 }
 
-func NewIPFSLock() *IPFSLock {
+func NewIPFSNodeLock() *IPFSNodeLock {
+	compTable := &LockCompatibilityTable{}
 
-	ipfsLock := IPFSLock{
-		lockCompatibilityTable: LockCompatibilityTable{},
+	ipfsLock := IPFSNodeLock{
+		lockCompatibilityTable: compTable,
 	}
-
-	compTable := &ipfsLock.lockCompatibilityTable
 
 	compTable.
 		Column(IPFS_ELEMENT_READ_LOCK, func() bool { return len(ipfsLock.elementReadLocks) > 0 }).
@@ -70,12 +132,12 @@ func NewIPFSLock() *IPFSLock {
 }
 
 // CanLock 判断这个锁能否锁定成功
-func (l *IPFSLock) CanLock(lock distlock.Lock) error {
+func (l *IPFSNodeLock) CanLock(lock distlock.Lock) error {
 	return l.lockCompatibilityTable.Test(lock)
 }
 
 // 锁定
-func (l *IPFSLock) Lock(reqID string, lock distlock.Lock) error {
+func (l *IPFSNodeLock) Lock(reqID string, lock distlock.Lock) error {
 	switch lock.Name {
 	case IPFS_SET_READ_LOCK:
 		l.setReadReqIDs = append(l.setReadReqIDs, reqID)
@@ -96,7 +158,7 @@ func (l *IPFSLock) Lock(reqID string, lock distlock.Lock) error {
 	return nil
 }
 
-func (l *IPFSLock) addElementLock(lock distlock.Lock, locks []*ipfsElementLock, reqID string) []*ipfsElementLock {
+func (l *IPFSNodeLock) addElementLock(lock distlock.Lock, locks []*ipfsElementLock, reqID string) []*ipfsElementLock {
 	strTarget := lock.Target.(StringLockTarget)
 	lck, ok := lo.Find(locks, func(l *ipfsElementLock) bool { return strTarget.IsConflict(&l.target) })
 	if !ok {
@@ -111,7 +173,7 @@ func (l *IPFSLock) addElementLock(lock distlock.Lock, locks []*ipfsElementLock, 
 }
 
 // 解锁
-func (l *IPFSLock) Unlock(reqID string, lock distlock.Lock) error {
+func (l *IPFSNodeLock) Unlock(reqID string, lock distlock.Lock) error {
 	switch lock.Name {
 	case IPFS_SET_READ_LOCK:
 		l.setReadReqIDs = mylo.Remove(l.setReadReqIDs, reqID)
@@ -132,7 +194,7 @@ func (l *IPFSLock) Unlock(reqID string, lock distlock.Lock) error {
 	return nil
 }
 
-func (l *IPFSLock) removeElementLock(lock distlock.Lock, locks []*ipfsElementLock, reqID string) []*ipfsElementLock {
+func (l *IPFSNodeLock) removeElementLock(lock distlock.Lock, locks []*ipfsElementLock, reqID string) []*ipfsElementLock {
 	strTarget := lock.Target.(StringLockTarget)
 	lck, index, ok := lo.FindIndexOf(locks, func(l *ipfsElementLock) bool { return strTarget.IsConflict(&l.target) })
 	if !ok {
@@ -146,24 +208,4 @@ func (l *IPFSLock) removeElementLock(lock distlock.Lock, locks []*ipfsElementLoc
 	}
 
 	return locks
-}
-
-// GetTargetString 将锁对象序列化为字符串，方便存储到ETCD
-func (l *IPFSLock) GetTargetString(target any) (string, error) {
-	tar := target.(StringLockTarget)
-	return StringLockTargetToString(&tar)
-}
-
-// ParseTargetString 解析字符串格式的锁对象数据
-func (l *IPFSLock) ParseTargetString(targetStr string) (any, error) {
-	return StringLockTargetFromString(targetStr)
-}
-
-// Clear 清除内部所有状态
-func (l *IPFSLock) Clear() {
-	l.setReadReqIDs = nil
-	l.setWriteReqIDs = nil
-	l.setCreateReqIDs = nil
-	l.elementReadLocks = nil
-	l.elementWriteLocks = nil
 }

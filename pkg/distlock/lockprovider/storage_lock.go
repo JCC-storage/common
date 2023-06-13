@@ -16,14 +16,77 @@ const (
 	STORAGE_ELEMENT_READ_LOCK   = "ElementRead"
 	STORAGE_ELEMENT_WRITE_LOCK  = "ElementWrite"
 	STORAGE_ELEMENT_CREATE_LOCK = "ElementCreate"
+
+	STORAGE_STORAGE_ID_PATH_INDEX = 1
 )
+
+type StorageLock struct {
+	nodeLocks map[string]*StorageNodeLock
+}
+
+func NewStorageLock() *StorageLock {
+	return &StorageLock{
+		nodeLocks: make(map[string]*StorageNodeLock),
+	}
+}
+
+// CanLock 判断这个锁能否锁定成功
+func (l *StorageLock) CanLock(lock distlock.Lock) error {
+	nodeLock, ok := l.nodeLocks[lock.Path[STORAGE_STORAGE_ID_PATH_INDEX]]
+	if !ok {
+		return nil
+	}
+
+	return nodeLock.CanLock(lock)
+}
+
+// 锁定。在内部可以不用判断能否加锁，外部需要保证调用此函数前调用了CanLock进行检查
+func (l *StorageLock) Lock(reqID string, lock distlock.Lock) error {
+	nodeID := lock.Path[STORAGE_STORAGE_ID_PATH_INDEX]
+
+	nodeLock, ok := l.nodeLocks[nodeID]
+	if !ok {
+		nodeLock = NewStorageNodeLock()
+		l.nodeLocks[nodeID] = nodeLock
+	}
+
+	return nodeLock.Lock(reqID, lock)
+}
+
+// 解锁
+func (l *StorageLock) Unlock(reqID string, lock distlock.Lock) error {
+	nodeID := lock.Path[STORAGE_STORAGE_ID_PATH_INDEX]
+
+	nodeLock, ok := l.nodeLocks[nodeID]
+	if !ok {
+		return nil
+	}
+
+	return nodeLock.Unlock(reqID, lock)
+}
+
+// GetTargetString 将锁对象序列化为字符串，方便存储到ETCD
+func (l *StorageLock) GetTargetString(target any) (string, error) {
+	tar := target.(StringLockTarget)
+	return StringLockTargetToString(&tar)
+}
+
+// ParseTargetString 解析字符串格式的锁对象数据
+func (l *StorageLock) ParseTargetString(targetStr string) (any, error) {
+	return StringLockTargetFromString(targetStr)
+}
+
+// Clear 清除内部所有状态
+func (l *StorageLock) Clear() {
+	l.nodeLocks = make(map[string]*StorageNodeLock)
+}
 
 type storageElementLock struct {
 	target     StringLockTarget
 	requestIDs []string
 }
 
-type StorageLock struct {
+type StorageNodeLock struct {
 	setReadReqIDs   []string
 	setWriteReqIDs  []string
 	setCreateReqIDs []string
@@ -35,9 +98,9 @@ type StorageLock struct {
 	lockCompatibilityTable LockCompatibilityTable
 }
 
-func NewStorageLock() *StorageLock {
+func NewStorageNodeLock() *StorageNodeLock {
 
-	storageLock := StorageLock{
+	storageLock := StorageNodeLock{
 		lockCompatibilityTable: LockCompatibilityTable{},
 	}
 
@@ -78,12 +141,12 @@ func NewStorageLock() *StorageLock {
 }
 
 // CanLock 判断这个锁能否锁定成功
-func (l *StorageLock) CanLock(lock distlock.Lock) error {
+func (l *StorageNodeLock) CanLock(lock distlock.Lock) error {
 	return l.lockCompatibilityTable.Test(lock)
 }
 
 // 锁定
-func (l *StorageLock) Lock(reqID string, lock distlock.Lock) error {
+func (l *StorageNodeLock) Lock(reqID string, lock distlock.Lock) error {
 	switch lock.Name {
 	case STORAGE_SET_READ_LOCK:
 		l.setReadReqIDs = append(l.setReadReqIDs, reqID)
@@ -104,7 +167,7 @@ func (l *StorageLock) Lock(reqID string, lock distlock.Lock) error {
 	return nil
 }
 
-func (l *StorageLock) addElementLock(lock distlock.Lock, locks []*storageElementLock, reqID string) []*storageElementLock {
+func (l *StorageNodeLock) addElementLock(lock distlock.Lock, locks []*storageElementLock, reqID string) []*storageElementLock {
 	strTarget := lock.Target.(StringLockTarget)
 	lck, ok := lo.Find(locks, func(l *storageElementLock) bool { return strTarget.IsConflict(&l.target) })
 	if !ok {
@@ -119,7 +182,7 @@ func (l *StorageLock) addElementLock(lock distlock.Lock, locks []*storageElement
 }
 
 // 解锁
-func (l *StorageLock) Unlock(reqID string, lock distlock.Lock) error {
+func (l *StorageNodeLock) Unlock(reqID string, lock distlock.Lock) error {
 	switch lock.Name {
 	case STORAGE_SET_READ_LOCK:
 		l.setReadReqIDs = mylo.Remove(l.setReadReqIDs, reqID)
@@ -140,7 +203,7 @@ func (l *StorageLock) Unlock(reqID string, lock distlock.Lock) error {
 	return nil
 }
 
-func (l *StorageLock) removeElementLock(lock distlock.Lock, locks []*storageElementLock, reqID string) []*storageElementLock {
+func (l *StorageNodeLock) removeElementLock(lock distlock.Lock, locks []*storageElementLock, reqID string) []*storageElementLock {
 	strTarget := lock.Target.(StringLockTarget)
 	lck, index, ok := lo.FindIndexOf(locks, func(l *storageElementLock) bool { return strTarget.IsConflict(&l.target) })
 	if !ok {
@@ -154,24 +217,4 @@ func (l *StorageLock) removeElementLock(lock distlock.Lock, locks []*storageElem
 	}
 
 	return locks
-}
-
-// GetTargetString 将锁对象序列化为字符串，方便存储到ETCD
-func (l *StorageLock) GetTargetString(target any) (string, error) {
-	tar := target.(StringLockTarget)
-	return StringLockTargetToString(&tar)
-}
-
-// ParseTargetString 解析字符串格式的锁对象数据
-func (l *StorageLock) ParseTargetString(targetStr string) (any, error) {
-	return StringLockTargetFromString(targetStr)
-}
-
-// Clear 清除内部所有状态
-func (l *StorageLock) Clear() {
-	l.setReadReqIDs = nil
-	l.setWriteReqIDs = nil
-	l.setCreateReqIDs = nil
-	l.elementReadLocks = nil
-	l.elementWriteLocks = nil
 }

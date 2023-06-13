@@ -35,6 +35,11 @@ func NewProvidersActor() *ProvidersActor {
 	}
 }
 
+func (a *ProvidersActor) AddProvider(prov distlock.LockProvider, path ...any) {
+	a.provdersTrie.Create(path).Value = prov
+	a.allProviders = append(a.allProviders, prov)
+}
+
 func (a *ProvidersActor) Init() {
 }
 

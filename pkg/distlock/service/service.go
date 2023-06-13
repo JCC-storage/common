@@ -40,6 +40,8 @@ func NewService(cfg *distlock.Config) (*Service, error) {
 	watchEtcdActor.Init(providersActor)
 	leaseActor.Init(mainActor)
 
+	initProviders(providersActor)
+
 	return &Service{
 		cfg:            cfg,
 		etcdCli:        etcdCli,
