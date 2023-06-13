@@ -44,12 +44,12 @@ func NewMetadataLock() *MetadataLock {
 	compTable := &metadataLock.lockCompatibilityTable
 
 	compTable.
-		Column(METADATA_SET_READ_LOCK, func() bool { return len(metadataLock.setReadReqIDs) > 0 }).
-		Column(METADATA_SET_WRITE_LOCK, func() bool { return len(metadataLock.setWriteReqIDs) > 0 }).
-		Column(METADATA_SET_CREATE_LOCK, func() bool { return len(metadataLock.setCreateReqIDs) > 0 }).
 		Column(METADATA_ELEMENT_READ_LOCK, func() bool { return len(metadataLock.elementReadLocks) > 0 }).
 		Column(METADATA_ELEMENT_WRITE_LOCK, func() bool { return len(metadataLock.elementWriteLocks) > 0 }).
-		Column(METADATA_ELEMENT_CREATE_LOCK, func() bool { return len(metadataLock.elementCreateLocks) > 0 })
+		Column(METADATA_ELEMENT_CREATE_LOCK, func() bool { return len(metadataLock.elementCreateLocks) > 0 }).
+		Column(METADATA_SET_READ_LOCK, func() bool { return len(metadataLock.setReadReqIDs) > 0 }).
+		Column(METADATA_SET_WRITE_LOCK, func() bool { return len(metadataLock.setWriteReqIDs) > 0 }).
+		Column(METADATA_SET_CREATE_LOCK, func() bool { return len(metadataLock.setCreateReqIDs) > 0 })
 
 	comp := LockCompatible()
 	uncp := LockUncompatible()
