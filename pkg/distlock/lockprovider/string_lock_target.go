@@ -1,7 +1,9 @@
 package lockprovider
 
+import "gitlink.org.cn/cloudream/common/utils/serder"
+
 type StringLockTarget struct {
-	Components []StringLockTargetComponet
+	Components []StringLockTargetComponet `json:"components"`
 }
 
 // IsConflict 判断两个锁对象是否冲突。注：只有相同的结构的Target才有意义
@@ -20,7 +22,7 @@ func (t *StringLockTarget) IsConflict(other *StringLockTarget) bool {
 }
 
 type StringLockTargetComponet struct {
-	Values []string
+	Values []string `json:"values"`
 }
 
 // IsEquals 判断两个Component是否相同。注：只有相同的结构的Component才有意义
@@ -36,4 +38,19 @@ func (t *StringLockTargetComponet) IsEquals(other *StringLockTargetComponet) boo
 	}
 
 	return true
+}
+
+func StringLockTargetToString(target *StringLockTarget) (string, error) {
+	data, err := serder.ObjectToJSON(target)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
+}
+
+func StringLockTargetFromString(str string) (StringLockTarget, error) {
+	var ret StringLockTarget
+	err := serder.JSONToObject([]byte(str), &ret)
+	return ret, err
 }

@@ -1,4 +1,4 @@
-package distlock
+package service
 
 import (
 	"context"
@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"gitlink.org.cn/cloudream/common/pkg/actor"
+	"gitlink.org.cn/cloudream/common/pkg/distlock"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 )
 
 type mainActor struct {
-	cfg     *Config
+	cfg     *distlock.Config
 	etcdCli *clientv3.Client
 
 	commandChan *actor.CommandChannel
@@ -36,7 +37,7 @@ func (a *mainActor) Init(watchEtcdActor *watchEtcdActor, providersActor *provide
 }
 
 // Acquire 请求一批锁。成功后返回锁请求ID
-func (a *mainActor) Acquire(req LockRequest) (reqID string, err error) {
+func (a *mainActor) Acquire(req distlock.LockRequest) (reqID string, err error) {
 	return actor.WaitValue[string](a.commandChan, func() (string, error) {
 		// TODO 根据不同的错误设置不同的错误类型，方便上层进行后续处理
 		unlock, err := a.acquireEtcdRequestDataLock()

@@ -8,12 +8,6 @@ type Lock struct {
 	Target any      // 锁对象，由具体的Provider去解析
 }
 
-type lockData struct {
-	Path   []string `json:"path"`
-	Name   string   `json:"name"`
-	Target string   `json:"target"`
-}
-
 type LockRequest struct {
 	Locks []Lock
 }
@@ -22,16 +16,11 @@ func (b *LockRequest) Add(lock Lock) {
 	b.Locks = append(b.Locks, lock)
 }
 
-type lockRequestData struct {
-	ID    string     `json:"id"`
-	Locks []lockData `json:"locks"`
-}
-
 type LockProvider interface {
 	// CanLock 判断这个锁能否锁定成功
 	CanLock(lock Lock) error
 
-	// 锁定
+	// 锁定。在内部可以不用判断能否加锁，外部需要保证调用此函数前调用了CanLock进行检查
 	Lock(reqID string, lock Lock) error
 
 	// 解锁
@@ -55,7 +44,7 @@ func (e *LockTargetBusyError) Error() string {
 	return fmt.Sprintf("the lock object is locked by %s", e.lockName)
 }
 
-func newLockTargetBusyError(lockName string) *LockTargetBusyError {
+func NewLockTargetBusyError(lockName string) *LockTargetBusyError {
 	return &LockTargetBusyError{
 		lockName: lockName,
 	}

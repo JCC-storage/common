@@ -1,9 +1,10 @@
-package distlock
+package service
 
 import (
 	"fmt"
 	"time"
 
+	"gitlink.org.cn/cloudream/common/pkg/distlock"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
@@ -13,8 +14,19 @@ const (
 	LOCK_REQUEST_LOCK_NAME   = "/distlock/lockRequest/lock"
 )
 
+type lockData struct {
+	Path   []string `json:"path"`
+	Name   string   `json:"name"`
+	Target string   `json:"target"`
+}
+
+type lockRequestData struct {
+	ID    string     `json:"id"`
+	Locks []lockData `json:"locks"`
+}
+
 type Service struct {
-	cfg     *Config
+	cfg     *distlock.Config
 	etcdCli *clientv3.Client
 
 	mainActor      *mainActor
@@ -23,7 +35,7 @@ type Service struct {
 	leaseActor     *leaseActor
 }
 
-func NewService(cfg *Config) (*Service, error) {
+func NewService(cfg *distlock.Config) (*Service, error) {
 	etcdCli, err := clientv3.New(clientv3.Config{
 		Endpoints: []string{cfg.EtcdAddress},
 		Username:  cfg.EtcdUsername,
@@ -55,7 +67,7 @@ func NewService(cfg *Config) (*Service, error) {
 }
 
 // Acquire 请求一批锁。成功后返回锁请求ID
-func (svc *Service) Acquire(req LockRequest) (string, error) {
+func (svc *Service) Acquire(req distlock.LockRequest) (string, error) {
 	reqID, err := svc.mainActor.Acquire(req)
 	if err != nil {
 		return "", err

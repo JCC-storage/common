@@ -1,4 +1,4 @@
-package distlock
+package service
 
 import (
 	"context"

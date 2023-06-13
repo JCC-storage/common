@@ -1,9 +1,10 @@
-package distlock
+package service
 
 import (
 	"fmt"
 
 	"gitlink.org.cn/cloudream/common/pkg/actor"
+	"gitlink.org.cn/cloudream/common/pkg/distlock"
 	"gitlink.org.cn/cloudream/common/pkg/future"
 	"gitlink.org.cn/cloudream/common/pkg/trie"
 )
@@ -20,8 +21,8 @@ type lockRequestDataUpdateOp struct {
 
 type providersActor struct {
 	localLockReqIndex int64
-	provdersTrie      trie.Trie[LockProvider]
-	allProviders      []LockProvider
+	provdersTrie      trie.Trie[distlock.LockProvider]
+	allProviders      []distlock.LockProvider
 
 	indexWaiters []indexWaiter
 
@@ -93,7 +94,7 @@ func (svc *providersActor) lockLockRequest(reqData lockRequestData) error {
 			return fmt.Errorf("parse target data failed, err: %w", err)
 		}
 
-		err = node.Value.Lock(reqData.ID, Lock{
+		err = node.Value.Lock(reqData.ID, distlock.Lock{
 			Path:   lockData.Path,
 			Name:   lockData.Name,
 			Target: target,
@@ -117,7 +118,7 @@ func (svc *providersActor) unlockLockRequest(reqData lockRequestData) error {
 			return fmt.Errorf("parse target data failed, err: %w", err)
 		}
 
-		err = node.Value.Unlock(reqData.ID, Lock{
+		err = node.Value.Unlock(reqData.ID, distlock.Lock{
 			Path:   lockData.Path,
 			Name:   lockData.Name,
 			Target: target,
@@ -130,7 +131,7 @@ func (svc *providersActor) unlockLockRequest(reqData lockRequestData) error {
 }
 
 // TestLockRequestAndMakeData 判断锁能否锁成功，并生成锁数据的字符串表示。注：不会生成请求ID
-func (a *providersActor) TestLockRequestAndMakeData(req LockRequest) (lockRequestData, error) {
+func (a *providersActor) TestLockRequestAndMakeData(req distlock.LockRequest) (lockRequestData, error) {
 	return actor.WaitValue[lockRequestData](a.commandChan, func() (lockRequestData, error) {
 		reqData := lockRequestData{}
 
