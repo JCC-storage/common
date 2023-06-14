@@ -14,20 +14,11 @@ type IPFSLockReqBuilder struct {
 func (b *LockRequestBuilder) IPFS() *IPFSLockReqBuilder {
 	return &IPFSLockReqBuilder{LockRequestBuilder: b}
 }
-
-func (b *MetadataLockReqBuilder) IPFS() *IPFSLockReqBuilder {
-	return &IPFSLockReqBuilder{LockRequestBuilder: b.LockRequestBuilder}
-}
-
-func (b *StorageLockReqBuilder) IPFS() *IPFSLockReqBuilder {
-	return &IPFSLockReqBuilder{LockRequestBuilder: b.LockRequestBuilder}
-}
-
 func (b *IPFSLockReqBuilder) ReadOneRep(nodeID int, fileHash string) *IPFSLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath(nodeID),
 		Name:   lockprovider.IPFS_ELEMENT_READ_LOCK,
-		Target: *lockprovider.NewStringLockTarget().AddComponent(fileHash),
+		Target: *lockprovider.NewStringLockTarget().Add(fileHash),
 	})
 	return b
 }
@@ -36,7 +27,7 @@ func (b *IPFSLockReqBuilder) WriteOneRep(nodeID int, fileHash string) *IPFSLockR
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath(nodeID),
 		Name:   lockprovider.IPFS_ELEMENT_WRITE_LOCK,
-		Target: *lockprovider.NewStringLockTarget().AddComponent(fileHash),
+		Target: *lockprovider.NewStringLockTarget().Add(fileHash),
 	})
 	return b
 }

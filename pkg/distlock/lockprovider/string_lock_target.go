@@ -15,9 +15,10 @@ func NewStringLockTarget() *StringLockTarget {
 	return &StringLockTarget{}
 }
 
-func (t *StringLockTarget) AddComponent(values ...any) *StringLockTarget {
+// Add 添加一个Component，并将其内容设置为compValues
+func (t *StringLockTarget) Add(compValues ...any) *StringLockTarget {
 	t.Components = append(t.Components, StringLockTargetComponet{
-		Values: lo.Map(values, func(val any, index int) string { return fmt.Sprintf("%v", val) }),
+		Values: lo.Map(compValues, func(val any, index int) string { return fmt.Sprintf("%v", val) }),
 	})
 
 	return t

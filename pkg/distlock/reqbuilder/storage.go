@@ -15,19 +15,11 @@ func (b *LockRequestBuilder) Storage() *StorageLockReqBuilder {
 	return &StorageLockReqBuilder{LockRequestBuilder: b}
 }
 
-func (b *MetadataLockReqBuilder) Storage() *StorageLockReqBuilder {
-	return &StorageLockReqBuilder{LockRequestBuilder: b.LockRequestBuilder}
-}
-
-func (b *IPFSLockReqBuilder) Storage() *StorageLockReqBuilder {
-	return &StorageLockReqBuilder{LockRequestBuilder: b.LockRequestBuilder}
-}
-
 func (b *StorageLockReqBuilder) ReadOneObject(storageID int, fileHash string) *StorageLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath(storageID),
 		Name:   lockprovider.STORAGE_ELEMENT_READ_LOCK,
-		Target: *lockprovider.NewStringLockTarget().AddComponent(fileHash),
+		Target: *lockprovider.NewStringLockTarget().Add(fileHash),
 	})
 	return b
 }
@@ -36,7 +28,7 @@ func (b *StorageLockReqBuilder) WriteOneObject(storageID int, fileHash string) *
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath(storageID),
 		Name:   lockprovider.STORAGE_ELEMENT_WRITE_LOCK,
-		Target: *lockprovider.NewStringLockTarget().AddComponent(fileHash),
+		Target: *lockprovider.NewStringLockTarget().Add(fileHash),
 	})
 	return b
 }
@@ -45,7 +37,7 @@ func (b *StorageLockReqBuilder) CreateOneObject(storageID int, fileHash string) 
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath(storageID),
 		Name:   lockprovider.STORAGE_ELEMENT_WRITE_LOCK,
-		Target: *lockprovider.NewStringLockTarget().AddComponent(fileHash),
+		Target: *lockprovider.NewStringLockTarget().Add(fileHash),
 	})
 	return b
 }
