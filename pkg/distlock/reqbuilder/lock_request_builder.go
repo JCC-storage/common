@@ -20,7 +20,7 @@ func (b *LockRequestBuilder) Build() distlock.LockRequest {
 	}
 }
 
-func (b *LockRequestBuilder) MutextLock(svc *service.Service) (*service.Mutex, error) {
+func (b *LockRequestBuilder) MutexLock(svc *service.Service) (*service.Mutex, error) {
 	mutex := service.NewMutex(svc, b.Build())
 	err := mutex.Lock()
 	if err != nil {
