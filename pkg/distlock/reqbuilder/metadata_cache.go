@@ -13,27 +13,27 @@ func (b *MetadataLockReqBuilder) Cache() *MetadataCacheLockReqBuilder {
 	return &MetadataCacheLockReqBuilder{MetadataLockReqBuilder: b}
 }
 
-func (b *MetadataCacheLockReqBuilder) ReadOne(objectID int) *MetadataCacheLockReqBuilder {
+func (b *MetadataCacheLockReqBuilder) ReadOne(nodeID int, fileHash string) *MetadataCacheLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath("Cache"),
 		Name:   lockprovider.METADATA_ELEMENT_READ_LOCK,
-		Target: *lockprovider.NewStringLockTarget().Add(objectID),
+		Target: *lockprovider.NewStringLockTarget().Add(nodeID, fileHash),
 	})
 	return b
 }
-func (b *MetadataCacheLockReqBuilder) WriteOne(objectID int) *MetadataCacheLockReqBuilder {
+func (b *MetadataCacheLockReqBuilder) WriteOne(nodeID int, fileHash string) *MetadataCacheLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath("Cache"),
 		Name:   lockprovider.METADATA_ELEMENT_WRITE_LOCK,
-		Target: *lockprovider.NewStringLockTarget().Add(objectID),
+		Target: *lockprovider.NewStringLockTarget().Add(nodeID, fileHash),
 	})
 	return b
 }
-func (b *MetadataCacheLockReqBuilder) CreateOne() *MetadataCacheLockReqBuilder {
+func (b *MetadataCacheLockReqBuilder) CreateOne(nodeID int, fileHash string) *MetadataCacheLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath("Cache"),
 		Name:   lockprovider.METADATA_ELEMENT_CREATE_LOCK,
-		Target: *lockprovider.NewStringLockTarget(),
+		Target: *lockprovider.NewStringLockTarget().Add(nodeID, fileHash),
 	})
 	return b
 }
