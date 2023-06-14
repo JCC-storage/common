@@ -13,27 +13,27 @@ func (b *MetadataLockReqBuilder) StorageObject() *MetadataStorageObjectLockReqBu
 	return &MetadataStorageObjectLockReqBuilder{MetadataLockReqBuilder: b}
 }
 
-func (b *MetadataStorageObjectLockReqBuilder) ReadOne(objectID int) *MetadataStorageObjectLockReqBuilder {
+func (b *MetadataStorageObjectLockReqBuilder) ReadOne(storageID int, userID int, objectID int) *MetadataStorageObjectLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath("StorageObject"),
 		Name:   lockprovider.METADATA_ELEMENT_READ_LOCK,
-		Target: *lockprovider.NewStringLockTarget().Add(objectID),
+		Target: *lockprovider.NewStringLockTarget().Add(storageID, userID, objectID),
 	})
 	return b
 }
-func (b *MetadataStorageObjectLockReqBuilder) WriteOne(objectID int) *MetadataStorageObjectLockReqBuilder {
+func (b *MetadataStorageObjectLockReqBuilder) WriteOne(storageID int, userID int, objectID int) *MetadataStorageObjectLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath("StorageObject"),
 		Name:   lockprovider.METADATA_ELEMENT_WRITE_LOCK,
-		Target: *lockprovider.NewStringLockTarget().Add(objectID),
+		Target: *lockprovider.NewStringLockTarget().Add(storageID, userID, objectID),
 	})
 	return b
 }
-func (b *MetadataStorageObjectLockReqBuilder) CreateOne() *MetadataStorageObjectLockReqBuilder {
+func (b *MetadataStorageObjectLockReqBuilder) CreateOne(storageID int, userID int, objectID int) *MetadataStorageObjectLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath("StorageObject"),
 		Name:   lockprovider.METADATA_ELEMENT_CREATE_LOCK,
-		Target: *lockprovider.NewStringLockTarget(),
+		Target: *lockprovider.NewStringLockTarget().Add(storageID, userID, objectID),
 	})
 	return b
 }

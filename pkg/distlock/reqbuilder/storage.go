@@ -15,29 +15,29 @@ func (b *LockRequestBuilder) Storage() *StorageLockReqBuilder {
 	return &StorageLockReqBuilder{LockRequestBuilder: b}
 }
 
-func (b *StorageLockReqBuilder) ReadOneObject(storageID int, fileHash string) *StorageLockReqBuilder {
+func (b *StorageLockReqBuilder) ReadOneObject(storageID int, userID int, objectID int) *StorageLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath(storageID),
 		Name:   lockprovider.STORAGE_ELEMENT_READ_LOCK,
-		Target: *lockprovider.NewStringLockTarget().Add(fileHash),
+		Target: *lockprovider.NewStringLockTarget().Add(userID, objectID),
 	})
 	return b
 }
 
-func (b *StorageLockReqBuilder) WriteOneObject(storageID int, fileHash string) *StorageLockReqBuilder {
+func (b *StorageLockReqBuilder) WriteOneObject(storageID int, userID int, objectID int) *StorageLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath(storageID),
 		Name:   lockprovider.STORAGE_ELEMENT_WRITE_LOCK,
-		Target: *lockprovider.NewStringLockTarget().Add(fileHash),
+		Target: *lockprovider.NewStringLockTarget().Add(userID, objectID),
 	})
 	return b
 }
 
-func (b *StorageLockReqBuilder) CreateOneObject(storageID int, fileHash string) *StorageLockReqBuilder {
+func (b *StorageLockReqBuilder) CreateOneObject(storageID int, userID int, objectID int) *StorageLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath(storageID),
 		Name:   lockprovider.STORAGE_ELEMENT_WRITE_LOCK,
-		Target: *lockprovider.NewStringLockTarget().Add(fileHash),
+		Target: *lockprovider.NewStringLockTarget().Add(userID, objectID),
 	})
 	return b
 }
