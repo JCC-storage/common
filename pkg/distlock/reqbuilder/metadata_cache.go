@@ -5,57 +5,57 @@ import (
 	"gitlink.org.cn/cloudream/common/pkg/distlock/lockprovider"
 )
 
-type MetadataObjectLockReqBuilder struct {
+type MetadataCacheLockReqBuilder struct {
 	*MetadataLockReqBuilder
 }
 
-func (b *MetadataLockReqBuilder) Object() *MetadataObjectLockReqBuilder {
-	return &MetadataObjectLockReqBuilder{MetadataLockReqBuilder: b}
+func (b *MetadataLockReqBuilder) Cache() *MetadataCacheLockReqBuilder {
+	return &MetadataCacheLockReqBuilder{MetadataLockReqBuilder: b}
 }
 
-func (b *MetadataObjectLockReqBuilder) ReadOne(objectID int) *MetadataObjectLockReqBuilder {
+func (b *MetadataCacheLockReqBuilder) ReadOne(objectID int) *MetadataCacheLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
-		Path:   b.makePath("Object"),
+		Path:   b.makePath("Cache"),
 		Name:   lockprovider.METADATA_ELEMENT_READ_LOCK,
 		Target: *lockprovider.NewStringLockTarget().Add(objectID),
 	})
 	return b
 }
-func (b *MetadataObjectLockReqBuilder) WriteOne(objectID int) *MetadataObjectLockReqBuilder {
+func (b *MetadataCacheLockReqBuilder) WriteOne(objectID int) *MetadataCacheLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
-		Path:   b.makePath("Object"),
+		Path:   b.makePath("Cache"),
 		Name:   lockprovider.METADATA_ELEMENT_WRITE_LOCK,
 		Target: *lockprovider.NewStringLockTarget().Add(objectID),
 	})
 	return b
 }
-func (b *MetadataObjectLockReqBuilder) CreateOne(bucketID int, objectName string) *MetadataObjectLockReqBuilder {
+func (b *MetadataCacheLockReqBuilder) CreateOne() *MetadataCacheLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
-		Path:   b.makePath("Object"),
+		Path:   b.makePath("Cache"),
 		Name:   lockprovider.METADATA_ELEMENT_CREATE_LOCK,
-		Target: *lockprovider.NewStringLockTarget().Add(bucketID, objectName),
+		Target: *lockprovider.NewStringLockTarget(),
 	})
 	return b
 }
-func (b *MetadataObjectLockReqBuilder) ReadAny() *MetadataObjectLockReqBuilder {
+func (b *MetadataCacheLockReqBuilder) ReadAny() *MetadataCacheLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
-		Path:   b.makePath("Object"),
+		Path:   b.makePath("Cache"),
 		Name:   lockprovider.METADATA_SET_READ_LOCK,
 		Target: *lockprovider.NewStringLockTarget(),
 	})
 	return b
 }
-func (b *MetadataObjectLockReqBuilder) WriteAny() *MetadataObjectLockReqBuilder {
+func (b *MetadataCacheLockReqBuilder) WriteAny() *MetadataCacheLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
-		Path:   b.makePath("Object"),
+		Path:   b.makePath("Cache"),
 		Name:   lockprovider.METADATA_SET_WRITE_LOCK,
 		Target: *lockprovider.NewStringLockTarget(),
 	})
 	return b
 }
-func (b *MetadataObjectLockReqBuilder) CreateAny() *MetadataObjectLockReqBuilder {
+func (b *MetadataCacheLockReqBuilder) CreateAny() *MetadataCacheLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
-		Path:   b.makePath("Object"),
+		Path:   b.makePath("Cache"),
 		Name:   lockprovider.METADATA_SET_CREATE_LOCK,
 		Target: *lockprovider.NewStringLockTarget(),
 	})

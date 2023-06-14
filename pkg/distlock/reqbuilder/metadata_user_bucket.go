@@ -13,19 +13,19 @@ func (b *MetadataLockReqBuilder) UserBucket() *MetadataUserBucketLockReqBuilder 
 	return &MetadataUserBucketLockReqBuilder{MetadataLockReqBuilder: b}
 }
 
-func (b *MetadataUserBucketLockReqBuilder) ReadOne(bucketID int) *MetadataUserBucketLockReqBuilder {
+func (b *MetadataUserBucketLockReqBuilder) ReadOne(userID int, bucketID int) *MetadataUserBucketLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath("UserBucket"),
 		Name:   lockprovider.METADATA_ELEMENT_READ_LOCK,
-		Target: *lockprovider.NewStringLockTarget().Add(bucketID),
+		Target: *lockprovider.NewStringLockTarget().Add(userID, bucketID),
 	})
 	return b
 }
-func (b *MetadataUserBucketLockReqBuilder) WriteOne(bucketID int) *MetadataUserBucketLockReqBuilder {
+func (b *MetadataUserBucketLockReqBuilder) WriteOne(userID int, bucketID int) *MetadataUserBucketLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath("UserBucket"),
 		Name:   lockprovider.METADATA_ELEMENT_WRITE_LOCK,
-		Target: *lockprovider.NewStringLockTarget().Add(bucketID),
+		Target: *lockprovider.NewStringLockTarget().Add(userID, bucketID),
 	})
 	return b
 }
