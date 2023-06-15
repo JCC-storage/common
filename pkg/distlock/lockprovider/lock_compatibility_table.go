@@ -15,6 +15,7 @@ const (
 
 type HasSuchLockFn = func() bool
 
+// LockCompatibilitySpecialFn 判断锁与指定的锁名是否兼容
 type LockCompatibilitySpecialFn func(lock distlock.Lock, testLockName string) bool
 
 type LockCompatibilityType string

@@ -30,6 +30,10 @@ func (t *StringLockTarget) IsConflict(other *StringLockTarget) bool {
 		return false
 	}
 
+	if len(t.Components) == 0 {
+		return true
+	}
+
 	for i := 0; i < len(t.Components); i++ {
 		if t.Components[i].IsEquals(&other.Components[i]) {
 			return true
