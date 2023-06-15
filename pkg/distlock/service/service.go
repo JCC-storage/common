@@ -6,6 +6,7 @@ import (
 
 	"gitlink.org.cn/cloudream/common/pkg/distlock"
 	"gitlink.org.cn/cloudream/common/pkg/distlock/service/internal"
+	"gitlink.org.cn/cloudream/common/pkg/logger"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
@@ -21,18 +22,18 @@ type Service struct {
 
 func NewService(cfg *distlock.Config) (*Service, error) {
 	etcdCli, err := clientv3.New(clientv3.Config{
-		Endpoints: []string{cfg.EtcdAddress},
-		Username:  cfg.EtcdUsername,
-		Password:  cfg.EtcdPassword,
+		Endpoints:   []string{cfg.EtcdAddress},
+		Username:    cfg.EtcdUsername,
+		Password:    cfg.EtcdPassword,
+		DialTimeout: time.Second * 5,
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("new etcd client failed, err: %w", err)
 	}
 
-	mainActor := internal.NewMainActor()
+	mainActor := internal.NewMainActor(cfg, etcdCli)
 	providersActor := internal.NewProvidersActor()
-	watchEtcdActor := internal.NewWatchEtcdActor()
+	watchEtcdActor := internal.NewWatchEtcdActor(etcdCli)
 	leaseActor := internal.NewLeaseActor()
 
 	mainActor.Init(watchEtcdActor, providersActor)
@@ -83,22 +84,34 @@ func (svc *Service) Release(reqID string) error {
 func (svc *Service) Serve() error {
 	go func() {
 		// TODO 处理错误
-		svc.providersActor.Serve()
+		err := svc.providersActor.Serve()
+		if err != nil {
+			logger.Debugf("serving providers actor failed, err: %s", err.Error())
+		}
 	}()
 
 	go func() {
 		// TODO 处理错误
-		svc.watchEtcdActor.Serve()
+		err := svc.watchEtcdActor.Serve()
+		if err != nil {
+			logger.Debugf("serving watch etcd actor actor failed, err: %s", err.Error())
+		}
 	}()
 
 	go func() {
 		// TODO 处理错误
-		svc.mainActor.Serve()
+		err := svc.mainActor.Serve()
+		if err != nil {
+			logger.Debugf("serving main actor failed, err: %s", err.Error())
+		}
 	}()
 
 	go func() {
 		// TODO 处理错误
-		svc.leaseActor.Server()
+		err := svc.leaseActor.Server()
+		if err != nil {
+			logger.Debugf("serving lease actor failed, err: %s", err.Error())
+		}
 	}()
 
 	err := svc.mainActor.ReloadEtcdData()

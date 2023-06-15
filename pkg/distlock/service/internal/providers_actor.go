@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"time"
 
 	"gitlink.org.cn/cloudream/common/pkg/actor"
 	"gitlink.org.cn/cloudream/common/pkg/distlock"
@@ -43,11 +44,11 @@ func (a *ProvidersActor) AddProvider(prov distlock.LockProvider, path ...any) {
 func (a *ProvidersActor) Init() {
 }
 
-func (a *ProvidersActor) WaitIndexUpdated(index int64) error {
+func (a *ProvidersActor) WaitIndexUpdated(index int64, timeoutMs int) error {
 	fut := future.NewSetVoid()
 
 	a.commandChan.Send(func() {
-		if a.localLockReqIndex <= index {
+		if index <= a.localLockReqIndex {
 			fut.SetVoid()
 		} else {
 			a.indexWaiters = append(a.indexWaiters, indexWaiter{
@@ -57,7 +58,7 @@ func (a *ProvidersActor) WaitIndexUpdated(index int64) error {
 		}
 	})
 
-	return fut.Wait()
+	return fut.WaitTimeout(time.Duration(timeoutMs) * time.Millisecond)
 }
 
 func (a *ProvidersActor) BatchUpdateByLockRequestData(ops []lockRequestDataUpdateOp) error {

@@ -18,8 +18,9 @@ type WatchEtcdActor struct {
 	providers *ProvidersActor
 }
 
-func NewWatchEtcdActor() *WatchEtcdActor {
+func NewWatchEtcdActor(etcdCli *clientv3.Client) *WatchEtcdActor {
 	return &WatchEtcdActor{
+		etcdCli:     etcdCli,
 		commandChan: actor.NewCommandChannel(),
 	}
 }
@@ -30,7 +31,7 @@ func (a *WatchEtcdActor) Init(providers *ProvidersActor) {
 
 func (a *WatchEtcdActor) StartWatching() error {
 	return actor.Wait(a.commandChan, func() error {
-		a.watchChan = a.etcdCli.Watch(context.Background(), LOCK_REQUEST_DATA_PREFIX, clientv3.WithPrefix())
+		a.watchChan = a.etcdCli.Watch(context.Background(), LOCK_REQUEST_DATA_PREFIX, clientv3.WithPrefix(), clientv3.WithPrevKV())
 		return nil
 	})
 }
@@ -92,14 +93,17 @@ func (a *WatchEtcdActor) parseEvents(watchResp clientv3.WatchResponse) ([]lockRe
 
 		shouldParseData := false
 		isLock := true
+		var valueData []byte
 
 		// 只监听新建和删除的事件，因为在设计上约定只有这两种事件才会影响Index
 		if e.Type == clientv3.EventTypeDelete {
 			shouldParseData = true
 			isLock = false
+			valueData = e.PrevKv.Value
 		} else if e.IsCreate() {
 			shouldParseData = true
 			isLock = true
+			valueData = e.Kv.Value
 		}
 
 		if !shouldParseData {
@@ -107,7 +111,7 @@ func (a *WatchEtcdActor) parseEvents(watchResp clientv3.WatchResponse) ([]lockRe
 		}
 
 		var reqData lockRequestData
-		err := serder.JSONToObject(e.Kv.Value, &reqData)
+		err := serder.JSONToObject(valueData, &reqData)
 		if err != nil {
 			return nil, fmt.Errorf("parse lock request data failed, err: %w", err)
 		}

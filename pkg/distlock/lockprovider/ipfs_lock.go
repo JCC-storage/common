@@ -21,11 +21,13 @@ const (
 
 type IPFSLock struct {
 	nodeLocks map[string]*IPFSNodeLock
+	dummyLock *IPFSNodeLock
 }
 
 func NewIPFSLock() *IPFSLock {
 	return &IPFSLock{
 		nodeLocks: make(map[string]*IPFSNodeLock),
+		dummyLock: NewIPFSNodeLock(),
 	}
 }
 
@@ -33,7 +35,9 @@ func NewIPFSLock() *IPFSLock {
 func (l *IPFSLock) CanLock(lock distlock.Lock) error {
 	nodeLock, ok := l.nodeLocks[lock.Path[IPFS_NODE_ID_PATH_INDEX]]
 	if !ok {
-		return nil
+		// 不能直接返回nil，因为如果锁数据的格式不对，也不能获取锁。
+		// 这里使用一个空Provider来进行检查。
+		return l.dummyLock.CanLock(lock)
 	}
 
 	return nodeLock.CanLock(lock)

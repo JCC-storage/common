@@ -42,8 +42,10 @@ type MainActor struct {
 	lockRequestLeaseID clientv3.LeaseID
 }
 
-func NewMainActor() *MainActor {
+func NewMainActor(cfg *distlock.Config, etcdCli *clientv3.Client) *MainActor {
 	return &MainActor{
+		cfg:         cfg,
+		etcdCli:     etcdCli,
 		commandChan: actor.NewCommandChannel(),
 	}
 }
@@ -69,7 +71,8 @@ func (a *MainActor) Acquire(req distlock.LockRequest) (reqID string, err error) 
 		}
 
 		// 等待本地状态同步到最新
-		err = a.providersActor.WaitIndexUpdated(index)
+		// TODO 配置等待时间
+		err = a.providersActor.WaitIndexUpdated(index, a.cfg.EtcdLockAcquireTimeoutMs)
 		if err != nil {
 			return "", err
 		}
@@ -91,13 +94,21 @@ func (a *MainActor) Acquire(req distlock.LockRequest) (reqID string, err error) 
 			return "", fmt.Errorf("serialize lock request data failed, err: %w", err)
 		}
 
-		txResp, err := a.etcdCli.Txn(context.Background()).
-			Then(
+		var etcdOps []clientv3.Op
+		if a.cfg.SubmitLockRequestWithoutLease {
+			etcdOps = []clientv3.Op{
+				clientv3.OpPut(LOCK_REQUEST_INDEX, nextIndexStr),
+				clientv3.OpPut(makeEtcdLockRequestKey(nextIndexStr), string(reqBytes)),
+			}
+
+		} else {
+			etcdOps = []clientv3.Op{
 				clientv3.OpPut(LOCK_REQUEST_INDEX, nextIndexStr),
 				// 归属到当前连接的租约，在当前连接断开后，能自动解锁
 				clientv3.OpPut(makeEtcdLockRequestKey(nextIndexStr), string(reqBytes), clientv3.WithLease(a.lockRequestLeaseID)),
-			).
-			Commit()
+			}
+		}
+		txResp, err := a.etcdCli.Txn(context.Background()).Then(etcdOps...).Commit()
 		if err != nil {
 			return "", fmt.Errorf("submit lock request data failed, err: %w", err)
 		}
@@ -155,7 +166,6 @@ func (a *MainActor) acquireEtcdRequestDataLock() (unlock func(), err error) {
 	if err != nil {
 		return nil, fmt.Errorf("new session failed, err: %w", err)
 	}
-	defer session.Close()
 
 	mutex := concurrency.NewMutex(session, LOCK_REQUEST_LOCK_NAME)
 
@@ -165,6 +175,7 @@ func (a *MainActor) acquireEtcdRequestDataLock() (unlock func(), err error) {
 
 	err = mutex.Lock(timeout)
 	if err != nil {
+		session.Close()
 		return nil, fmt.Errorf("acquire lock failed, err: %w", err)
 	}
 
@@ -181,7 +192,7 @@ func (a *MainActor) getEtcdLockRequestIndex() (int64, error) {
 	}
 
 	if len(indexKv.Kvs) == 0 {
-		return 0, fmt.Errorf("lock request index not found in etcd")
+		return 0, nil
 	}
 
 	index, err := strconv.ParseInt(string(indexKv.Kvs[0].Value), 0, 64)
@@ -272,7 +283,10 @@ func (a *MainActor) Serve() error {
 				return fmt.Errorf("command channel closed")
 			}
 
-			cmd()
+			// TODO Actor启动时，如果第一个调用的是Acquire，那么就会在Acquire中等待本地锁数据同步到最新。
+			// 此时命令的执行也会被阻塞，导致ReloadEtcdData命令无法执行，因此产生死锁，最后Acquire超时失败。
+			// 此处暂时使用单独的goroutine的来执行命令，避免阻塞。
+			go cmd()
 		}
 	}
 }

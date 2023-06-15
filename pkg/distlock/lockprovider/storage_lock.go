@@ -22,11 +22,13 @@ const (
 
 type StorageLock struct {
 	nodeLocks map[string]*StorageNodeLock
+	dummyLock *StorageNodeLock
 }
 
 func NewStorageLock() *StorageLock {
 	return &StorageLock{
 		nodeLocks: make(map[string]*StorageNodeLock),
+		dummyLock: NewStorageNodeLock(),
 	}
 }
 
@@ -34,7 +36,9 @@ func NewStorageLock() *StorageLock {
 func (l *StorageLock) CanLock(lock distlock.Lock) error {
 	nodeLock, ok := l.nodeLocks[lock.Path[STORAGE_STORAGE_ID_PATH_INDEX]]
 	if !ok {
-		return nil
+		// 不能直接返回nil，因为如果锁数据的格式不对，也不能获取锁。
+		// 这里使用一个空Provider来进行检查。
+		return l.dummyLock.CanLock(lock)
 	}
 
 	return nodeLock.CanLock(lock)
