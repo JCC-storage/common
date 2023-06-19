@@ -9,6 +9,7 @@ import (
 
 type lockRequestLease struct {
 	RequestID string
+	LeaseTime time.Duration
 	Deadline  time.Time
 }
 
@@ -55,6 +56,7 @@ func (a *LeaseActor) Add(reqID string, leaseTime time.Duration) error {
 		if !ok {
 			lease = &lockRequestLease{
 				RequestID: reqID,
+				LeaseTime: leaseTime,
 				Deadline:  time.Now().Add(leaseTime),
 			}
 			a.leases[reqID] = lease
@@ -66,14 +68,14 @@ func (a *LeaseActor) Add(reqID string, leaseTime time.Duration) error {
 	})
 }
 
-func (a *LeaseActor) Renew(reqID string, leaseTime time.Duration) error {
+func (a *LeaseActor) Renew(reqID string) error {
 	return actor.Wait(a.commandChan, func() error {
 		lease, ok := a.leases[reqID]
 		if !ok {
 			return fmt.Errorf("lease not found for this lock request")
 
 		} else {
-			lease.Deadline = time.Now().Add(leaseTime)
+			lease.Deadline = time.Now().Add(lease.LeaseTime)
 		}
 
 		return nil
@@ -87,11 +89,14 @@ func (a *LeaseActor) Remove(reqID string) error {
 	})
 }
 
-func (a *LeaseActor) Server() error {
+func (a *LeaseActor) Serve() error {
+	cmdChan := a.commandChan.BeginChanReceive()
+	defer a.commandChan.CloseChanReceive()
+
 	for {
 		if a.ticker != nil {
 			select {
-			case cmd, ok := <-a.commandChan.ChanReceive():
+			case cmd, ok := <-cmdChan:
 				if !ok {
 					a.ticker.Stop()
 					return fmt.Errorf("command chan closed")
@@ -113,7 +118,7 @@ func (a *LeaseActor) Server() error {
 			}
 		} else {
 			select {
-			case cmd, ok := <-a.commandChan.ChanReceive():
+			case cmd, ok := <-cmdChan:
 				if !ok {
 					return fmt.Errorf("command chan closed")
 				}

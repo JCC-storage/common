@@ -25,7 +25,13 @@ type lockData struct {
 	Target string   `json:"target"`
 }
 
-type lockRequestData struct {
+type manyAcquireResult struct {
+	IsTried   bool
+	RequestID string
+	Err       error
+}
+
+type LockRequestData struct {
 	ID    string     `json:"id"`
 	Locks []lockData `json:"locks"`
 }
@@ -57,67 +63,100 @@ func (a *MainActor) Init(watchEtcdActor *WatchEtcdActor, providersActor *Provide
 
 // Acquire 请求一批锁。成功后返回锁请求ID
 func (a *MainActor) Acquire(req distlock.LockRequest) (reqID string, err error) {
-	return actor.WaitValue[string](a.commandChan, func() (string, error) {
+	rets, err := a.AcquireMany([]distlock.LockRequest{req})
+	if err != nil {
+		return "", err
+	}
+
+	if rets[0].Err != nil {
+		return "", err
+	}
+
+	return rets[0].RequestID, nil
+}
+
+// AcquireAny 尝试多个锁请求。目前的实现会在第一个获取成功后就直接返回
+func (a *MainActor) AcquireMany(reqs []distlock.LockRequest) (rets []manyAcquireResult, err error) {
+	return actor.WaitValue(a.commandChan, func() ([]manyAcquireResult, error) {
 		// TODO 根据不同的错误设置不同的错误类型，方便上层进行后续处理
 		unlock, err := a.acquireEtcdRequestDataLock()
 		if err != nil {
-			return "", fmt.Errorf("acquire etcd request data lock failed, err: %w", err)
+			return nil, fmt.Errorf("acquire etcd request data lock failed, err: %w", err)
 		}
 		defer unlock()
 
 		index, err := a.getEtcdLockRequestIndex()
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		// 等待本地状态同步到最新
 		// TODO 配置等待时间
 		err = a.providersActor.WaitIndexUpdated(index, a.cfg.EtcdLockAcquireTimeoutMs)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
-		// 测试锁，并获得锁数据
-		reqData, err := a.providersActor.TestLockRequestAndMakeData(req)
-		if err != nil {
-			return "", err
-		}
+		rets := make([]manyAcquireResult, len(reqs))
+		for i := 0; i < len(reqs); i++ {
+			// 测试锁，并获得锁数据
+			reqData, err := a.providersActor.TestLockRequestAndMakeData(reqs[i])
+			if err == nil {
+				nextIndexStr := strconv.FormatInt(index+1, 10)
+				reqData.ID = nextIndexStr
 
-		// 锁成功，提交锁数据
+				// 锁成功，提交锁数据
+				err := a.submitLockRequest(reqData)
 
-		nextIndexStr := strconv.FormatInt(index+1, 10)
+				rets[i] = manyAcquireResult{
+					IsTried:   true,
+					RequestID: nextIndexStr,
+					Err:       err,
+				}
 
-		reqData.ID = nextIndexStr
+				break
 
-		reqBytes, err := serder.ObjectToJSON(reqData)
-		if err != nil {
-			return "", fmt.Errorf("serialize lock request data failed, err: %w", err)
-		}
-
-		var etcdOps []clientv3.Op
-		if a.cfg.SubmitLockRequestWithoutLease {
-			etcdOps = []clientv3.Op{
-				clientv3.OpPut(LOCK_REQUEST_INDEX, nextIndexStr),
-				clientv3.OpPut(makeEtcdLockRequestKey(nextIndexStr), string(reqBytes)),
-			}
-
-		} else {
-			etcdOps = []clientv3.Op{
-				clientv3.OpPut(LOCK_REQUEST_INDEX, nextIndexStr),
-				// 归属到当前连接的租约，在当前连接断开后，能自动解锁
-				clientv3.OpPut(makeEtcdLockRequestKey(nextIndexStr), string(reqBytes), clientv3.WithLease(a.lockRequestLeaseID)),
+			} else {
+				rets[i] = manyAcquireResult{
+					IsTried: true,
+					Err:     err,
+				}
 			}
 		}
-		txResp, err := a.etcdCli.Txn(context.Background()).Then(etcdOps...).Commit()
-		if err != nil {
-			return "", fmt.Errorf("submit lock request data failed, err: %w", err)
-		}
-		if !txResp.Succeeded {
-			return "", fmt.Errorf("submit lock request data failed for lock request data index changed")
-		}
 
-		return nextIndexStr, nil
+		return rets, nil
 	})
+}
+
+func (a *MainActor) submitLockRequest(reqData LockRequestData) error {
+	reqBytes, err := serder.ObjectToJSON(reqData)
+	if err != nil {
+		return fmt.Errorf("serialize lock request data failed, err: %w", err)
+	}
+
+	var etcdOps []clientv3.Op
+	if a.cfg.SubmitLockRequestWithoutLease {
+		etcdOps = []clientv3.Op{
+			clientv3.OpPut(LOCK_REQUEST_INDEX, reqData.ID),
+			clientv3.OpPut(makeEtcdLockRequestKey(reqData.ID), string(reqBytes)),
+		}
+
+	} else {
+		etcdOps = []clientv3.Op{
+			clientv3.OpPut(LOCK_REQUEST_INDEX, reqData.ID),
+			// 归属到当前连接的租约，在当前连接断开后，能自动解锁
+			clientv3.OpPut(makeEtcdLockRequestKey(reqData.ID), string(reqBytes), clientv3.WithLease(a.lockRequestLeaseID)),
+		}
+	}
+	txResp, err := a.etcdCli.Txn(context.Background()).Then(etcdOps...).Commit()
+	if err != nil {
+		return fmt.Errorf("submit lock request data failed, err: %w", err)
+	}
+	if !txResp.Succeeded {
+		return fmt.Errorf("submit lock request data failed for lock request data index changed")
+	}
+
+	return nil
 }
 
 // Release 释放锁
@@ -223,7 +262,7 @@ func (a *MainActor) ReloadEtcdData() error {
 		lockKvs := txResp.Responses[1].GetResponseRange().Kvs
 
 		var index int64
-		var reqData []lockRequestData
+		var reqData []LockRequestData
 
 		// 解析Index
 		if len(indexKvs) > 0 {
@@ -239,7 +278,7 @@ func (a *MainActor) ReloadEtcdData() error {
 
 		// 解析锁请求数据
 		for _, kv := range lockKvs {
-			var req lockRequestData
+			var req LockRequestData
 			err := serder.JSONToObject(kv.Value, &req)
 			if err != nil {
 				return fmt.Errorf("parse lock request data failed, err: %w", err)
@@ -276,9 +315,12 @@ func (a *MainActor) Serve() error {
 	}
 	a.lockRequestLeaseID = lease.ID
 
+	cmdChan := a.commandChan.BeginChanReceive()
+	defer a.commandChan.CloseChanReceive()
+
 	for {
 		select {
-		case cmd, ok := <-a.commandChan.ChanReceive():
+		case cmd, ok := <-cmdChan:
 			if !ok {
 				return fmt.Errorf("command channel closed")
 			}

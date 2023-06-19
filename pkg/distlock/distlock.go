@@ -20,7 +20,7 @@ type LockProvider interface {
 	// CanLock 判断这个锁能否锁定成功
 	CanLock(lock Lock) error
 
-	// 锁定。在内部可以不用判断能否加锁，外部需要保证调用此函数前调用了CanLock进行检查
+	// Lock 锁定。由于同一个锁请求内的锁不检查冲突，因此这个函数必须支持有冲突的锁进行锁定。
 	Lock(reqID string, lock Lock) error
 
 	// 解锁
