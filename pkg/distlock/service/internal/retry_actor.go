@@ -8,6 +8,7 @@ import (
 	"gitlink.org.cn/cloudream/common/pkg/actor"
 	"gitlink.org.cn/cloudream/common/pkg/distlock"
 	"gitlink.org.cn/cloudream/common/pkg/future"
+	"gitlink.org.cn/cloudream/common/pkg/logger"
 	mylo "gitlink.org.cn/cloudream/common/utils/lo"
 )
 
@@ -35,7 +36,7 @@ func (a *RetryActor) Init(mainActor *MainActor) {
 	a.mainActor = mainActor
 }
 
-func (a *RetryActor) Retry(req distlock.LockRequest, timeout time.Duration, lastErr error) (*future.SetValueFuture[string], error) {
+func (a *RetryActor) Retry(req distlock.LockRequest, timeout time.Duration, lastErr error) (future.ValueFuture[string], error) {
 	fut := future.NewSetValue[string]()
 
 	var info *retryInfo
@@ -76,8 +77,14 @@ func (a *RetryActor) Retry(req distlock.LockRequest, timeout time.Duration, last
 
 func (a *RetryActor) OnLocalStateUpdated() {
 	a.commandChan.Send(func() {
+		if len(a.retrys) == 0 {
+			return
+		}
+
 		rets, err := a.mainActor.AcquireMany(a.retrys)
 		if err != nil {
+			// TODO 处理错误
+			logger.Debugf("acquire many lock requests failed, err: %s", err.Error())
 			return
 		}
 

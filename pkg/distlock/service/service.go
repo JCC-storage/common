@@ -45,7 +45,7 @@ func NewService(cfg *distlock.Config) (*Service, error) {
 	leaseActor := internal.NewLeaseActor()
 	retryActor := internal.NewRetryActor()
 
-	mainActor.Init(watchEtcdActor, providersActor)
+	mainActor.Init(providersActor)
 	providersActor.Init()
 	watchEtcdActor.Init()
 	leaseActor.Init(mainActor)
@@ -112,6 +112,11 @@ func (svc *Service) Release(reqID string) error {
 }
 
 func (svc *Service) Serve() error {
+	// TODO 需要停止service的方法
+	// 目前已知问题：
+	// 1. client退出时直接中断进程，此时RetryActor可能正在进行Retry，于是导致Etcd锁没有解除就退出了进程。
+	// 虽然由于租约的存在不会导致系统长期卡死，但会影响client的使用
+
 	go func() {
 		// TODO 处理错误
 		err := svc.providersActor.Serve()
@@ -160,6 +165,7 @@ func (svc *Service) Serve() error {
 
 	svc.lockReqEventWatcher.OnEvent = func(events []internal.LockRequestEvent) {
 		svc.providersActor.ApplyLockRequestEvents(events)
+		svc.retryActor.OnLocalStateUpdated()
 	}
 	err = svc.watchEtcdActor.AddEventWatcher(&svc.lockReqEventWatcher)
 	if err != nil {

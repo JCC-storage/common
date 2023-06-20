@@ -16,7 +16,7 @@ func NewCounterCond(initCount int) *CounterCond {
 
 func (c *CounterCond) Wait() bool {
 	c.cond.L.Lock()
-	defer c.cond.L.Lock()
+	defer c.cond.L.Unlock()
 
 	for c.count == 0 {
 		c.cond.Wait()

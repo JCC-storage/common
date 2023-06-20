@@ -42,7 +42,6 @@ type MainActor struct {
 
 	commandChan *actor.CommandChannel
 
-	watchEtcdActor *WatchEtcdActor
 	providersActor *ProvidersActor
 
 	lockRequestLeaseID clientv3.LeaseID
@@ -56,8 +55,7 @@ func NewMainActor(cfg *distlock.Config, etcdCli *clientv3.Client) *MainActor {
 	}
 }
 
-func (a *MainActor) Init(watchEtcdActor *WatchEtcdActor, providersActor *ProvidersActor) {
-	a.watchEtcdActor = watchEtcdActor
+func (a *MainActor) Init(providersActor *ProvidersActor) {
 	a.providersActor = providersActor
 }
 
@@ -69,7 +67,7 @@ func (a *MainActor) Acquire(req distlock.LockRequest) (reqID string, err error) 
 	}
 
 	if rets[0].Err != nil {
-		return "", err
+		return "", rets[0].Err
 	}
 
 	return rets[0].RequestID, nil
@@ -145,7 +143,9 @@ func (a *MainActor) submitLockRequest(reqData LockRequestData) error {
 		etcdOps = []clientv3.Op{
 			clientv3.OpPut(LOCK_REQUEST_INDEX, reqData.ID),
 			// 归属到当前连接的租约，在当前连接断开后，能自动解锁
-			clientv3.OpPut(makeEtcdLockRequestKey(reqData.ID), string(reqBytes), clientv3.WithLease(a.lockRequestLeaseID)),
+			// TODO 不能直接给RequestData上租约，因为如果在别的服务已经获取到锁的情况下，
+			// 如果当前服务崩溃，删除消息会立刻发送出去，这就破坏了锁的约定（在锁定期间其他服务不能修改数据）
+			clientv3.OpPut(makeEtcdLockRequestKey(reqData.ID), string(reqBytes)), //, clientv3.WithLease(a.lockRequestLeaseID)),
 		}
 	}
 	txResp, err := a.etcdCli.Txn(context.Background()).Then(etcdOps...).Commit()
@@ -287,21 +287,9 @@ func (a *MainActor) ReloadEtcdData() error {
 			reqData = append(reqData, req)
 		}
 
-		// 先停止监听，再重置锁状态，最后恢复监听
-
-		err = a.watchEtcdActor.StopWatching()
-		if err != nil {
-			return fmt.Errorf("stop watching etcd failed, err: %w", err)
-		}
-
 		err = a.providersActor.ResetState(index, reqData)
 		if err != nil {
 			return fmt.Errorf("reset lock providers state failed, err: %w", err)
-		}
-
-		err = a.watchEtcdActor.StartWatching()
-		if err != nil {
-			return fmt.Errorf("start watching etcd failed, err: %w", err)
 		}
 
 		return nil
