@@ -31,11 +31,11 @@ func Init(cfg *Config) error {
 	if output == OUTPUT_FILE {
 		logFilePath := filepath.Join(cfg.OutputDirectory, cfg.OutputFileName+".log")
 
-		if err := os.MkdirAll(cfg.OutputDirectory, 0644); err != nil {
+		if err := os.MkdirAll(cfg.OutputDirectory, 0755); err != nil {
 			return err
 		}
 
-		file, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE, 0644)
+		file, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0755)
 		if err != nil {
 			return err
 		}
