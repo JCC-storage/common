@@ -7,6 +7,7 @@ import (
 	"time"
 
 	mp "github.com/mitchellh/mapstructure"
+	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 )
 
 func ObjectToJSON(obj any) ([]byte, error) {
@@ -27,12 +28,16 @@ type TypedSerderOption struct {
 	TypeFieldName string
 }
 
-func parseTimeHook(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
-	if t != reflect.TypeOf(time.Time{}) {
+type FromAny interface {
+	FromAny(val any) (ok bool, err error)
+}
+
+func parseTimeHook(srcType reflect.Type, targetType reflect.Type, data interface{}) (interface{}, error) {
+	if targetType != reflect.TypeOf(time.Time{}) {
 		return data, nil
 	}
 
-	switch f.Kind() {
+	switch srcType.Kind() {
 	case reflect.String:
 		return time.Parse(time.RFC3339, data.(string))
 	case reflect.Float64:
@@ -44,13 +49,33 @@ func parseTimeHook(f reflect.Type, t reflect.Type, data interface{}) (interface{
 	}
 }
 
-func MapToObject(m map[string]any, obj any) error {
+// fromAny 如果目的字段实现的FromAny接口，那么通过此接口实现字段类型转换
+func fromAny(srcType reflect.Type, targetType reflect.Type, data interface{}) (interface{}, error) {
+	if reflect.PointerTo(targetType).Implements(myreflect.TypeOf[FromAny]()) {
+		val := reflect.New(targetType)
+		anyIf := val.Interface().(FromAny)
+		ok, err := anyIf.FromAny(data)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return data, nil
+		}
+
+		return val.Interface(), nil
+	}
+
+	return data, nil
+}
+
+// AnyToAny 相同结构的任意类型对象之间的转换
+func AnyToAny(src any, dst any) error {
 	config := &mp.DecoderConfig{
 		TagName:          "json",
 		Squash:           true,
 		WeaklyTypedInput: true,
-		Result:           obj,
-		DecodeHook:       mp.ComposeDecodeHookFunc(parseTimeHook),
+		Result:           dst,
+		DecodeHook:       mp.ComposeDecodeHookFunc(fromAny, parseTimeHook),
 	}
 
 	decoder, err := mp.NewDecoder(config)
@@ -58,7 +83,11 @@ func MapToObject(m map[string]any, obj any) error {
 		return err
 	}
 
-	return decoder.Decode(m)
+	return decoder.Decode(src)
+}
+
+func MapToObject(m map[string]any, obj any) error {
+	return AnyToAny(m, obj)
 }
 
 func ObjectToMap(obj any) (map[string]any, error) {

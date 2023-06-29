@@ -8,6 +8,19 @@ import (
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 )
 
+type SpecialString struct {
+	Str string
+}
+
+func (a *SpecialString) FromAny(val any) (bool, error) {
+	if str, ok := val.(string); ok {
+		a.Str = "@" + str
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func Test_MapToObject(t *testing.T) {
 	Convey("包含用字符串保存的int数据", t, func() {
 		type Struct struct {
@@ -56,6 +69,22 @@ func Test_MapToObject(t *testing.T) {
 
 		So(st.Time, ShouldEqual, st2.Time)
 		So(st.NilTime, ShouldEqual, st2.NilTime)
+	})
+
+	Convey("使用FromAny", t, func() {
+		type Struct struct {
+			Special SpecialString `json:"str"`
+		}
+
+		mp := map[string]any{
+			"str": "test",
+		}
+
+		var ret Struct
+		err := AnyToAny(mp, &ret)
+		So(err, ShouldBeNil)
+
+		So(ret.Special.Str, ShouldEqual, "@test")
 	})
 }
 
