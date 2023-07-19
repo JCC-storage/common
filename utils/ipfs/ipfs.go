@@ -66,6 +66,10 @@ func (fs *IPFS) GetPinnedFiles() (map[string]shell.PinInfo, error) {
 	return fs.shell.PinsOfType(context.Background(), shell.RecursivePin)
 }
 
+func (fs *IPFS) List(hash string) ([]*shell.LsLink, error) {
+	return fs.shell.List(hash)
+}
+
 type ipfsWriter struct {
 	writer    *io.PipeWriter
 	finished  chan any

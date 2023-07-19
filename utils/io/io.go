@@ -62,3 +62,22 @@ func AfterReadClosed(closer io.ReadCloser, callback func(closer io.ReadCloser)) 
 		isBefore:   false,
 	}
 }
+
+type readerWithCloser struct {
+	reader io.Reader
+	closer func(reader io.Reader) error
+}
+
+func (hook *readerWithCloser) Read(buf []byte) (n int, err error) {
+	return hook.reader.Read(buf)
+}
+func (c *readerWithCloser) Close() error {
+	return c.closer(c.reader)
+}
+
+func WithCloser(reader io.Reader, closer func(reader io.Reader) error) io.ReadCloser {
+	return &readerWithCloser{
+		reader: reader,
+		closer: closer,
+	}
+}

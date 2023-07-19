@@ -1,8 +1,21 @@
 package task
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+	"time"
 
-type CompleteFn = func(err error, completing func())
+	mylo "gitlink.org.cn/cloudream/common/utils/lo"
+)
+
+type CompleteOption struct {
+	// 在Task调用complete函数时调用。调用时被Manager的锁保护。
+	Completing func()
+	// 延迟删除Manager中的任务，为0时没有延迟，即在Task调用complete函数时立刻删除。
+	RemovingDelay time.Duration
+}
+
+type CompleteFn = func(err error, opts ...CompleteOption)
 
 type TaskBody[TCtx any] interface {
 	Execute(ctx TCtx, complete CompleteFn)
@@ -10,16 +23,21 @@ type TaskBody[TCtx any] interface {
 
 type ComparableTaskBody[TCtx any] interface {
 	TaskBody[TCtx]
-	Compare(other TaskBody[TCtx]) bool
+	Compare(other *Task[TCtx]) bool
 }
 
 type Task[TCtx any] struct {
+	id          string
 	body        TaskBody[TCtx]
-	isCompleted bool
+	isCompleted atomic.Bool
 	waiters     []chan any
 	onCompleted []func(task *Task[TCtx])
 	waiterLock  sync.Mutex
 	err         error
+}
+
+func (t *Task[TCtx]) ID() string {
+	return t.id
 }
 
 func (t *Task[TCtx]) Body() TaskBody[TCtx] {
@@ -27,7 +45,8 @@ func (t *Task[TCtx]) Body() TaskBody[TCtx] {
 }
 
 func (t *Task[TCtx]) IsCompleted() bool {
-	return t.isCompleted
+	// 设置err是在Store之前，所以isCompleted为true时一定能获得最新的err
+	return t.isCompleted.Load()
 }
 
 func (t *Task[TCtx]) Error() error {
@@ -36,7 +55,7 @@ func (t *Task[TCtx]) Error() error {
 
 func (t *Task[TCtx]) Wait() {
 	t.waiterLock.Lock()
-	if t.isCompleted {
+	if t.isCompleted.Load() {
 		t.waiterLock.Unlock()
 		return
 	}
@@ -48,9 +67,34 @@ func (t *Task[TCtx]) Wait() {
 	<-waiter
 }
 
+// 限时等待，返回true代表等待成功，返回false代表等待超时
+func (t *Task[TCtx]) WaitTimeout(timeout time.Duration) bool {
+	t.waiterLock.Lock()
+	if t.isCompleted.Load() {
+		t.waiterLock.Unlock()
+		return true
+	}
+
+	waiter := make(chan any)
+	t.waiters = append(t.waiters, waiter)
+	t.waiterLock.Unlock()
+
+	select {
+	case <-time.After(timeout):
+		t.waiterLock.Lock()
+		t.waiters = mylo.Remove(t.waiters, waiter)
+		t.waiterLock.Unlock()
+
+		return false
+
+	case <-waiter:
+		return true
+	}
+}
+
 func (t *Task[TCtx]) OnCompleted(callback func(task *Task[TCtx])) {
 	t.waiterLock.Lock()
-	if t.isCompleted {
+	if t.isCompleted.Load() {
 		t.waiterLock.Unlock()
 		callback(t)
 		return
