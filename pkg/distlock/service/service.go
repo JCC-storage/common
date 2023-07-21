@@ -185,7 +185,7 @@ func (svc *Service) Serve() error {
 		return fmt.Errorf("start checking lease failed, err: %w", err)
 	}
 
-	// TODO 临时解决办法
+	// TODO 防止退出的临时解决办法
 	ch := make(chan any)
 	<-ch
 

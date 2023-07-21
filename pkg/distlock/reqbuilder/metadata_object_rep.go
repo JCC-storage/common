@@ -13,7 +13,7 @@ func (b *MetadataLockReqBuilder) ObjectRep() *MetadataObjectRepLockReqBuilder {
 	return &MetadataObjectRepLockReqBuilder{MetadataLockReqBuilder: b}
 }
 
-func (b *MetadataObjectRepLockReqBuilder) ReadOne(objectID int) *MetadataObjectRepLockReqBuilder {
+func (b *MetadataObjectRepLockReqBuilder) ReadOne(objectID int64) *MetadataObjectRepLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath("ObjectRep"),
 		Name:   lockprovider.METADATA_ELEMENT_READ_LOCK,
@@ -21,7 +21,7 @@ func (b *MetadataObjectRepLockReqBuilder) ReadOne(objectID int) *MetadataObjectR
 	})
 	return b
 }
-func (b *MetadataObjectRepLockReqBuilder) WriteOne(objectID int) *MetadataObjectRepLockReqBuilder {
+func (b *MetadataObjectRepLockReqBuilder) WriteOne(objectID int64) *MetadataObjectRepLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath("ObjectRep"),
 		Name:   lockprovider.METADATA_ELEMENT_WRITE_LOCK,

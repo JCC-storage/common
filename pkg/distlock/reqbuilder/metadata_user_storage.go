@@ -13,7 +13,7 @@ func (b *MetadataLockReqBuilder) UserStorage() *MetadataUserStorageLockReqBuilde
 	return &MetadataUserStorageLockReqBuilder{MetadataLockReqBuilder: b}
 }
 
-func (b *MetadataUserStorageLockReqBuilder) ReadOne(userID int, storageID int) *MetadataUserStorageLockReqBuilder {
+func (b *MetadataUserStorageLockReqBuilder) ReadOne(userID int64, storageID int64) *MetadataUserStorageLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath("UserStorage"),
 		Name:   lockprovider.METADATA_ELEMENT_READ_LOCK,
@@ -21,7 +21,7 @@ func (b *MetadataUserStorageLockReqBuilder) ReadOne(userID int, storageID int) *
 	})
 	return b
 }
-func (b *MetadataUserStorageLockReqBuilder) WriteOne(userID int, storageID int) *MetadataUserStorageLockReqBuilder {
+func (b *MetadataUserStorageLockReqBuilder) WriteOne(userID int64, storageID int64) *MetadataUserStorageLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath("UserStorage"),
 		Name:   lockprovider.METADATA_ELEMENT_WRITE_LOCK,
@@ -29,7 +29,7 @@ func (b *MetadataUserStorageLockReqBuilder) WriteOne(userID int, storageID int) 
 	})
 	return b
 }
-func (b *MetadataUserStorageLockReqBuilder) CreateOne(userID int, storageID int) *MetadataUserStorageLockReqBuilder {
+func (b *MetadataUserStorageLockReqBuilder) CreateOne(userID int64, storageID int64) *MetadataUserStorageLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath("UserStorage"),
 		Name:   lockprovider.METADATA_ELEMENT_CREATE_LOCK,

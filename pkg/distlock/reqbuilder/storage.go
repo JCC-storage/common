@@ -15,7 +15,7 @@ func (b *LockRequestBuilder) Storage() *StorageLockReqBuilder {
 	return &StorageLockReqBuilder{LockRequestBuilder: b}
 }
 
-func (b *StorageLockReqBuilder) ReadOneObject(storageID int, userID int, objectID int) *StorageLockReqBuilder {
+func (b *StorageLockReqBuilder) ReadOneObject(storageID int64, userID int64, objectID int64) *StorageLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath(storageID),
 		Name:   lockprovider.STORAGE_ELEMENT_READ_LOCK,
@@ -24,7 +24,7 @@ func (b *StorageLockReqBuilder) ReadOneObject(storageID int, userID int, objectI
 	return b
 }
 
-func (b *StorageLockReqBuilder) WriteOneObject(storageID int, userID int, objectID int) *StorageLockReqBuilder {
+func (b *StorageLockReqBuilder) WriteOneObject(storageID int64, userID int64, objectID int64) *StorageLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath(storageID),
 		Name:   lockprovider.STORAGE_ELEMENT_WRITE_LOCK,
@@ -33,7 +33,7 @@ func (b *StorageLockReqBuilder) WriteOneObject(storageID int, userID int, object
 	return b
 }
 
-func (b *StorageLockReqBuilder) CreateOneObject(storageID int, userID int, objectID int) *StorageLockReqBuilder {
+func (b *StorageLockReqBuilder) CreateOneObject(storageID int64, userID int64, objectID int64) *StorageLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath(storageID),
 		Name:   lockprovider.STORAGE_ELEMENT_WRITE_LOCK,
@@ -42,7 +42,7 @@ func (b *StorageLockReqBuilder) CreateOneObject(storageID int, userID int, objec
 	return b
 }
 
-func (b *StorageLockReqBuilder) ReadAnyObject(storageID int) *StorageLockReqBuilder {
+func (b *StorageLockReqBuilder) ReadAnyObject(storageID int64) *StorageLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath(storageID),
 		Name:   lockprovider.STORAGE_SET_READ_LOCK,
@@ -51,7 +51,7 @@ func (b *StorageLockReqBuilder) ReadAnyObject(storageID int) *StorageLockReqBuil
 	return b
 }
 
-func (b *StorageLockReqBuilder) WriteAnyObject(storageID int) *StorageLockReqBuilder {
+func (b *StorageLockReqBuilder) WriteAnyObject(storageID int64) *StorageLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath(storageID),
 		Name:   lockprovider.STORAGE_SET_WRITE_LOCK,
@@ -60,7 +60,7 @@ func (b *StorageLockReqBuilder) WriteAnyObject(storageID int) *StorageLockReqBui
 	return b
 }
 
-func (b *StorageLockReqBuilder) CreateAnyObject(storageID int) *StorageLockReqBuilder {
+func (b *StorageLockReqBuilder) CreateAnyObject(storageID int64) *StorageLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath(storageID),
 		Name:   lockprovider.STORAGE_SET_CREATE_LOCK,
@@ -69,6 +69,6 @@ func (b *StorageLockReqBuilder) CreateAnyObject(storageID int) *StorageLockReqBu
 	return b
 }
 
-func (b *StorageLockReqBuilder) makePath(storageID int) []string {
-	return []string{distlock.STORAGE_LOCK_PATH_PREFIX, strconv.Itoa(storageID)}
+func (b *StorageLockReqBuilder) makePath(storageID int64) []string {
+	return []string{distlock.STORAGE_LOCK_PATH_PREFIX, strconv.FormatInt(storageID, 10)}
 }

@@ -13,7 +13,7 @@ func (b *MetadataLockReqBuilder) Node() *MetadataNodeLockReqBuilder {
 	return &MetadataNodeLockReqBuilder{MetadataLockReqBuilder: b}
 }
 
-func (b *MetadataNodeLockReqBuilder) ReadOne(nodeID int) *MetadataNodeLockReqBuilder {
+func (b *MetadataNodeLockReqBuilder) ReadOne(nodeID int64) *MetadataNodeLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath("Node"),
 		Name:   lockprovider.METADATA_ELEMENT_READ_LOCK,
@@ -21,7 +21,7 @@ func (b *MetadataNodeLockReqBuilder) ReadOne(nodeID int) *MetadataNodeLockReqBui
 	})
 	return b
 }
-func (b *MetadataNodeLockReqBuilder) WriteOne(nodeID int) *MetadataNodeLockReqBuilder {
+func (b *MetadataNodeLockReqBuilder) WriteOne(nodeID int64) *MetadataNodeLockReqBuilder {
 	b.locks = append(b.locks, distlock.Lock{
 		Path:   b.makePath("Node"),
 		Name:   lockprovider.METADATA_ELEMENT_WRITE_LOCK,
