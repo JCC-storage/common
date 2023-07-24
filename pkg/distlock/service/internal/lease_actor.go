@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gitlink.org.cn/cloudream/common/pkg/actor"
+	"gitlink.org.cn/cloudream/common/pkg/logger"
 )
 
 type lockRequestLease struct {
@@ -110,8 +111,12 @@ func (a *LeaseActor) Serve() error {
 						delete(a.leases, reqID)
 
 						// TODO 可以考虑打个日志
+						logger.Std.Infof("lock request %s is timeout, will release it", reqID)
 
-						a.mainActor.Release(reqID)
+						err := a.mainActor.Release(reqID)
+						if err != nil {
+							logger.Std.Warnf("releasing lock request: %w", err)
+						}
 					}
 				}
 

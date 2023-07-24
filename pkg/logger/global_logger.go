@@ -11,6 +11,22 @@ import (
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 )
 
+// 输出日志到标准输出。适用于没有设计好日志输出方案时临时使用。
+var Std Logger
+
+func init() {
+	logger := logrus.New()
+	logger.SetFormatter(&nested.Formatter{
+		TimestampFormat: "2006-01-02 15:04:05",
+		NoColors:        true,
+		NoFieldsColors:  true,
+	})
+
+	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetOutput(os.Stdout)
+	Std = &logrusLogger{entry: logger.WithField("TODO", "")}
+}
+
 // Init 初始化全局默认的日志器
 func Init(cfg *Config) error {
 	logrus.SetFormatter(&nested.Formatter{

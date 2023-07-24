@@ -90,7 +90,10 @@ func (svc *Service) Acquire(req distlock.LockRequest, opts ...AcquireOption) (st
 
 	if opt.LeaseTimeSec > 0 {
 		// TODO 不影响结果，但考虑打日志
-		svc.leaseActor.Add(reqID, time.Duration(opt.LeaseTimeSec)*time.Second)
+		err := svc.leaseActor.Add(reqID, time.Duration(opt.LeaseTimeSec)*time.Second)
+		if err != nil {
+			logger.Std.Warnf("adding lease: %w", err)
+		}
 	}
 
 	return reqID, nil
@@ -106,7 +109,10 @@ func (svc *Service) Release(reqID string) error {
 	err := svc.mainActor.Release(reqID)
 
 	// TODO 不影响结果，但考虑打日志
-	svc.leaseActor.Remove(reqID)
+	err2 := svc.leaseActor.Remove(reqID)
+	if err2 != nil {
+		logger.Std.Warnf("removing lease: %w", err2)
+	}
 
 	return err
 }
@@ -121,7 +127,7 @@ func (svc *Service) Serve() error {
 		// TODO 处理错误
 		err := svc.providersActor.Serve()
 		if err != nil {
-			logger.Debugf("serving providers actor failed, err: %s", err.Error())
+			logger.Std.Warnf("serving providers actor failed, err: %s", err.Error())
 		}
 	}()
 
@@ -129,7 +135,7 @@ func (svc *Service) Serve() error {
 		// TODO 处理错误
 		err := svc.watchEtcdActor.Serve()
 		if err != nil {
-			logger.Debugf("serving watch etcd actor actor failed, err: %s", err.Error())
+			logger.Std.Warnf("serving watch etcd actor actor failed, err: %s", err.Error())
 		}
 	}()
 
@@ -137,7 +143,7 @@ func (svc *Service) Serve() error {
 		// TODO 处理错误
 		err := svc.mainActor.Serve()
 		if err != nil {
-			logger.Debugf("serving main actor failed, err: %s", err.Error())
+			logger.Std.Warnf("serving main actor failed, err: %s", err.Error())
 		}
 	}()
 
@@ -145,7 +151,7 @@ func (svc *Service) Serve() error {
 		// TODO 处理错误
 		err := svc.leaseActor.Serve()
 		if err != nil {
-			logger.Debugf("serving lease actor failed, err: %s", err.Error())
+			logger.Std.Warnf("serving lease actor failed, err: %s", err.Error())
 		}
 	}()
 
@@ -153,7 +159,7 @@ func (svc *Service) Serve() error {
 		// TODO 处理错误
 		err := svc.retryActor.Serve()
 		if err != nil {
-			logger.Debugf("serving retry actor failed, err: %s", err.Error())
+			logger.Std.Warnf("serving retry actor failed, err: %s", err.Error())
 		}
 	}()
 

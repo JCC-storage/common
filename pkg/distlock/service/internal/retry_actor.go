@@ -84,7 +84,7 @@ func (a *RetryActor) OnLocalStateUpdated() {
 		rets, err := a.mainActor.AcquireMany(a.retrys)
 		if err != nil {
 			// TODO 处理错误
-			logger.Debugf("acquire many lock requests failed, err: %s", err.Error())
+			logger.Std.Warnf("acquire many lock requests failed, err: %s", err.Error())
 			return
 		}
 
