@@ -1,24 +1,80 @@
 package serder
 
 import (
+	"fmt"
+	"reflect"
 	"testing"
-	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 )
 
-type SpecialString struct {
+type FromAnyString struct {
 	Str string
 }
 
-func (a *SpecialString) FromAny(val any) (bool, error) {
+func (a *FromAnyString) FromAny(val any) (bool, error) {
 	if str, ok := val.(string); ok {
 		a.Str = "@" + str
 		return true, nil
 	}
 
 	return false, nil
+}
+
+type ToAnyString struct {
+	Str string
+}
+
+func (a *ToAnyString) ToAny(typ reflect.Type) (val any, ok bool, err error) {
+	if typ == myreflect.TypeOf[map[string]any]() {
+		return map[string]any{
+			"str": "@" + a.Str,
+		}, true, nil
+	}
+
+	return nil, false, nil
+}
+
+type FromAnySt struct {
+	Value string
+}
+
+func (a *FromAnySt) FromAny(val any) (bool, error) {
+	if st, ok := val.(ToAnySt); ok {
+		a.Value = "From:" + st.Value
+		return true, nil
+	}
+
+	return false, nil
+}
+
+type ToAnySt struct {
+	Value string
+}
+
+func (a *ToAnySt) ToAny(typ reflect.Type) (val any, ok bool, err error) {
+	if typ == myreflect.TypeOf[FromAnySt]() {
+		return FromAnySt{
+			Value: "To:" + a.Value,
+		}, true, nil
+	}
+
+	return nil, false, nil
+}
+
+type DirToAnySt struct {
+	Value string
+}
+
+func (a DirToAnySt) ToAny(typ reflect.Type) (val any, ok bool, err error) {
+	if typ == myreflect.TypeOf[FromAnySt]() {
+		return FromAnySt{
+			Value: "DirTo:" + a.Value,
+		}, true, nil
+	}
+
+	return nil, false, nil
 }
 
 func Test_MapToObject(t *testing.T) {
@@ -37,7 +93,7 @@ func Test_MapToObject(t *testing.T) {
 
 		var st Struct
 
-		err := MapToObject(mp, &st)
+		err := AnyToAny(mp, &st)
 		So(err, ShouldBeNil)
 
 		So(st.A, ShouldEqual, "a")
@@ -45,35 +101,9 @@ func Test_MapToObject(t *testing.T) {
 		So(st.C, ShouldEqual, 1234)
 	})
 
-	Convey("包含Time，先从结构体转为JSON，再从JSON转为Map，最后变回结构体", t, func() {
+	Convey("只有FromAny", t, func() {
 		type Struct struct {
-			Time    time.Time
-			NilTime *time.Time
-		}
-
-		var st = Struct{
-			Time:    time.Now(),
-			NilTime: nil,
-		}
-
-		data, err := ObjectToJSON(st)
-		So(err, ShouldBeNil)
-
-		var mp map[string]any
-		err = JSONToObject(data, &mp)
-		So(err, ShouldBeNil)
-
-		var st2 Struct
-		err = MapToObject(mp, &st2)
-		So(err, ShouldBeNil)
-
-		So(st.Time, ShouldEqual, st2.Time)
-		So(st.NilTime, ShouldEqual, st2.NilTime)
-	})
-
-	Convey("使用FromAny", t, func() {
-		type Struct struct {
-			Special SpecialString `json:"str"`
+			Special FromAnyString `json:"str"`
 		}
 
 		mp := map[string]any{
@@ -85,6 +115,84 @@ func Test_MapToObject(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		So(ret.Special.Str, ShouldEqual, "@test")
+	})
+
+	Convey("字段类型直接实现了FromAny", t, func() {
+		type Struct struct {
+			Special *FromAnyString `json:"str"`
+		}
+
+		mp := map[string]any{
+			"str": "test",
+		}
+
+		var ret Struct
+		err := AnyToAny(mp, &ret)
+		So(err, ShouldBeNil)
+
+		So(ret.Special.Str, ShouldEqual, "@test")
+	})
+
+	Convey("只有ToAny", t, func() {
+		st := struct {
+			Special ToAnyString `json:"str"`
+		}{
+			Special: ToAnyString{
+				Str: "test",
+			},
+		}
+
+		ret := map[string]any{}
+
+		err := AnyToAny(st, &ret)
+		So(err, ShouldBeNil)
+
+		So(ret["str"].(map[string]any)["str"], ShouldEqual, "@test")
+	})
+
+	Convey("优先使用ToAny", t, func() {
+		st1 := ToAnySt{
+			Value: "test",
+		}
+
+		st2 := FromAnySt{}
+
+		err := AnyToAny(st1, &st2)
+		So(err, ShouldBeNil)
+
+		So(st2.Value, ShouldEqual, "To:test")
+	})
+
+	Convey("使用Convertor", t, func() {
+		type Struct1 struct {
+			Value string
+		}
+
+		type Struct2 struct {
+			Value string
+		}
+
+		st1 := Struct1{
+			Value: "test",
+		}
+
+		st2 := Struct2{}
+
+		err := AnyToAny(st1, &st2, AnyToAnyOption{
+			Converters: []Converter{func(srcType reflect.Type, dstType reflect.Type, data interface{}) (interface{}, error) {
+				if srcType == myreflect.TypeOf[Struct1]() && dstType == myreflect.TypeOf[Struct2]() {
+					s1 := data.(Struct1)
+					return Struct2{
+						Value: "@" + s1.Value,
+					}, nil
+				}
+
+				return nil, fmt.Errorf("should not arrive here!")
+			}},
+		})
+		So(err, ShouldBeNil)
+
+		So(st2.Value, ShouldEqual, "@test")
 	})
 }
 

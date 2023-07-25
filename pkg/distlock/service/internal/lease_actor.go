@@ -115,7 +115,7 @@ func (a *LeaseActor) Serve() error {
 
 						err := a.mainActor.Release(reqID)
 						if err != nil {
-							logger.Std.Warnf("releasing lock request: %w", err)
+							logger.Std.Warnf("releasing lock request: %s", err.Error())
 						}
 					}
 				}

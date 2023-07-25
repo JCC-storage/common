@@ -92,7 +92,7 @@ func (svc *Service) Acquire(req distlock.LockRequest, opts ...AcquireOption) (st
 		// TODO 不影响结果，但考虑打日志
 		err := svc.leaseActor.Add(reqID, time.Duration(opt.LeaseTimeSec)*time.Second)
 		if err != nil {
-			logger.Std.Warnf("adding lease: %w", err)
+			logger.Std.Warnf("adding lease: %s", err.Error())
 		}
 	}
 
@@ -111,7 +111,7 @@ func (svc *Service) Release(reqID string) error {
 	// TODO 不影响结果，但考虑打日志
 	err2 := svc.leaseActor.Remove(reqID)
 	if err2 != nil {
-		logger.Std.Warnf("removing lease: %w", err2)
+		logger.Std.Warnf("removing lease: %s", err2.Error())
 	}
 
 	return err
