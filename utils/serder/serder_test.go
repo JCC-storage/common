@@ -77,7 +77,7 @@ func (a DirToAnySt) ToAny(typ reflect.Type) (val any, ok bool, err error) {
 	return nil, false, nil
 }
 
-func Test_MapToObject(t *testing.T) {
+func Test_AnyToAny(t *testing.T) {
 	Convey("包含用字符串保存的int数据", t, func() {
 		type Struct struct {
 			A string `json:"a"`
@@ -232,4 +232,166 @@ func Test_TypedMapToObject(t *testing.T) {
 		So(st2, ShouldResemble, st)
 	})
 
+}
+
+func Test_MapToObject(t *testing.T) {
+	type Base struct {
+		Int    int
+		Bool   bool
+		String string
+		Float  float32
+	}
+	type ArraryStruct struct {
+		IntArr []int
+		StArr  []Base
+		ArrArr [][]int
+		Nil    []Base
+	}
+	type MapStruct struct {
+		StrMap map[string]string
+		StMap  map[string]Base
+		MapMap map[string]map[string]string
+		Nil    map[string]Base
+	}
+
+	type Top struct {
+		ArrSt  ArraryStruct
+		MapSt  *MapStruct
+		BaseIf any
+		NilPtr *Base
+	}
+	Convey("结构体递归转换成map[string]any", t, func() {
+		val := Top{
+			ArrSt: ArraryStruct{
+				IntArr: []int{1, 2, 3},
+				StArr: []Base{
+					{
+						Int:    1,
+						Bool:   true,
+						String: "test",
+						Float:  1,
+					},
+					{
+						Int:    2,
+						Bool:   false,
+						String: "test2",
+						Float:  2,
+					},
+				},
+				ArrArr: [][]int{
+					{1, 2, 3},
+					{},
+					nil,
+				},
+				Nil: nil,
+			},
+			MapSt: &MapStruct{
+				StrMap: map[string]string{
+					"a": "1",
+					"b": "2",
+				},
+				StMap: map[string]Base{
+					"a": {
+						Int:    1,
+						Bool:   true,
+						String: "test",
+						Float:  1,
+					},
+					"b": {
+						Int:    2,
+						Bool:   false,
+						String: "test2",
+						Float:  2,
+					},
+				},
+				MapMap: map[string]map[string]string{
+					"a": {
+						"a": "1",
+						"b": "2",
+					},
+					"b": nil,
+				},
+				Nil: nil,
+			},
+			BaseIf: Base{
+				Int:    1,
+				Bool:   true,
+				String: "test",
+				Float:  1,
+			},
+			NilPtr: nil,
+		}
+
+		retMp, err := ObjectToMap(val)
+		So(err, ShouldBeNil)
+
+		exceptMap := map[string]any{
+			"ArrSt": map[string]any{
+				"IntArr": []any{1, 2, 3},
+				"StArr": []any{
+					map[string]any{
+						"Int":    1,
+						"Bool":   true,
+						"String": "test",
+						"Float":  1,
+					},
+					map[string]any{
+						"Int":    2,
+						"Bool":   false,
+						"String": "test2",
+						"Float":  2,
+					},
+				},
+				"ArrArr": []any{
+					[]any{1, 2, 3},
+					[]any{},
+					[]int(nil),
+				},
+				"Nil": []Base(nil),
+			},
+			"MapSt": map[string]any{
+				"StrMap": map[string]any{
+					"a": "1",
+					"b": "2",
+				},
+				"StMap": map[string]any{
+					"a": map[string]any{
+						"Int":    1,
+						"Bool":   true,
+						"String": "test",
+						"Float":  1,
+					},
+					"b": map[string]any{
+						"Int":    2,
+						"Bool":   false,
+						"String": "test2",
+						"Float":  2,
+					},
+				},
+				"MapMap": map[string]any{
+					"a": map[string]any{
+						"a": "1",
+						"b": "2",
+					},
+					"b": map[string]string(nil),
+				},
+				"Nil": map[string]Base(nil),
+			},
+			"BaseIf": map[string]any{
+				"Int":    1,
+				"Bool":   true,
+				"String": "test",
+				"Float":  1,
+			},
+			"NilPtr": (*Base)(nil),
+		}
+
+		mpRetJson, err := ObjectToJSON(retMp)
+		So(err, ShouldBeNil)
+
+		exceptMapJson, err := ObjectToJSON(exceptMap)
+		So(err, ShouldBeNil)
+
+		So(string(mpRetJson), ShouldEqualJSON, string(exceptMapJson))
+	})
 }

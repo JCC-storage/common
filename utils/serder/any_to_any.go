@@ -13,6 +13,9 @@ type AnyToAnyOption struct {
 	NoFromAny  bool        // 不判断目的字段是否实现了FromAny接口
 	NoToAny    bool        // 不判断源字段是否实现了ToAny接口
 	Converters []Converter // 字段类型转换函数
+	// 当目的类型为map[string]any，是否要递归的将源类型的每一个字段都变成map[string]any。
+	// 注：字段的类型（而不是实际值的类型）必须为结构体或者结构体指针。
+	RecursiveStructToMap bool
 }
 
 type FromAny interface {
@@ -41,6 +44,10 @@ func AnyToAny(src any, dst any, opts ...AnyToAnyOption) error {
 
 	for _, c := range opt.Converters {
 		hooks = append(hooks, c)
+	}
+
+	if opt.RecursiveStructToMap {
+		hooks = append(hooks, mp.RecursiveStructToMapHookFunc())
 	}
 
 	config := &mp.DecoderConfig{
