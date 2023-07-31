@@ -1,31 +1,26 @@
 package consts
 
 const (
-	REDUNDANCY_REP = "rep"
-	REDUNDANCY_EC  = "ec"
+	IPFSStateOK = "OK"
+
+	StorageDirectoryStateOK = "OK"
+
+	NodeStateNormal      = "Normal"
+	NodeStateUnavailable = "Unavailable"
 )
 
 const (
-	IPFS_STATE_OK = "OK"
-
-	STORAGE_DIRECTORY_STATE_OK = "OK"
-
-	NODE_STATE_NORMAL      = "Normal"
-	NODE_STATE_UNAVAILABLE = "Unavailable"
+	ObjectStateNormal  = "Normal"
+	ObjectStateDeleted = "Deleted"
 )
 
 const (
-	OBJECT_STATE_NORMAL  = "Normal"
-	OBJECT_STATE_DELETED = "Deleted"
+	StorageObjectStateNormal   = "Normal"
+	StorageObjectStateDeleted  = "Deleted"
+	StorageObjectStateOutdated = "Outdated"
 )
 
 const (
-	STORAGE_OBJECT_STATE_NORMAL   = "Normal"
-	STORAGE_OBJECT_STATE_DELETED  = "Deleted"
-	STORAGE_OBJECT_STATE_OUTDATED = "Outdated"
-)
-
-const (
-	CACHE_STATE_PINNED = "Pinned"
-	CACHE_STATE_TEMP   = "Temp"
+	CacheStatePinned = "Pinned"
+	CacheStateTemp   = "Temp"
 )
