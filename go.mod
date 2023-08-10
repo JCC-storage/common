@@ -6,14 +6,18 @@ require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/beevik/etree v1.2.0
 	github.com/go-ping/ping v1.1.0
+	github.com/google/uuid v1.3.0
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/imdario/mergo v0.3.15
 	github.com/ipfs/go-ipfs-api v0.6.0
+	github.com/json-iterator/go v1.1.12
 	github.com/magefile/mage v1.15.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/otiai10/copy v1.12.0
 	github.com/samber/lo v1.36.0
 	github.com/sirupsen/logrus v1.9.2
 	github.com/smartystreets/goconvey v1.8.0
+	github.com/streadway/amqp v1.1.0
 	github.com/zyedidia/generic v1.2.1
 	go.etcd.io/etcd/client/v3 v3.5.9
 	golang.org/x/exp v0.0.0-20230519143937-03e91628a987
@@ -27,8 +31,8 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/ipfs/boxo v0.8.0 // indirect
 	github.com/ipfs/go-cid v0.4.0 // indirect
 	github.com/jtolds/gls v4.20.0+incompatible // indirect
@@ -38,6 +42,8 @@ require (
 	github.com/libp2p/go-libp2p v0.26.3 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
@@ -65,6 +71,3 @@ require (
 	google.golang.org/protobuf v1.30.0 // indirect
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
-
-// 运行go mod tidy时需要将下面几行取消注释
-//replace gitlink.org.cn/cloudream/proto => ../proto
