@@ -1,5 +1,7 @@
 package grpc
 
+// TODO 拆分到存储服务的common包里去
+/*
 import (
 	"context"
 	"fmt"
@@ -118,3 +120,4 @@ func SendFileAsStream(client proto.FileTransportClient) (myio.PromiseWriteCloser
 		stream: stream,
 	}, nil
 }
+*/

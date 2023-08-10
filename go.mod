@@ -8,12 +8,13 @@ require (
 	github.com/go-ping/ping v1.1.0
 	github.com/imdario/mergo v0.3.15
 	github.com/ipfs/go-ipfs-api v0.6.0
+	github.com/magefile/mage v1.15.0
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/otiai10/copy v1.12.0
 	github.com/samber/lo v1.36.0
 	github.com/sirupsen/logrus v1.9.2
 	github.com/smartystreets/goconvey v1.8.0
 	github.com/zyedidia/generic v1.2.1
-	gitlink.org.cn/cloudream/proto v0.0.0
 	go.etcd.io/etcd/client/v3 v3.5.9
 	golang.org/x/exp v0.0.0-20230519143937-03e91628a987
 )
@@ -66,4 +67,4 @@ require (
 )
 
 // 运行go mod tidy时需要将下面几行取消注释
-replace gitlink.org.cn/cloudream/proto => ../proto
+//replace gitlink.org.cn/cloudream/proto => ../proto
