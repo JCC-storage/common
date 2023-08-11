@@ -7,6 +7,7 @@ const (
 	RedundancyEC  = "ec"
 )
 
+// 冗余模式的描述信息
 type RedundancyConfigTypes interface{}
 type RedundancyConfigTypesConst interface {
 	RepRedundancyConfig | ECRedundancyConfig
@@ -15,9 +16,16 @@ type RepRedundancyConfig struct {
 	RepCount int `json:"repCount"`
 }
 
+func NewRepRedundancyConfig(repCount int) RepRedundancyConfig {
+	return RepRedundancyConfig{
+		RepCount: repCount,
+	}
+}
+
 type ECRedundancyConfig struct {
 }
 
+// 冗余模式的具体配置
 type RedundancyDataTypes interface{}
 type RedundancyDataTypesConst interface {
 	RepRedundancyData | ECRedundancyData
