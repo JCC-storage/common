@@ -3,6 +3,7 @@ package serder
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 )
@@ -11,8 +12,34 @@ func ObjectToJSON(obj any) ([]byte, error) {
 	return json.Marshal(obj)
 }
 
+func ObjectToJSONStream(obj any) io.ReadCloser {
+	pr, pw := io.Pipe()
+	enc := json.NewEncoder(pw)
+
+	go func() {
+		err := enc.Encode(obj)
+		if err != nil && err != io.EOF {
+			pw.CloseWithError(err)
+		} else {
+			pw.Close()
+		}
+	}()
+
+	return pr
+}
+
 func JSONToObject(data []byte, obj any) error {
 	return json.Unmarshal(data, obj)
+}
+
+func JSONToObjectStream(str io.Reader, obj any) error {
+	dec := json.NewDecoder(str)
+	err := dec.Decode(obj)
+	if err != io.EOF {
+		return err
+	}
+
+	return nil
 }
 
 type TypeResolver interface {
