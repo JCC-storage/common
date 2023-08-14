@@ -1,7 +1,7 @@
 package service
 
 import (
-	"gitlink.org.cn/cloudream/common/pkg/distlock"
+	"gitlink.org.cn/cloudream/common/pkgs/distlock"
 )
 
 type Mutex struct {

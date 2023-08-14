@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"gitlink.org.cn/cloudream/common/pkg/distlock"
-	"gitlink.org.cn/cloudream/common/pkg/distlock/service/internal"
-	"gitlink.org.cn/cloudream/common/pkg/logger"
+	"gitlink.org.cn/cloudream/common/pkgs/distlock"
+	"gitlink.org.cn/cloudream/common/pkgs/distlock/service/internal"
+	"gitlink.org.cn/cloudream/common/pkgs/logger"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 

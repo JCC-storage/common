@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"gitlink.org.cn/cloudream/common/pkg/actor"
+	"gitlink.org.cn/cloudream/common/pkgs/actor"
 	mylo "gitlink.org.cn/cloudream/common/utils/lo"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 	clientv3 "go.etcd.io/etcd/client/v3"

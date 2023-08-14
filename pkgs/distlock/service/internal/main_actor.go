@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"gitlink.org.cn/cloudream/common/pkg/actor"
-	"gitlink.org.cn/cloudream/common/pkg/distlock"
+	"gitlink.org.cn/cloudream/common/pkgs/actor"
+	"gitlink.org.cn/cloudream/common/pkgs/distlock"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"

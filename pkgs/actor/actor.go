@@ -6,7 +6,7 @@ import (
 
 	"github.com/zyedidia/generic/list"
 
-	"gitlink.org.cn/cloudream/common/pkg/future"
+	"gitlink.org.cn/cloudream/common/pkgs/future"
 	mysync "gitlink.org.cn/cloudream/common/utils/sync"
 )
 

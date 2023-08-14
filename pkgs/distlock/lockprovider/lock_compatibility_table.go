@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/samber/lo"
-	"gitlink.org.cn/cloudream/common/pkg/distlock"
+	"gitlink.org.cn/cloudream/common/pkgs/distlock"
 )
 
 const (

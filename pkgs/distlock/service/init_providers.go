@@ -1,10 +1,10 @@
 package service
 
 import (
-	"gitlink.org.cn/cloudream/common/pkg/distlock"
-	"gitlink.org.cn/cloudream/common/pkg/distlock/lockprovider"
-	"gitlink.org.cn/cloudream/common/pkg/distlock/service/internal"
-	"gitlink.org.cn/cloudream/common/pkg/trie"
+	"gitlink.org.cn/cloudream/common/pkgs/distlock"
+	"gitlink.org.cn/cloudream/common/pkgs/distlock/lockprovider"
+	"gitlink.org.cn/cloudream/common/pkgs/distlock/service/internal"
+	"gitlink.org.cn/cloudream/common/pkgs/trie"
 )
 
 func initProviders(providers *internal.ProvidersActor) {

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"gitlink.org.cn/cloudream/common/pkg/actor"
-	"gitlink.org.cn/cloudream/common/pkg/distlock"
-	"gitlink.org.cn/cloudream/common/pkg/future"
-	"gitlink.org.cn/cloudream/common/pkg/trie"
+	"gitlink.org.cn/cloudream/common/pkgs/actor"
+	"gitlink.org.cn/cloudream/common/pkgs/distlock"
+	"gitlink.org.cn/cloudream/common/pkgs/future"
+	"gitlink.org.cn/cloudream/common/pkgs/trie"
 )
 
 type indexWaiter struct {

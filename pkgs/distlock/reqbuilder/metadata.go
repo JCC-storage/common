@@ -1,6 +1,6 @@
 package reqbuilder
 
-import "gitlink.org.cn/cloudream/common/pkg/distlock"
+import "gitlink.org.cn/cloudream/common/pkgs/distlock"
 
 type MetadataLockReqBuilder struct {
 	*LockRequestBuilder

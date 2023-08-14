@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/samber/lo"
-	"gitlink.org.cn/cloudream/common/pkg/trie"
+	"gitlink.org.cn/cloudream/common/pkgs/trie"
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 )
 

@@ -1,8 +1,8 @@
 package reqbuilder
 
 import (
-	"gitlink.org.cn/cloudream/common/pkg/distlock"
-	"gitlink.org.cn/cloudream/common/pkg/distlock/service"
+	"gitlink.org.cn/cloudream/common/pkgs/distlock"
+	"gitlink.org.cn/cloudream/common/pkgs/distlock/service"
 	mylo "gitlink.org.cn/cloudream/common/utils/lo"
 )
 

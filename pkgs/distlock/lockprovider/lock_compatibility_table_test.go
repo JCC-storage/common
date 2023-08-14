@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlink.org.cn/cloudream/common/pkg/distlock"
+	"gitlink.org.cn/cloudream/common/pkgs/distlock"
 )
 
 func Test_LockCompatibilityTable(t *testing.T) {
