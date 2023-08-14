@@ -1,11 +1,9 @@
 module gitlink.org.cn/cloudream/common
 
-go 1.18
+go 1.20
 
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
-	github.com/beevik/etree v1.2.0
-	github.com/go-ping/ping v1.1.0
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/imdario/mergo v0.3.15
@@ -63,7 +61,6 @@ require (
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.6.0 // indirect
 	golang.org/x/net v0.8.0 // indirect
-	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/text v0.8.0 // indirect
 	google.golang.org/genproto v0.0.0-20230403163135-c38d8f061ccd // indirect

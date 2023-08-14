@@ -12,8 +12,9 @@ import (
 )
 
 var Global = struct {
-	OS   string
-	Arch string
+	OS        string
+	Arch      string
+	BuildRoot string
 }{
 	Arch: "amd64",
 }
@@ -30,7 +31,12 @@ type goBuildArgs struct {
 }
 
 func Build(args BuildArgs) error {
-	fullOutputDir, err := filepath.Abs(args.OutputDir)
+	buildRoot := Global.BuildRoot
+	if buildRoot == "" {
+		buildRoot = "build"
+	}
+
+	fullOutputDir, err := filepath.Abs(filepath.Join(buildRoot, args.OutputDir))
 	if err != nil {
 		return err
 	}
