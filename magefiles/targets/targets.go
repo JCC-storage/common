@@ -18,3 +18,8 @@ func Linux() {
 func AMD64() {
 	magefiles.Global.Arch = "amd64"
 }
+
+// [配置项]设置编译的根目录
+func BuildRoot(dir string) {
+	magefiles.Global.BuildRoot = dir
+}
