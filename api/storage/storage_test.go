@@ -24,9 +24,9 @@ func Test_Object(t *testing.T) {
 			BucketID:   1,
 			FileSize:   4096,
 			ObjectName: uuid.NewString(),
-			Redundancy: RedundancyConfig{
-				Type:   models.RedundancyRep,
-				Config: models.NewRepRedundancyConfig(1),
+			Redundancy: MyRedundancyInfo{
+				Type: models.RedundancyRep,
+				Info: models.NewRepRedundancyInfo(1),
 			},
 			File: bytes.NewBuffer(fileData),
 		})
@@ -65,9 +65,9 @@ func Test_Storage(t *testing.T) {
 			BucketID:   1,
 			FileSize:   4096,
 			ObjectName: uuid.NewString(),
-			Redundancy: RedundancyConfig{
-				Type:   models.RedundancyRep,
-				Config: models.NewRepRedundancyConfig(1),
+			Redundancy: MyRedundancyInfo{
+				Type: models.RedundancyRep,
+				Info: models.NewRepRedundancyInfo(1),
 			},
 			File: bytes.NewBuffer(fileData),
 		})
