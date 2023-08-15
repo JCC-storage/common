@@ -52,13 +52,13 @@ type ObjectUploadReq struct {
 	BucketID   int64            `json:"bucketID"`
 	FileSize   int64            `json:"fileSize"`
 	ObjectName string           `json:"objectName"`
-	Redundancy RedundancyConfig `json:"redundancy"`
+	Redundancy MyRedundancyInfo `json:"redundancy"`
 	File       io.Reader        `json:"-"`
 }
 
-type RedundancyConfig struct {
-	Type   string `json:"type"`
-	Config any    `json:"config"`
+type MyRedundancyInfo struct {
+	Type string `json:"type"`
+	Info any    `json:"config"`
 }
 
 type ObjectUploadResp struct {
