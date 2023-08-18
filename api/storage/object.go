@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
+	"gitlink.org.cn/cloudream/common/models"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -48,19 +49,13 @@ func (c *Client) ObjectDownload(req ObjectDownloadReq) (io.ReadCloser, error) {
 }
 
 type ObjectUploadReq struct {
-	UserID     int64            `json:"userID"`
-	BucketID   int64            `json:"bucketID"`
-	FileSize   int64            `json:"fileSize"`
-	ObjectName string           `json:"objectName"`
-	Redundancy MyRedundancyInfo `json:"redundancy"`
-	File       io.Reader        `json:"-"`
+	UserID     int64                      `json:"userID"`
+	BucketID   int64                      `json:"bucketID"`
+	FileSize   int64                      `json:"fileSize"`
+	ObjectName string                     `json:"objectName"`
+	Redundancy models.TypedRedundancyInfo `json:"redundancy"`
+	File       io.Reader                  `json:"-"`
 }
-
-type MyRedundancyInfo struct {
-	Type string `json:"type"`
-	Info any    `json:"config"`
-}
-
 type ObjectUploadResp struct {
 	ObjectID int64 `json:"objectID,string"`
 }
