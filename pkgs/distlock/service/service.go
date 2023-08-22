@@ -15,6 +15,18 @@ type AcquireOption struct {
 	LeaseTimeSec int // 锁的租约时间。为0不设置租约。
 }
 
+type PathProvider struct {
+	Path     []any
+	Provider distlock.LockProvider
+}
+
+func NewPathProvider(prov distlock.LockProvider, path ...any) PathProvider {
+	return PathProvider{
+		Path:     path,
+		Provider: prov,
+	}
+}
+
 type Service struct {
 	cfg     *distlock.Config
 	etcdCli *clientv3.Client
@@ -28,7 +40,7 @@ type Service struct {
 	lockReqEventWatcher internal.LockRequestEventWatcher
 }
 
-func NewService(cfg *distlock.Config) (*Service, error) {
+func NewService(cfg *distlock.Config, initProvs []PathProvider) (*Service, error) {
 	etcdCli, err := clientv3.New(clientv3.Config{
 		Endpoints:   []string{cfg.EtcdAddress},
 		Username:    cfg.EtcdUsername,
@@ -51,7 +63,9 @@ func NewService(cfg *distlock.Config) (*Service, error) {
 	leaseActor.Init(mainActor)
 	retryActor.Init(mainActor)
 
-	initProviders(providersActor)
+	for _, prov := range initProvs {
+		providersActor.AddProvider(prov.Provider, prov.Path...)
+	}
 
 	return &Service{
 		cfg:            cfg,

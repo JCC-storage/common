@@ -1,8 +1,6 @@
 package service
 
-import (
-	"gitlink.org.cn/cloudream/common/pkgs/distlock"
-)
+import "gitlink.org.cn/cloudream/common/pkgs/distlock"
 
 type Mutex struct {
 	svc       *Service
