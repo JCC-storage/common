@@ -9,11 +9,11 @@ import (
 	myio "gitlink.org.cn/cloudream/common/utils/io"
 )
 
-type IPFS struct {
+type Client struct {
 	shell *shell.Shell
 }
 
-func NewIPFS(cfg *Config) (*IPFS, error) {
+func NewClient(cfg *Config) (*Client, error) {
 	ipfsAddr := fmt.Sprintf("localhost:%d", cfg.Port)
 	sh := shell.NewShell(ipfsAddr)
 
@@ -22,16 +22,16 @@ func NewIPFS(cfg *Config) (*IPFS, error) {
 		return nil, fmt.Errorf("cannot connect to %s", ipfsAddr)
 	}
 
-	return &IPFS{
+	return &Client{
 		shell: sh,
 	}, nil
 }
 
-func (fs *IPFS) IsUp() bool {
+func (fs *Client) IsUp() bool {
 	return fs.shell.IsUp()
 }
 
-func (fs *IPFS) CreateFile() (myio.PromiseWriteCloser[string], error) {
+func (fs *Client) CreateFileStream() (myio.PromiseWriteCloser[string], error) {
 	pr, pw := io.Pipe()
 
 	ipfsWriter := ipfsWriter{
@@ -50,23 +50,27 @@ func (fs *IPFS) CreateFile() (myio.PromiseWriteCloser[string], error) {
 	return &ipfsWriter, nil
 }
 
-func (fs *IPFS) OpenRead(hash string) (io.ReadCloser, error) {
+func (fs *Client) CreateFile(file io.Reader) (string, error) {
+	return fs.shell.Add(file)
+}
+
+func (fs *Client) OpenRead(hash string) (io.ReadCloser, error) {
 	return fs.shell.Cat(hash)
 }
 
-func (fs *IPFS) Pin(hash string) error {
+func (fs *Client) Pin(hash string) error {
 	return fs.shell.Pin(hash)
 }
 
-func (fs *IPFS) Unpin(hash string) error {
+func (fs *Client) Unpin(hash string) error {
 	return fs.shell.Unpin(hash)
 }
 
-func (fs *IPFS) GetPinnedFiles() (map[string]shell.PinInfo, error) {
+func (fs *Client) GetPinnedFiles() (map[string]shell.PinInfo, error) {
 	return fs.shell.PinsOfType(context.Background(), shell.RecursivePin)
 }
 
-func (fs *IPFS) List(hash string) ([]*shell.LsLink, error) {
+func (fs *Client) List(hash string) ([]*shell.LsLink, error) {
 	return fs.shell.List(hash)
 }
 
@@ -93,8 +97,4 @@ func (w *ipfsWriter) Finish() (string, error) {
 	<-w.finished
 
 	return w.fileHash, w.finishErr
-}
-
-func IPFSRemoteDeamonDetector() { //探测本地IPFS Deamon与目的地IPFS Deamon的连接状态
-
 }
