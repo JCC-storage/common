@@ -11,47 +11,47 @@ func Test_Unify_Ops(t *testing.T) {
 	Convey("测试获取SlwNode信息", t, func() {
 		cli := NewClient("http://101.201.215.165:6000")
 
-		slwNodeInfo, err := cli.getSlwNodeInfo()
+		slwNodeInfo, err := cli.GetSlwNodeInfo()
 		So(err, ShouldBeNil)
 
 		sNodes := *slwNodeInfo
-		cpuData, err := cli.getCPUData(Node{
+		cpuData, err := cli.GetCPUData(Node{
 			NodeId: sNodes[0].ID,
 		})
 		So(err, ShouldBeNil)
 		fmt.Printf("cpuData: %v\n", cpuData)
 
-		gpuData, err := cli.getGPUData(Node{
+		gpuData, err := cli.GetGPUData(Node{
 			NodeId: sNodes[0].ID,
 		})
 		So(err, ShouldBeNil)
 		fmt.Printf("gpuData: %v\n", gpuData)
 
-		npuData, err := cli.getNPUData(Node{
+		npuData, err := cli.GetNPUData(Node{
 			NodeId: sNodes[0].ID,
 		})
 		So(err, ShouldBeNil)
 		fmt.Printf("npuData: %v\n", npuData)
 
-		mluData, err := cli.getMLUData(Node{
+		mluData, err := cli.GetMLUData(Node{
 			NodeId: sNodes[0].ID,
 		})
 		So(err, ShouldBeNil)
 		fmt.Printf("mluData: %v\n", mluData)
 
-		storageData, err := cli.getStorageData(Node{
+		storageData, err := cli.GetStorageData(Node{
 			NodeId: sNodes[0].ID,
 		})
 		So(err, ShouldBeNil)
 		fmt.Printf("storageData: %v\n", storageData)
 
-		memoryData, err := cli.getMemoryData(Node{
+		memoryData, err := cli.GetMemoryData(Node{
 			NodeId: sNodes[0].ID,
 		})
 		So(err, ShouldBeNil)
 		fmt.Printf("memoryData: %v\n", memoryData)
 
-		indicatorData, err := cli.getIndicatorData(Node{
+		indicatorData, err := cli.GetIndicatorData(Node{
 			NodeId: sNodes[0].ID,
 		})
 		So(err, ShouldBeNil)

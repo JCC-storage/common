@@ -28,19 +28,3 @@ func NewClient(baseURL string) *Client {
 		baseURL: baseURL,
 	}
 }
-
-// func (c *Client) SendRequest(path string, method string, body []byte) (*http.Response, error) {
-// 	url := c.BaseURL + path
-// 	req, err := http.NewRequest(method, url, bytes.NewBuffer(body))
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	client := &http.Client{}
-// 	resp, err := client.Do(req)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return resp, nil
-// }
