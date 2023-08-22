@@ -1,6 +1,11 @@
 package models
 
-import "gitlink.org.cn/cloudream/common/utils/serder"
+import (
+	"fmt"
+
+	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/utils/serder"
+)
 
 /// TODO 将分散在各处的公共结构体定义集中到这里来
 
@@ -65,4 +70,13 @@ func (i *TypedRedundancyInfo) ToECInfo() (ECRedundancyInfo, error) {
 	var info ECRedundancyInfo
 	err := serder.AnyToAny(i.Info, &info)
 	return info, err
+}
+
+func (i *TypedRedundancyInfo) Scan(src interface{}) error {
+	data, ok := src.([]uint8)
+	if !ok {
+		return fmt.Errorf("unknow src type: %v", myreflect.TypeOfValue(data))
+	}
+
+	return serder.JSONToObject(data, i)
 }
