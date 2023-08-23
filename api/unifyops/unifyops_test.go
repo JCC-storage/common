@@ -7,9 +7,11 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func Test_Unify_Ops(t *testing.T) {
+func Test_UnifyOps(t *testing.T) {
 	Convey("测试获取SlwNode信息", t, func() {
-		cli := NewClient("http://101.201.215.165:6000")
+		cli := NewClient(&Config{
+			URL: "http://101.201.215.165:6000",
+		})
 
 		slwNodeInfo, err := cli.GetSlwNodeInfo()
 		So(err, ShouldBeNil)

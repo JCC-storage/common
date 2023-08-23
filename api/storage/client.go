@@ -19,8 +19,38 @@ type Client struct {
 	baseURL string
 }
 
-func NewClient(baseURL string) Client {
-	return Client{
-		baseURL: baseURL,
+func NewClient(cfg *Config) *Client {
+	return &Client{
+		baseURL: cfg.URL,
 	}
+}
+
+type PoolClient struct {
+	*Client
+	owner *Pool
+}
+
+func (c *PoolClient) Close() {
+	c.owner.Release(c)
+}
+
+type Pool struct {
+	cfg *Config
+}
+
+func NewPool(cfg *Config) *Pool {
+	return &Pool{
+		cfg: cfg,
+	}
+}
+func (p *Pool) Acquire() (*PoolClient, error) {
+	cli := NewClient(p.cfg)
+	return &PoolClient{
+		Client: cli,
+		owner:  p,
+	}, nil
+}
+
+func (p *Pool) Release(cli *PoolClient) {
+
 }

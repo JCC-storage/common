@@ -109,11 +109,15 @@ func PostForm(url string, param RequestParam) (*http.Response, error) {
 }
 
 type MultiPartRequestParam struct {
-	Header   any
-	Query    any
-	Form     any
-	DataName string
-	Data     io.Reader
+	Header any
+	Query  any
+	Form   any
+	Files  []MultiPartRequestFile
+}
+type MultiPartRequestFile struct {
+	FieldName string // 这个文件所属的form字段
+	FileName  string // 文件名
+	File      io.Reader
 }
 
 func PostMultiPart(url string, param MultiPartRequestParam) (*http.Response, error) {
@@ -155,13 +159,13 @@ func PostMultiPart(url string, param MultiPartRequestParam) (*http.Response, err
 				}
 			}
 
-			if param.Data != nil {
-				w, err := muWriter.CreateFormFile("file", param.DataName)
+			for _, file := range param.Files {
+				w, err := muWriter.CreateFormFile(file.FieldName, file.FileName)
 				if err != nil {
 					return fmt.Errorf("create form file failed, err: %w", err)
 				}
 
-				_, err = io.Copy(w, param.Data)
+				_, err = io.Copy(w, file.File)
 				if err != nil {
 					return err
 				}
