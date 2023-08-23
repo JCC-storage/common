@@ -60,6 +60,14 @@ func NewTypedRepRedundancyInfo(repCount int) TypedRedundancyInfo {
 	}
 }
 
+func (i *TypedRedundancyInfo) IsRepInfo() bool {
+	return i.Type == RedundancyRep
+}
+
+func (i *TypedRedundancyInfo) IsECInfo() bool {
+	return i.Type == RedundancyEC
+}
+
 func (i *TypedRedundancyInfo) ToRepInfo() (RepRedundancyInfo, error) {
 	var info RepRedundancyInfo
 	err := serder.AnyToAny(i.Info, &info)
