@@ -153,3 +153,22 @@ func Test_Cache(t *testing.T) {
 		So(err, ShouldBeNil)
 	})
 }
+
+func Test_GetNodeIDs(t *testing.T) {
+	Convey("测试获取node信息", t, func() {
+		cli := NewClient(&Config{
+			URL: "http://localhost:7890",
+		})
+		_, err := cli.GetCacheNodesByPackage(PackageReq{
+			PackageID: 4,
+			UserID:    0,
+		})
+		So(err, ShouldBeNil)
+
+		_, err = cli.GetStorageNodesByPackage(PackageReq{
+			PackageID: 4,
+			UserID:    0,
+		})
+		So(err, ShouldBeNil)
+	})
+}

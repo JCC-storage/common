@@ -108,3 +108,77 @@ func (c *Client) PackageDelete(req PackageDeleteReq) error {
 
 	return fmt.Errorf("unknow response content type: %s", contType)
 }
+
+type PackageReq struct {
+	PackageID int64 `json:"packageID"`
+	UserID    int64 `json:"userID"`
+}
+
+type CacheLocations struct {
+	NodeIDs       []int64 `json:"nodeIDs"`
+	RedunancyType string  `json:"redunancyType"`
+}
+
+func (c *Client) GetCacheNodesByPackage(req PackageReq) (*CacheLocations, error) {
+	url, err := url.JoinPath(c.baseURL, "/package/getCacheNodeIDs")
+	if err != nil {
+		return nil, err
+	}
+	resp, err := myhttp.GetJSON(url, myhttp.RequestParam{
+		Body: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	contType := resp.Header.Get("Content-Type")
+	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+
+		var codeResp response[CacheLocations]
+		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
+			return nil, fmt.Errorf("parsing response: %w", err)
+		}
+
+		if codeResp.Code == errorcode.OK {
+			return &codeResp.Data, nil
+		}
+
+		return nil, codeResp.ToError()
+	}
+
+	return nil, fmt.Errorf("unknow response content type: %s", contType)
+}
+
+type StorageLocations struct {
+	NodeIDs []int64 `json:"nodeIDs"`
+}
+
+func (c *Client) GetStorageNodesByPackage(req PackageReq) (*StorageLocations, error) {
+	url, err := url.JoinPath(c.baseURL, "/package/getStorageNodeIDs")
+	if err != nil {
+		return nil, err
+	}
+	resp, err := myhttp.GetJSON(url, myhttp.RequestParam{
+		Body: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	contType := resp.Header.Get("Content-Type")
+	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+
+		var codeResp response[StorageLocations]
+		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
+			return nil, fmt.Errorf("parsing response: %w", err)
+		}
+
+		if codeResp.Code == errorcode.OK {
+			return &codeResp.Data, nil
+		}
+
+		return nil, codeResp.ToError()
+	}
+
+	return nil, fmt.Errorf("unknow response content type: %s", contType)
+}
