@@ -60,7 +60,6 @@ type DetailType[T any] struct {
 }
 
 func (c *Client) GetCPUData(node Node) (*ResourceData[int64], error) {
-	//TODO 整合成一个接口，参数增加一个resourceType，根据type调用不同的接口
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getCPUData")
 	if err != nil {
 		return nil, err
