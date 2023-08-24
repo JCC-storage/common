@@ -109,18 +109,18 @@ func (c *Client) PackageDelete(req PackageDeleteReq) error {
 	return fmt.Errorf("unknow response content type: %s", contType)
 }
 
-type PackageReq struct {
+type PackageGetCachedNodesReq struct {
 	PackageID int64 `json:"packageID"`
 	UserID    int64 `json:"userID"`
 }
 
-type CacheLocations struct {
+type PackageGetCachedNodesResp struct {
 	NodeIDs       []int64 `json:"nodeIDs"`
 	RedunancyType string  `json:"redunancyType"`
 }
 
-func (c *Client) GetCacheNodesByPackage(req PackageReq) (*CacheLocations, error) {
-	url, err := url.JoinPath(c.baseURL, "/package/getCacheNodeIDs")
+func (c *Client) PackageGetCachedNodes(req PackageGetCachedNodesReq) (*PackageGetCachedNodesResp, error) {
+	url, err := url.JoinPath(c.baseURL, "/package/getCachedNodes")
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func (c *Client) GetCacheNodesByPackage(req PackageReq) (*CacheLocations, error)
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[CacheLocations]
+		var codeResp response[PackageGetCachedNodesResp]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
@@ -149,12 +149,17 @@ func (c *Client) GetCacheNodesByPackage(req PackageReq) (*CacheLocations, error)
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-type StorageLocations struct {
+type PackageGetLoadedNodesReq struct {
+	PackageID int64 `json:"packageID"`
+	UserID    int64 `json:"userID"`
+}
+
+type PackageGetLoadedNodesResp struct {
 	NodeIDs []int64 `json:"nodeIDs"`
 }
 
-func (c *Client) GetStorageNodesByPackage(req PackageReq) (*StorageLocations, error) {
-	url, err := url.JoinPath(c.baseURL, "/package/getStorageNodeIDs")
+func (c *Client) PackageGetLoadedNodes(req PackageGetLoadedNodesReq) (*PackageGetLoadedNodesResp, error) {
+	url, err := url.JoinPath(c.baseURL, "/package/getLoadedNodes")
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +173,7 @@ func (c *Client) GetStorageNodesByPackage(req PackageReq) (*StorageLocations, er
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[StorageLocations]
+		var codeResp response[PackageGetLoadedNodesResp]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}

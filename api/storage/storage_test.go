@@ -159,13 +159,13 @@ func Test_GetNodeIDs(t *testing.T) {
 		cli := NewClient(&Config{
 			URL: "http://localhost:7890",
 		})
-		_, err := cli.GetCacheNodesByPackage(PackageReq{
+		_, err := cli.PackageGetCachedNodes(PackageGetCachedNodesReq{
 			PackageID: 4,
 			UserID:    0,
 		})
 		So(err, ShouldBeNil)
 
-		_, err = cli.GetStorageNodesByPackage(PackageReq{
+		_, err = cli.PackageGetLoadedNodes(PackageGetLoadedNodesReq{
 			PackageID: 4,
 			UserID:    0,
 		})
