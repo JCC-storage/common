@@ -18,7 +18,7 @@ const (
 // 注：如果在mq中的消息结构体使用了此类型，记得使用RegisterTypeSet注册相关的类型。
 type RedundancyInfo interface{}
 type RedundancyInfoConst interface {
-	RedundancyInfo | RepRedundancyInfo | ECRedundancyInfo
+	RepRedundancyInfo | ECRedundancyInfo
 }
 type RepRedundancyInfo struct {
 	RepCount int `json:"repCount"`
@@ -47,7 +47,15 @@ type TypedRedundancyInfo struct {
 	Info RedundancyInfo `json:"info"`
 }
 
-func NewTypedRedundancyInfo[T RedundancyInfoConst](typ string, info T) TypedRedundancyInfo {
+func NewTypedRedundancyInfo[T RedundancyInfoConst](info T) TypedRedundancyInfo {
+	var typ string
+
+	if myreflect.TypeOf[T]() == myreflect.TypeOf[RepRedundancyInfo]() {
+		typ = RedundancyRep
+	} else if myreflect.TypeOf[T]() == myreflect.TypeOf[ECRedundancyInfo]() {
+		typ = RedundancyEC
+	}
+
 	return TypedRedundancyInfo{
 		Type: typ,
 		Info: info,
@@ -58,6 +66,16 @@ func NewTypedRepRedundancyInfo(repCount int) TypedRedundancyInfo {
 		Type: RedundancyRep,
 		Info: RepRedundancyInfo{
 			RepCount: repCount,
+		},
+	}
+}
+
+func NewTypedECRedundancyInfo(ecName string, packetSize int64) TypedRedundancyInfo {
+	return TypedRedundancyInfo{
+		Type: RedundancyRep,
+		Info: ECRedundancyInfo{
+			ECName:     ecName,
+			PacketSize: packetSize,
 		},
 	}
 }
