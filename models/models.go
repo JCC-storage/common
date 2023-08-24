@@ -31,12 +31,14 @@ func NewRepRedundancyInfo(repCount int) RepRedundancyInfo {
 }
 
 type ECRedundancyInfo struct {
-	ECName string `json:"ecName"`
+	ECName     string `json:"ecName"`
+	PacketSize int64  `json:"packetSize"`
 }
 
-func NewECRedundancyInfo(ecName string) ECRedundancyInfo {
+func NewECRedundancyInfo(ecName string, packetSize int64) ECRedundancyInfo {
 	return ECRedundancyInfo{
-		ECName: ecName,
+		ECName:     ecName,
+		PacketSize: packetSize,
 	}
 }
 
