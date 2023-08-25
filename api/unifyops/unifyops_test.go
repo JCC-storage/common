@@ -13,10 +13,10 @@ func Test_UnifyOps(t *testing.T) {
 			URL: "http://101.201.215.165:6000",
 		})
 
-		slwNodeInfo, err := cli.GetSlwNodeInfo()
+		slwNodeInfos, err := cli.GetSlwNodeInfo()
 		So(err, ShouldBeNil)
 
-		sNodes := *slwNodeInfo
+		sNodes := *slwNodeInfos
 		cpuData, err := cli.GetCPUData(Node{
 			NodeId: sNodes[0].ID,
 		})
