@@ -12,13 +12,11 @@ import (
 
 const CORRECT_CODE int = 200
 
-type SlwNode struct {
-	ID          int64  `json:"ID"`
-	Name        string `json:"name"`
-	SlwRegionID int64  `json:"slwRegionID"`
+type SlwNodeInfo struct {
+	Nodes []models.SlwNode `json:"nodes"`
 }
 
-func (c *Client) GetSlwNodeInfo() (*[]SlwNode, error) {
+func (c *Client) GetSlwNodeInfo() (*SlwNodeInfo, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getSlwNodeInfo")
 	if err != nil {
 		return nil, err
@@ -30,7 +28,7 @@ func (c *Client) GetSlwNodeInfo() (*[]SlwNode, error) {
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[[]SlwNode]
+		var codeResp response[SlwNodeInfo]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
@@ -229,13 +227,13 @@ func (c *Client) GetMemoryData(node Node) (*models.MemoryResourceData, error) {
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-type IndicatorData struct {
+type ResourceData struct {
 	Name      string                 `json:"name"`
 	Total     models.DetailType[any] `json:"total"`
 	Available models.DetailType[any] `json:"available"`
 }
 
-func (c *Client) GetIndicatorData(node Node) (*[]IndicatorData, error) {
+func (c *Client) GetIndicatorData(node Node) (*[]ResourceData, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getIndicatorData")
 	if err != nil {
 		return nil, err
@@ -250,7 +248,7 @@ func (c *Client) GetIndicatorData(node Node) (*[]IndicatorData, error) {
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[[]IndicatorData]
+		var codeResp response[[]ResourceData]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}

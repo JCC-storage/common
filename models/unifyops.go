@@ -5,9 +5,15 @@ const (
 	ResourceTypeNPU     = "NPU"
 	ResourceTypeGPU     = "GPU"
 	ResourceTypeMLU     = "MLU"
-	ResourceTypeStorage = "storage"
-	ResourceTypeMemory  = "memory"
+	ResourceTypeStorage = "STORAGE"
+	ResourceTypeMemory  = "MEMORY"
 )
+
+type SlwNode struct {
+	ID          int64  `json:"ID"`
+	Name        string `json:"name"`
+	SlwRegionID int64  `json:"slwRegionID"`
+}
 
 type ResourceData interface{}
 type ResourceDataConst interface {
