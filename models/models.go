@@ -88,3 +88,23 @@ func (i *TypedRedundancyInfo) Scan(src interface{}) error {
 
 	return serder.JSONToObject(data, i)
 }
+
+type NodePackageCachingInfo struct {
+	NodeID      int64 `json:"nodeID"`
+	FileSize    int64 `json:"fileSize"`
+	ObjectCount int64 `json:"objectCount"`
+}
+
+type PackageCachingInfo struct {
+	NodeInfos     []NodePackageCachingInfo `json:"nodeInfos"`
+	PackageSize   int64                    `json:"packageSize"`
+	RedunancyType string                   `json:"redunancyType"`
+}
+
+func NewPackageCachingInfo(nodeInfos []NodePackageCachingInfo, packageSize int64, redunancyType string) PackageCachingInfo {
+	return PackageCachingInfo{
+		NodeInfos:     nodeInfos,
+		PackageSize:   packageSize,
+		RedunancyType: redunancyType,
+	}
+}

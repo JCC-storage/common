@@ -115,8 +115,7 @@ type PackageGetCachedNodesReq struct {
 }
 
 type PackageGetCachedNodesResp struct {
-	NodeIDs       []int64 `json:"nodeIDs"`
-	RedunancyType string  `json:"redunancyType"`
+	models.PackageCachingInfo
 }
 
 func (c *Client) PackageGetCachedNodes(req PackageGetCachedNodesReq) (*PackageGetCachedNodesResp, error) {
@@ -130,7 +129,6 @@ func (c *Client) PackageGetCachedNodes(req PackageGetCachedNodesReq) (*PackageGe
 	if err != nil {
 		return nil, err
 	}
-
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
