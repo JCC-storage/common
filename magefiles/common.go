@@ -23,6 +23,7 @@ type BuildArgs struct {
 	OutputName string
 	OutputDir  string
 	AssetsDir  string
+	EntryFile    string
 }
 
 type goBuildArgs struct {
@@ -48,7 +49,13 @@ func Build(args BuildArgs) error {
 
 	binPath := filepath.Join(fullOutputDir, args.OutputName+goBuildArgs.OutputExt)
 	fmt.Printf("building to %s\n", binPath)
-	err = sh.RunWith(goBuildArgs.Env, "go", "build", "-o", binPath)
+
+	goCmdArgs := []string{ "build", "-o", binPath}
+	if args.EntryFile != "" {
+		goCmdArgs = append(goCmdArgs, args.EntryFile)
+	}
+
+	err = sh.RunWith(goBuildArgs.Env,"go", goCmdArgs...)
 	if err != nil {
 		return err
 	}
