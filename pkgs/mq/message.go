@@ -51,42 +51,26 @@ func MakeMessage(body MessageBodyTypes) Message {
 	return msg
 }
 
-type typeSet struct {
-	TopType      myreflect.Type
-	ElementTypes serder.TypeNameResolver
-}
-
-var typeSets map[myreflect.Type]typeSet = make(map[reflect.Type]typeSet)
-var messageTypeSet *typeSet
+var unionTypes map[myreflect.Type]serder.UnionTypeInfo = make(map[reflect.Type]serder.UnionTypeInfo)
+var messageTypeUnionEles *serder.TypeNameResolver
 
 // 所有新定义的Message都需要在init中调用此函数
 func RegisterMessage[T any]() {
-	messageTypeSet.ElementTypes.Register(myreflect.TypeOf[T]())
+	messageTypeUnionEles.Register(myreflect.TypeOf[T]())
 }
 
-// 如果对一个类型T调用了此函数，那么在序列化结构体中包含的T类型字段时，
-// 会将字段值的实际类型保存在序列化后的结果中（作为一个字段@type），
+// 在序列化结构体中包含的UnionType类型字段时，会将字段值的实际类型保存在序列化后的结果中。
 // 在反序列化时，会根据类型信息重建原本的字段值。
 //
-// 只会处理types指定的类型。
-func RegisterTypeSet[T any](types ...myreflect.Type) *typeSet {
-	set := typeSet{
-		TopType:      myreflect.TypeOf[T](),
-		ElementTypes: serder.NewTypeNameResolver(true),
-	}
+// 注：不是采用在序列化后的数据中增加TypeFieldName指名的字段数据，因此会无视UnionTypeInfo中的这个字段的设定
+func RegisterUnionType(set serder.UnionTypeInfo) {
+	unionTypes[set.UnionType] = set
 
-	for _, t := range types {
-		set.ElementTypes.Register(t)
-	}
-
-	typeSets[set.TopType] = set
-
-	jsoniter.RegisterTypeEncoderFunc(myreflect.TypeOf[T]().String(),
+	jsoniter.RegisterTypeEncoderFunc(set.UnionType.String(),
 		func(ptr unsafe.Pointer, stream *jsoniter.Stream) {
-			val := *((*T)(ptr))
-			var ifVal any = val
-
-			if ifVal != nil {
+			// 此处无法变成*UnionType，只能强转为*any
+			val := *(*any)(ptr)
+			if val != nil {
 				stream.WriteArrayStart()
 				typeStr, err := set.ElementTypes.TypeToString(myreflect.TypeOfValue(val))
 				if err != nil {
@@ -105,15 +89,16 @@ func RegisterTypeSet[T any](types ...myreflect.Type) *typeSet {
 			return false
 		})
 
-	jsoniter.RegisterTypeDecoderFunc(myreflect.TypeOf[T]().String(),
+	jsoniter.RegisterTypeDecoderFunc(set.UnionType.String(),
 		func(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
-			vp := (*T)(ptr)
+			// 此处无法变成*UnionType，只能强转为*any
+			vp := (*any)(ptr)
 
 			nextTkType := iter.WhatIsNext()
 			if nextTkType == jsoniter.NilValue {
 				iter.ReadNil()
-				var zero T
-				*vp = zero
+				*vp = nil
+
 			} else if nextTkType == jsoniter.ArrayValue {
 				iter.ReadArray()
 				typeStr := iter.ReadString()
@@ -127,7 +112,7 @@ func RegisterTypeSet[T any](types ...myreflect.Type) *typeSet {
 
 				val := reflect.New(typ)
 				iter.ReadVal(val.Interface())
-				*vp = val.Elem().Interface().(T)
+				*vp = val.Elem().Interface()
 
 				iter.ReadArray()
 			} else {
@@ -135,7 +120,84 @@ func RegisterTypeSet[T any](types ...myreflect.Type) *typeSet {
 				return
 			}
 		})
+}
 
+// 如果对一个类型T调用了此函数，那么在序列化结构体中包含的T类型字段时，
+// 会将字段值的实际类型保存在序列化后的结果中
+// 在反序列化时，会根据类型信息重建原本的字段值。
+//
+// 只会处理types指定的类型。
+func RegisterTypeSet[T any](types ...myreflect.Type) *serder.UnionTypeInfo {
+	eleTypes := serder.NewTypeNameResolver(true)
+	set := serder.UnionTypeInfo{
+		UnionType:    myreflect.TypeOf[T](),
+		ElementTypes: eleTypes,
+	}
+
+	for _, t := range types {
+		eleTypes.Register(t)
+	}
+
+	/*
+		TODO 暂时保留这一段代码，如果RegisterUnionType中的非泛型版本出了问题，则重新使用这一部分的代码
+			unionTypes[set.UnionType] = set
+
+			jsoniter.RegisterTypeEncoderFunc(myreflect.TypeOf[T]().String(),
+				func(ptr unsafe.Pointer, stream *jsoniter.Stream) {
+					val := *((*T)(ptr))
+					var ifVal any = val
+
+					if ifVal != nil {
+						stream.WriteArrayStart()
+						typeStr, err := set.ElementTypes.TypeToString(myreflect.TypeOfValue(val))
+						if err != nil {
+							stream.Error = err
+							return
+						}
+						stream.WriteString(typeStr)
+						stream.WriteRaw(",")
+						stream.WriteVal(val)
+						stream.WriteArrayEnd()
+					} else {
+						stream.WriteNil()
+					}
+				},
+				func(p unsafe.Pointer) bool {
+					return false
+				})
+
+			jsoniter.RegisterTypeDecoderFunc(myreflect.TypeOf[T]().String(),
+				func(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
+					vp := (*T)(ptr)
+
+					nextTkType := iter.WhatIsNext()
+					if nextTkType == jsoniter.NilValue {
+						iter.ReadNil()
+						var zero T
+						*vp = zero
+					} else if nextTkType == jsoniter.ArrayValue {
+						iter.ReadArray()
+						typeStr := iter.ReadString()
+						iter.ReadArray()
+
+						typ, err := set.ElementTypes.StringToType(typeStr)
+						if err != nil {
+							iter.ReportError("get type from string", err.Error())
+							return
+						}
+
+						val := reflect.New(typ)
+						iter.ReadVal(val.Interface())
+						*vp = val.Elem().Interface().(T)
+
+						iter.ReadArray()
+					} else {
+						iter.ReportError("parse TypeSet field", fmt.Sprintf("unknow next token type %v", nextTkType))
+						return
+					}
+				})
+	*/
+	RegisterUnionType(serder.NewTypeUnion[T]("", serder.NewTypeNameResolver(true)))
 	return &set
 }
 
@@ -163,5 +225,6 @@ func Deserialize(data []byte) (*Message, error) {
 }
 
 func init() {
-	messageTypeSet = RegisterTypeSet[MessageBodyTypes]()
+	messageTypeUnionEles = serder.NewTypeNameResolver(true)
+	RegisterUnionType(serder.NewTypeUnion[MessageBodyTypes]("", messageTypeUnionEles))
 }

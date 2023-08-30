@@ -7,7 +7,7 @@ import (
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 )
 
-type Converter func(srcType reflect.Type, dstType reflect.Type, data interface{}) (interface{}, error)
+type Converter func(from reflect.Value, to reflect.Value) (interface{}, error)
 
 type AnyToAnyOption struct {
 	NoFromAny  bool        // 不判断目的字段是否实现了FromAny接口
