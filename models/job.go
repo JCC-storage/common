@@ -42,14 +42,14 @@ type ResourceJobInfo struct {
 }
 
 type JobFilesInfo struct {
-	Dateset FileInfo `json:"dataset"`
+	Dataset FileInfo `json:"dataset"`
 	Code    FileInfo `json:"code"`
 	Image   FileInfo `json:"image"`
 }
 
 type FileInfo interface{}
 
-var FileInfoTypeUnion = serder.NewTypeUnion[JobInfo]("type",
+var FileInfoTypeUnion = serder.NewTypeUnion[FileInfo]("type",
 	serder.NewStringTypeResolver().
 		Add(FileInfoTypePackage, myreflect.TypeOf[PackageFileInfo]()).
 		Add(FileInfoTypeLocalFile, myreflect.TypeOf[LocalFileInfo]()).

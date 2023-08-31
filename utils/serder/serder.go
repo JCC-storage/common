@@ -76,7 +76,8 @@ func MapToObject(m map[string]any, obj any, opt ...MapToObjectOption) error {
 	unionTypeMapping := make(map[reflect.Type]*UnionTypeInfo)
 
 	for _, u := range op.UnionTypes {
-		unionTypeMapping[u.UnionType] = &u
+		uu := u
+		unionTypeMapping[u.UnionType] = &uu
 	}
 
 	convs := []Converter{
