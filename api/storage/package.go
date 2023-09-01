@@ -8,6 +8,7 @@ import (
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
 	"gitlink.org.cn/cloudream/common/models"
+	"gitlink.org.cn/cloudream/common/pkgs/iterator"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -17,12 +18,16 @@ type PackageUploadReq struct {
 	BucketID   int64                      `json:"bucketID"`
 	Name       string                     `json:"name"`
 	Redundancy models.TypedRedundancyInfo `json:"redundancy"`
-	Files      []PackageUploadFile        `json:"-"`
+	Files      PackageUploadFileIterator  `json:"-"`
 }
-type PackageUploadFile struct {
+
+type IterPackageUploadFile struct {
 	Path string
-	File io.Reader
+	File io.ReadCloser
 }
+
+type PackageUploadFileIterator = iterator.Iterator[*IterPackageUploadFile]
+
 type PackageUploadResp struct {
 	PackageID int64 `json:"packageID,string"`
 }
@@ -38,18 +43,15 @@ func (c *Client) PackageUpload(req PackageUploadReq) (*PackageUploadResp, error)
 		return nil, fmt.Errorf("package info to json: %w", err)
 	}
 
-	var uploadFiles []myhttp.MultiPartRequestFile
-	for _, file := range req.Files {
-		uploadFiles = append(uploadFiles, myhttp.MultiPartRequestFile{
-			FieldName: "files",
-			FileName:  file.Path,
-			File:      file.File,
-		})
-	}
-
 	resp, err := myhttp.PostMultiPart(url, myhttp.MultiPartRequestParam{
-		Form:  map[string]string{"info": string(infoJSON)},
-		Files: uploadFiles,
+		Form: map[string]string{"info": string(infoJSON)},
+		Files: iterator.Map(req.Files, func(src *IterPackageUploadFile) (*myhttp.IterMultiPartFile, error) {
+			return &myhttp.IterMultiPartFile{
+				FieldName: "files",
+				FileName:  src.Path,
+				File:      src.File,
+			}, nil
+		}),
 	})
 	if err != nil {
 		return nil, err
