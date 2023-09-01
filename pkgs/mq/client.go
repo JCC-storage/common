@@ -5,17 +5,21 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
 	"github.com/streadway/amqp"
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
-	"gitlink.org.cn/cloudream/common/pkgs/future"
 	"gitlink.org.cn/cloudream/common/pkgs/logger"
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 )
 
 const (
-	DIRECT_REPLY_TO = "amq.rabbitmq.reply-to"
+	DirectReplyTo = "amq.rabbitmq.reply-to"
+
+	KeepAliveTimeoutMaxTimes = 3
 )
+
+var ErrWaitResponseTimeout = fmt.Errorf("wait response timeout")
 
 type CodeMessageError struct {
 	code    string
@@ -32,8 +36,19 @@ type SendOption struct {
 }
 
 type RequestOption struct {
-	// 等待响应的超时时间，为0代表不设置超时时间
+	// 等待响应的超时时间，为0代表不设置超时时间。
+	// 如果设置了KeepAlive，那么这个设置代表心跳包发送间隔
 	Timeout time.Duration
+	// 让服务端定时发送心跳包来表示存活。连续丢失3个心跳包，则认为连接已经断开。
+	KeepAlive bool
+}
+
+type requesting struct {
+	RequestID      string
+	Receiving      chan *Message
+	ReceiveStopped chan bool
+	TimeoutTimes   int
+	Option         RequestOption
 }
 
 type RabbitMQClient struct {
@@ -42,8 +57,8 @@ type RabbitMQClient struct {
 	exchange   string
 	key        string
 
-	requests     map[string]*future.SetValueFuture[*Message]
-	requestsLock sync.Mutex
+	requestings     map[string]*requesting
+	requestingsLock sync.Mutex
 
 	closed chan any
 }
@@ -61,19 +76,19 @@ func NewRabbitMQClient(url string, key string, exchange string) (*RabbitMQClient
 	}
 
 	cli := &RabbitMQClient{
-		connection: connection,
-		channel:    channel,
-		exchange:   exchange,
-		key:        key,
-		requests:   make(map[string]*future.SetValueFuture[*Message]),
-		closed:     make(chan any),
+		connection:  connection,
+		channel:     channel,
+		exchange:    exchange,
+		key:         key,
+		requestings: make(map[string]*requesting),
+		closed:      make(chan any),
 	}
 
 	// NOTE! 经测试发现，必须在Publish之前调用Consume进行消息接收，否则Consume会返回错误
 	// 因此这段代码不能移动到serve函数中，必须放在这里，保证顺序
 	recvChan, err := channel.Consume(
 		// 一个特殊队列，服务端的回复消息都会发送到这个队列里
-		DIRECT_REPLY_TO,
+		DirectReplyTo,
 		"",
 		true,
 		true,
@@ -103,45 +118,101 @@ func (cli *RabbitMQClient) Request(req Message, opts ...RequestOption) (*Message
 	if len(opts) > 0 {
 		opt = opts[0]
 	}
-
-	reqID := req.MakeRequestID()
-	fut := future.NewSetValue[*Message]()
-
-	cli.requestsLock.Lock()
-	cli.requests[reqID] = fut
-	cli.requestsLock.Unlock()
-
-	// 启动超时定时器
-	if opt.Timeout != 0 {
-		go func() {
-			<-time.After(opt.Timeout)
-			cli.requestsLock.Lock()
-			// 由于只会在requestsLock.Lock()之后修改fut的状态，所以Complete的判断是可信的
-			if !fut.IsComplete() {
-				fut.SetError(fmt.Errorf("wait response timeout"))
-			}
-			delete(cli.requests, reqID)
-			cli.requestsLock.Unlock()
-		}()
+	// 如果没有设置timeout，却设置了keepalive，那么默认心跳间隔为15秒
+	if opt.KeepAlive && opt.Timeout == 0 {
+		opt.Timeout = time.Second * 15
 	}
+
+	reqID := uuid.NewString()
+	req.SetRequestID(reqID)
+	if opt.KeepAlive {
+		req.SetKeepAlive(int(opt.Timeout / time.Millisecond))
+	}
+
+	reqing := &requesting{
+		RequestID:      reqID,
+		Receiving:      make(chan *Message),
+		ReceiveStopped: make(chan bool),
+		TimeoutTimes:   0,
+		Option:         opt,
+	}
+	cli.startRequesting(reqing)
+	defer cli.cancelRequsting(reqing)
 
 	err := cli.Send(req, SendOption{
 		Timeout: opt.Timeout,
 	})
 	if err != nil {
-		cli.requestsLock.Lock()
-		delete(cli.requests, reqID)
-		cli.requestsLock.Unlock()
-
 		return nil, fmt.Errorf("sending message: %w", err)
 	}
 
-	resp, err := fut.WaitValue()
-	if err != nil {
-		return nil, fmt.Errorf("requesting: %w", err)
+	// 启动超时定时器
+	if opt.Timeout != 0 {
+		return cli.receiveWithTimeout(reqing)
 	}
 
-	return resp, nil
+	return cli.receiveNoTimeout(reqing)
+}
+
+func (cli *RabbitMQClient) receiveWithTimeout(reqing *requesting) (*Message, error) {
+	ticker := time.NewTicker(reqing.Option.Timeout)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			reqing.TimeoutTimes++
+			if reqing.Option.KeepAlive && reqing.TimeoutTimes < KeepAliveTimeoutMaxTimes {
+				continue
+			}
+
+			return nil, ErrWaitResponseTimeout
+
+		case msg := <-reqing.Receiving:
+			if msg.Type == MessageTypeHeartbeat && reqing.Option.KeepAlive {
+				reqing.TimeoutTimes = 0
+				ticker.Reset(reqing.Option.Timeout)
+				continue
+			}
+
+			if msg.Type == MessageTypeAppData {
+				return msg, nil
+			}
+		}
+	}
+}
+
+func (cli *RabbitMQClient) receiveNoTimeout(reqing *requesting) (*Message, error) {
+	for {
+		msg := <-reqing.Receiving
+		if msg.Type != MessageTypeAppData {
+			continue
+		}
+
+		return msg, nil
+	}
+}
+
+func (cli *RabbitMQClient) startRequesting(reqing *requesting) {
+	cli.requestingsLock.Lock()
+	cli.requestings[reqing.RequestID] = reqing
+	cli.requestingsLock.Unlock()
+}
+
+func (cli *RabbitMQClient) cancelRequsting(reqing *requesting) {
+	cli.requestingsLock.Lock()
+	delete(cli.requestings, reqing.RequestID)
+	cli.requestingsLock.Unlock()
+
+	// 告诉发送端，接收端已经停止接收
+	close(reqing.ReceiveStopped)
+}
+
+func (c *RabbitMQClient) findReuqesting(reqID string) *requesting {
+	c.requestingsLock.Lock()
+	reqing := c.requestings[reqID]
+	c.requestingsLock.Unlock()
+	return reqing
 }
 
 func (c *RabbitMQClient) Send(msg Message, opts ...SendOption) error {
@@ -168,7 +239,7 @@ func (c *RabbitMQClient) Send(msg Message, opts ...SendOption) error {
 		ContentType: "text/plain",
 		Body:        data,
 		// 设置了此字段后rabbitmq会建立一个临时且私有的队列，服务端的回复消息都是送到此队列中
-		ReplyTo:    DIRECT_REPLY_TO,
+		ReplyTo:    DirectReplyTo,
 		Expiration: expiration,
 	})
 
@@ -196,12 +267,14 @@ func (c *RabbitMQClient) serve(recvChan <-chan amqp.Delivery) error {
 
 			reqID := msg.GetRequestID()
 			if reqID != "" {
-				c.requestsLock.Lock()
-				if req, ok := c.requests[reqID]; ok {
-					req.SetValue(msg)
-					delete(c.requests, reqID)
+				reqing := c.findReuqesting(reqID)
+				if reqing != nil {
+					select {
+					case reqing.Receiving <- msg:
+					case <-reqing.ReceiveStopped:
+						// 防止发送端在接收端停止消费时，发送端还在发送导致的阻塞
+					}
 				}
-				c.requestsLock.Unlock()
 			}
 
 		case <-c.closed:
@@ -230,7 +303,7 @@ func (c *RabbitMQClient) Close() error {
 
 // 发送消息并等待回应。因为无法自动推断出TResp的类型，所以将其放在第一个手工填写，之后的TBody可以自动推断出来
 func Request[TResp any, TReq any](cli *RabbitMQClient, req TReq, opts ...RequestOption) (*TResp, error) {
-	resp, err := cli.Request(MakeMessage(req), opts...)
+	resp, err := cli.Request(MakeAppDataMessage(req), opts...)
 	if err != nil {
 		return nil, fmt.Errorf("requesting: %w", err)
 	}
@@ -255,7 +328,7 @@ func Request[TResp any, TReq any](cli *RabbitMQClient, req TReq, opts ...Request
 
 // 发送消息，不等待回应
 func Send[TReq any](cli *RabbitMQClient, msg TReq, opts ...SendOption) error {
-	req := MakeMessage(msg)
+	req := MakeAppDataMessage(msg)
 
 	err := cli.Send(req, opts...)
 	if err != nil {

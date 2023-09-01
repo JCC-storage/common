@@ -39,12 +39,12 @@ func AddServiceFn[TSvc any, TReq any, TResp any](dispatcher *MessageDispatcher, 
 		reqMsgBody := reqMsg.Body.(TReq)
 		ret, codeMsg := svcFn(svcBase.(TSvc), &reqMsgBody)
 
-		var body MessageBodyTypes
+		var body MessageBody
 		if ret != nil {
 			body = *ret
 		}
 
-		respMsg := MakeMessage(body)
+		respMsg := MakeAppDataMessage(body)
 		respMsg.SetCodeMessage(codeMsg.Code, codeMsg.Message)
 
 		return &respMsg, nil
