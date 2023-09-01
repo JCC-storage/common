@@ -131,7 +131,9 @@ func TestMessage(t *testing.T) {
 	})
 
 	Convey("使用TypeSet类型，但字段值为nil", t, func() {
-		type MyTypeSet interface{}
+		type MyTypeSet interface {
+			Test()
+		}
 
 		type Body struct {
 			Value MyTypeSet
