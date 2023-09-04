@@ -95,7 +95,7 @@ func (m *Manager[TCtx]) FindByID(id string) *Task[TCtx] {
 
 func (m *Manager[TCtx]) executeTask(task *Task[TCtx]) {
 	go func() {
-		task.body.Execute(m.ctx, func(err error, opts ...CompleteOption) {
+		task.body.Execute(task, m.ctx, func(err error, opts ...CompleteOption) {
 			opt := CompleteOption{}
 			if len(opts) > 0 {
 				opt = opts[0]

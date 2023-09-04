@@ -18,7 +18,7 @@ type CompleteOption struct {
 type CompleteFn = func(err error, opts ...CompleteOption)
 
 type TaskBody[TCtx any] interface {
-	Execute(ctx TCtx, complete CompleteFn)
+	Execute(task *Task[TCtx], ctx TCtx, complete CompleteFn)
 }
 
 type ComparableTaskBody[TCtx any] interface {
