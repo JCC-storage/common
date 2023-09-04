@@ -179,9 +179,9 @@ func Test_AnyToAny(t *testing.T) {
 		st2 := Struct2{}
 
 		err := AnyToAny(st1, &st2, AnyToAnyOption{
-			Converters: []Converter{func(srcType reflect.Type, dstType reflect.Type, data interface{}) (interface{}, error) {
-				if srcType == myreflect.TypeOf[Struct1]() && dstType == myreflect.TypeOf[Struct2]() {
-					s1 := data.(Struct1)
+			Converters: []Converter{func(from reflect.Value, to reflect.Value) (interface{}, error) {
+				if from.Type() == myreflect.TypeOf[Struct1]() && to.Type() == myreflect.TypeOf[Struct2]() {
+					s1 := from.Interface().(Struct1)
 					return Struct2{
 						Value: "@" + s1.Value,
 					}, nil
@@ -194,44 +194,6 @@ func Test_AnyToAny(t *testing.T) {
 
 		So(st2.Value, ShouldEqual, "@test")
 	})
-}
-
-func Test_TypedMapToObject(t *testing.T) {
-	type Struct struct {
-		A string `json:"a"`
-		B int    `json:"b"`
-		C int64  `json:"c,string"`
-	}
-
-	nameResovler := NewTypeNameResolver(true)
-	nameResovler.Register(myreflect.TypeOf[Struct]())
-
-	Convey("结构体", t, func() {
-		st := Struct{
-			A: "a",
-			B: 1,
-			C: 2,
-		}
-
-		mp, err := ObjectToTypedMap(st, TypedSerderOption{
-			TypeResolver:  &nameResovler,
-			TypeFieldName: "@type",
-		})
-
-		So(err, ShouldBeNil)
-
-		st2Ptr, err := TypedMapToObject(mp, TypedSerderOption{
-			TypeResolver:  &nameResovler,
-			TypeFieldName: "@type",
-		})
-		So(err, ShouldBeNil)
-
-		st2, ok := st2Ptr.(Struct)
-		So(ok, ShouldBeTrue)
-		So(st2, ShouldHaveSameTypeAs, st)
-		So(st2, ShouldResemble, st)
-	})
-
 }
 
 func Test_MapToObject(t *testing.T) {
@@ -393,5 +355,54 @@ func Test_MapToObject(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		So(string(mpRetJson), ShouldEqualJSON, string(exceptMapJson))
+	})
+
+	Convey("包含UnionType", t, func() {
+		type UnionType interface{}
+
+		type EleType1 struct {
+			Value1 string `json:"value1"`
+		}
+
+		type EleType2 struct {
+			Value2 int `json:"value2"`
+		}
+
+		type St struct {
+			Us []UnionType `json:"us"`
+		}
+
+		mp := map[string]any{
+			"us": []map[string]any{
+				{
+					"type":   "1",
+					"value1": "1",
+				},
+				{
+					"type":   "2",
+					"value2": 2,
+				},
+			},
+		}
+
+		var ret St
+		err := MapToObject(mp, &ret, MapToObjectOption{
+			UnionTypes: []UnionTypeInfo{
+				{
+					UnionType:     myreflect.TypeOf[UnionType](),
+					TypeFieldName: "type",
+					ElementTypes: NewStringTypeResolver().
+						Add("1", myreflect.TypeOf[EleType1]()).
+						Add("2", myreflect.TypeOf[EleType2]()),
+				},
+			},
+		})
+
+		So(err, ShouldBeNil)
+
+		So(ret.Us, ShouldResemble, []UnionType{
+			EleType1{Value1: "1"},
+			EleType2{Value2: 2},
+		})
 	})
 }

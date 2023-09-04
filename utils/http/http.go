@@ -8,6 +8,7 @@ import (
 	ul "net/url"
 	"strings"
 
+	"gitlink.org.cn/cloudream/common/pkgs/iterator"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -112,12 +113,14 @@ type MultiPartRequestParam struct {
 	Header any
 	Query  any
 	Form   any
-	Files  []MultiPartRequestFile
+	Files  MultiPartFileIterator
 }
-type MultiPartRequestFile struct {
+
+type MultiPartFileIterator = iterator.Iterator[*IterMultiPartFile]
+type IterMultiPartFile struct {
 	FieldName string // 这个文件所属的form字段
 	FileName  string // 文件名
-	File      io.Reader
+	File      io.ReadCloser
 }
 
 func PostMultiPart(url string, param MultiPartRequestParam) (*http.Response, error) {
@@ -159,17 +162,34 @@ func PostMultiPart(url string, param MultiPartRequestParam) (*http.Response, err
 				}
 			}
 
-			for _, file := range param.Files {
-				w, err := muWriter.CreateFormFile(file.FieldName, file.FileName)
+			for {
+				file, err := param.Files.MoveNext()
+				if err == iterator.ErrNoMoreItem {
+					break
+				}
 				if err != nil {
-					return fmt.Errorf("create form file failed, err: %w", err)
+					return fmt.Errorf("opening file: %w", err)
 				}
 
-				_, err = io.Copy(w, file.File)
+				err = func() error {
+					defer file.File.Close()
+
+					w, err := muWriter.CreateFormFile(file.FieldName, file.FileName)
+					if err != nil {
+						return fmt.Errorf("create form file failed, err: %w", err)
+					}
+
+					_, err = io.Copy(w, file.File)
+					if err != nil {
+						return err
+					}
+					return nil
+				}()
 				if err != nil {
 					return err
 				}
 			}
+
 			return nil
 		}()
 	}()

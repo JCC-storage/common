@@ -3,11 +3,13 @@ package storage
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"testing"
 
 	"github.com/google/uuid"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlink.org.cn/cloudream/common/models"
+	"gitlink.org.cn/cloudream/common/pkgs/iterator"
 )
 
 func Test_Object(t *testing.T) {
@@ -29,16 +31,16 @@ func Test_Object(t *testing.T) {
 				Type: models.RedundancyRep,
 				Info: models.NewRepRedundancyInfo(1),
 			},
-			Files: []PackageUploadFile{
-				{
+			Files: iterator.Array(
+				&IterPackageUploadFile{
 					Path: "test",
-					File: bytes.NewBuffer(fileData),
+					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
-				{
+				&IterPackageUploadFile{
 					Path: "test2",
-					File: bytes.NewBuffer(fileData),
+					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
-			},
+			),
 		})
 		So(err, ShouldBeNil)
 
@@ -80,16 +82,16 @@ func Test_Storage(t *testing.T) {
 				Type: models.RedundancyRep,
 				Info: models.NewRepRedundancyInfo(1),
 			},
-			Files: []PackageUploadFile{
-				{
+			Files: iterator.Array(
+				&IterPackageUploadFile{
 					Path: "test",
-					File: bytes.NewBuffer(fileData),
+					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
-				{
+				&IterPackageUploadFile{
 					Path: "test2",
-					File: bytes.NewBuffer(fileData),
+					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
-			},
+			),
 		})
 		So(err, ShouldBeNil)
 
@@ -127,16 +129,16 @@ func Test_Cache(t *testing.T) {
 				Type: models.RedundancyRep,
 				Info: models.NewRepRedundancyInfo(1),
 			},
-			Files: []PackageUploadFile{
-				{
-					Path: "test",
-					File: bytes.NewBuffer(fileData),
+			Files: iterator.Array(
+				&IterPackageUploadFile{
+					Path: "test.txt",
+					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
-				{
-					Path: "test3",
-					File: bytes.NewBuffer(fileData),
+				&IterPackageUploadFile{
+					Path: "test2.txt",
+					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
-			},
+			),
 		})
 		So(err, ShouldBeNil)
 

@@ -1,5 +1,10 @@
 package models
 
+import (
+	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/utils/serder"
+)
+
 const (
 	ResourceTypeCPU     = "CPU"
 	ResourceTypeNPU     = "NPU"
@@ -19,6 +24,16 @@ type ResourceData interface{}
 type ResourceDataConst interface {
 	ResourceData | CPUResourceData | NPUResourceData | GPUResourceData | MLUResourceData | StorageResourceData | MemoryResourceData
 }
+
+var ResourceDataTypeUnion = serder.NewTypeUnion[ResourceData]("name",
+	serder.NewStringTypeResolver().
+		Add(ResourceTypeCPU, myreflect.TypeOf[CPUResourceData]()).
+		Add(ResourceTypeNPU, myreflect.TypeOf[NPUResourceData]()).
+		Add(ResourceTypeGPU, myreflect.TypeOf[GPUResourceData]()).
+		Add(ResourceTypeMLU, myreflect.TypeOf[MLUResourceData]()).
+		Add(ResourceTypeStorage, myreflect.TypeOf[StorageResourceData]()).
+		Add(ResourceTypeMemory, myreflect.TypeOf[MemoryResourceData]()),
+)
 
 type DetailType[T any] struct {
 	Unit  string `json:"unit"`

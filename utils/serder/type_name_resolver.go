@@ -10,8 +10,8 @@ type TypeNameResolver struct {
 	types              map[string]reflect.Type
 }
 
-func NewTypeNameResolver(includePackagePath bool) TypeNameResolver {
-	return TypeNameResolver{
+func NewTypeNameResolver(includePackagePath bool) *TypeNameResolver {
+	return &TypeNameResolver{
 		includePackagePath: includePackagePath,
 		types:              make(map[string]reflect.Type),
 	}

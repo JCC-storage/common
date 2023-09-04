@@ -6,6 +6,8 @@ import (
 	"io"
 	"reflect"
 	"strings"
+
+	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 )
 
 func ObjectToJSON(obj any) ([]byte, error) {
@@ -47,13 +49,69 @@ type TypeResolver interface {
 	StringToType(typeStr string) (reflect.Type, error)
 }
 
-type TypedSerderOption struct {
-	TypeResolver  TypeResolver
+type UnionTypeInfo struct {
+	UnionType     reflect.Type
 	TypeFieldName string
+	ElementTypes  TypeResolver
 }
 
-func MapToObject(m map[string]any, obj any) error {
-	return AnyToAny(m, obj)
+func NewTypeUnion[TU any](typeField string, eleTypes TypeResolver) UnionTypeInfo {
+	return UnionTypeInfo{
+		UnionType:     myreflect.TypeOf[TU](),
+		TypeFieldName: typeField,
+		ElementTypes:  eleTypes,
+	}
+}
+
+type MapToObjectOption struct {
+	UnionTypes []UnionTypeInfo // 转换过程中遇到这些类型时，会依据指定的字段的值，来决定转换后的实际类型
+}
+
+func MapToObject(m map[string]any, obj any, opt ...MapToObjectOption) error {
+	var op MapToObjectOption
+	if len(opt) > 0 {
+		op = opt[0]
+	}
+
+	unionTypeMapping := make(map[reflect.Type]*UnionTypeInfo)
+
+	for _, u := range op.UnionTypes {
+		uu := u
+		unionTypeMapping[u.UnionType] = &uu
+	}
+
+	convs := []Converter{
+		func(from reflect.Value, to reflect.Value) (interface{}, error) {
+			info, ok := unionTypeMapping[to.Type()]
+			if !ok {
+				return from.Interface(), nil
+			}
+
+			mp := from.Interface().(map[string]any)
+			tag, ok := mp[info.TypeFieldName]
+			if !ok {
+				return nil, fmt.Errorf("converting to %v: no tag field %s in map", to.Type(), info.TypeFieldName)
+			}
+
+			tagStr, ok := tag.(string)
+			if !ok {
+				return nil, fmt.Errorf("converting to %v: tag field %s value is %v, which is not a string", to.Type(), info.TypeFieldName, tag)
+			}
+
+			eleType, err := info.ElementTypes.StringToType(tagStr)
+			if err != nil {
+				return nil, fmt.Errorf("converting to %v: %w", to.Type(), err)
+			}
+
+			to.Set(reflect.Indirect(reflect.New(eleType)))
+
+			return from.Interface(), nil
+		},
+	}
+
+	return AnyToAny(m, obj, AnyToAnyOption{
+		Converters: convs,
+	})
 }
 
 func ObjectToMap(obj any) (map[string]any, error) {
@@ -131,52 +189,4 @@ func contains(arr []string, ele string, startIndex int) bool {
 	}
 
 	return false
-}
-
-func TypedMapToObject(m map[string]any, opt TypedSerderOption) (any, error) {
-
-	typeVal, ok := m[opt.TypeFieldName]
-	if !ok {
-		return nil, fmt.Errorf("no type field in the map")
-	}
-
-	typeStr, ok := typeVal.(string)
-	if !ok {
-		return nil, fmt.Errorf("type is not a string")
-	}
-
-	typ, err := opt.TypeResolver.StringToType(typeStr)
-	if err != nil {
-		return nil, fmt.Errorf("get type from string failed, err: %w", err)
-	}
-
-	val := reflect.New(typ)
-
-	valPtr := val.Interface()
-	err = AnyToAny(m, valPtr)
-	if err != nil {
-		return nil, err
-	}
-
-	return val.Elem().Interface(), nil
-}
-
-func ObjectToTypedMap(obj any, opt TypedSerderOption) (map[string]any, error) {
-	var mp map[string]any
-	err := AnyToAny(obj, &mp)
-	if err != nil {
-		return nil, err
-	}
-
-	_, ok := mp[opt.TypeFieldName]
-	if ok {
-		return nil, fmt.Errorf("object has the same field as the type field")
-	}
-
-	mp[opt.TypeFieldName], err = opt.TypeResolver.TypeToString(reflect.TypeOf(obj))
-	if err != nil {
-		return nil, fmt.Errorf("get string from type failed, err: %w", err)
-	}
-
-	return mp, nil
 }

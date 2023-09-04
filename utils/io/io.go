@@ -81,3 +81,34 @@ func WithCloser(reader io.Reader, closer func(reader io.Reader) error) io.ReadCl
 		closer: closer,
 	}
 }
+
+type LazyReadCloser struct {
+	open   func() (io.ReadCloser, error)
+	stream io.ReadCloser
+}
+
+func (r *LazyReadCloser) Read(buf []byte) (n int, err error) {
+	if r.stream == nil {
+		var err error
+		r.stream, err = r.open()
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return r.stream.Read(buf)
+}
+
+func (r *LazyReadCloser) Close() error {
+	if r.stream == nil {
+		return nil
+	}
+
+	return r.stream.Close()
+}
+
+func Lazy(open func() (io.ReadCloser, error)) *LazyReadCloser {
+	return &LazyReadCloser{
+		open: open,
+	}
+}
