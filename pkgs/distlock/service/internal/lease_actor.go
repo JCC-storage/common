@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -35,14 +36,14 @@ func (a *LeaseActor) Init(mainActor *MainActor) {
 }
 
 func (a *LeaseActor) StartChecking() error {
-	return actor.Wait(a.commandChan, func() error {
+	return actor.Wait(context.TODO(), a.commandChan, func() error {
 		a.ticker = time.NewTicker(time.Second)
 		return nil
 	})
 }
 
 func (a *LeaseActor) StopChecking() error {
-	return actor.Wait(a.commandChan, func() error {
+	return actor.Wait(context.TODO(), a.commandChan, func() error {
 		if a.ticker != nil {
 			a.ticker.Stop()
 		}
@@ -52,7 +53,7 @@ func (a *LeaseActor) StopChecking() error {
 }
 
 func (a *LeaseActor) Add(reqID string, leaseTime time.Duration) error {
-	return actor.Wait(a.commandChan, func() error {
+	return actor.Wait(context.TODO(), a.commandChan, func() error {
 		lease, ok := a.leases[reqID]
 		if !ok {
 			lease = &lockRequestLease{
@@ -70,7 +71,7 @@ func (a *LeaseActor) Add(reqID string, leaseTime time.Duration) error {
 }
 
 func (a *LeaseActor) Renew(reqID string) error {
-	return actor.Wait(a.commandChan, func() error {
+	return actor.Wait(context.TODO(), a.commandChan, func() error {
 		lease, ok := a.leases[reqID]
 		if !ok {
 			return fmt.Errorf("lease not found for this lock request")
@@ -84,7 +85,7 @@ func (a *LeaseActor) Renew(reqID string) error {
 }
 
 func (a *LeaseActor) Remove(reqID string) error {
-	return actor.Wait(a.commandChan, func() error {
+	return actor.Wait(context.TODO(), a.commandChan, func() error {
 		delete(a.leases, reqID)
 		return nil
 	})
@@ -108,13 +109,17 @@ func (a *LeaseActor) Serve() error {
 			case now := <-a.ticker.C:
 				for reqID, lease := range a.leases {
 					if now.After(lease.Deadline) {
-						delete(a.leases, reqID)
 
 						// TODO 可以考虑打个日志
 						logger.Std.Infof("lock request %s is timeout, will release it", reqID)
 
-						err := a.mainActor.Release(reqID)
-						if err != nil {
+						// TODO 可以考虑让超时时间可配置
+						ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+						err := a.mainActor.Release(ctx, reqID)
+						cancel()
+						if err == nil {
+							delete(a.leases, reqID)
+						} else {
 							logger.Std.Warnf("releasing lock request: %s", err.Error())
 						}
 					}

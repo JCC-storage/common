@@ -5,11 +5,11 @@ import (
 )
 
 func makeEtcdLockRequestKey(reqID string) string {
-	return LOCK_REQUEST_DATA_PREFIX + "/" + reqID
+	return EtcdLockRequestData + "/" + reqID
 }
 
 func getLockRequestID(key string) string {
-	return strings.TrimPrefix(key, LOCK_REQUEST_DATA_PREFIX+"/")
+	return strings.TrimPrefix(key, EtcdLockRequestData+"/")
 }
 
 /*

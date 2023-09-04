@@ -1,6 +1,7 @@
 package future
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -12,7 +13,7 @@ func Test_SetVoidFuture(t *testing.T) {
 		futChan := make(chan any)
 
 		go func() {
-			fut.Wait()
+			fut.Wait(context.Background())
 			close(futChan)
 		}()
 
@@ -28,7 +29,9 @@ func Test_SetVoidFuture(t *testing.T) {
 		futChan := make(chan any)
 
 		go func() {
-			fut.WaitTimeout(time.Millisecond * time.Duration(timeoutMs))
+			ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*time.Duration(timeoutMs))
+			defer cancel()
+			fut.Wait(ctx)
 			close(futChan)
 		}()
 

@@ -1,7 +1,7 @@
 package future
 
 import (
-	"time"
+	"context"
 )
 
 type SetVoidFuture struct {
@@ -35,17 +35,12 @@ func (f *SetVoidFuture) IsComplete() bool {
 	return f.isCompleted
 }
 
-func (f *SetVoidFuture) Wait() error {
-	<-f.completeChan
-	return f.err
-}
-
-func (f *SetVoidFuture) WaitTimeout(timeout time.Duration) error {
+func (f *SetVoidFuture) Wait(ctx context.Context) error {
 	select {
 	case <-f.completeChan:
 		return f.err
 
-	case <-time.After(timeout):
-		return ErrWaitTimeout
+	case <-ctx.Done():
+		return ErrContextCancelled
 	}
 }

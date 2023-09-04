@@ -1,7 +1,7 @@
 package future
 
 import (
-	"time"
+	"context"
 )
 
 type SetValueFuture[T any] struct {
@@ -48,34 +48,24 @@ func (f *SetValueFuture[T]) IsComplete() bool {
 	return f.isCompleted
 }
 
-func (f *SetValueFuture[T]) Wait() error {
-	<-f.completeChan
-	return f.err
-}
-
-func (f *SetValueFuture[T]) WaitTimeout(timeout time.Duration) error {
+func (f *SetValueFuture[T]) Wait(ctx context.Context) error {
 	select {
 	case <-f.completeChan:
 		return f.err
 
-	case <-time.After(timeout):
-		return ErrWaitTimeout
+	case <-ctx.Done():
+		return ErrContextCancelled
 	}
 }
 
-func (f *SetValueFuture[T]) WaitValue() (T, error) {
-	<-f.completeChan
-	return f.value, f.err
-}
-
-func (f *SetValueFuture[T]) WaitValueTimeout(timeout time.Duration) (T, error) {
+func (f *SetValueFuture[T]) WaitValue(ctx context.Context) (T, error) {
 	select {
 	case <-f.completeChan:
 		return f.value, f.err
 
-	case <-time.After(timeout):
+	case <-ctx.Done():
 		var ret T
-		return ret, ErrWaitTimeout
+		return ret, ErrContextCancelled
 	}
 }
 
@@ -131,29 +121,14 @@ func (f *SetValueFuture2[T1, T2]) Wait() error {
 	return f.err
 }
 
-func (f *SetValueFuture2[T1, T2]) WaitTimeout(timeout time.Duration) error {
-	select {
-	case <-f.completeChan:
-		return f.err
-
-	case <-time.After(timeout):
-		return ErrWaitTimeout
-	}
-}
-
-func (f *SetValueFuture2[T1, T2]) WaitValue() (T1, T2, error) {
-	<-f.completeChan
-	return f.value1, f.value2, f.err
-}
-
-func (f *SetValueFuture2[T1, T2]) WaitValueTimeout(timeout time.Duration) (T1, T2, error) {
+func (f *SetValueFuture2[T1, T2]) WaitValue(ctx context.Context) (T1, T2, error) {
 	select {
 	case <-f.completeChan:
 		return f.value1, f.value2, f.err
 
-	case <-time.After(timeout):
+	case <-ctx.Done():
 		var ret1 T1
 		var ret2 T2
-		return ret1, ret2, ErrWaitTimeout
+		return ret1, ret2, ErrContextCancelled
 	}
 }
