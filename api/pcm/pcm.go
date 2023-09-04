@@ -11,18 +11,18 @@ import (
 
 const CORRECT_CODE int = 200
 
-type UploadImgReq struct {
-	NodeID  int64  `json:"nodeID"`
-	ImgPath string `json:"imgPath"`
+type UploadImageReq struct {
+	NodeID    int64  `json:"nodeID"`
+	ImagePath string `json:"imagePath"`
 }
 
-type UploadImgResp struct {
-	Result string `json:"result"`
-	ImgID  int64  `json:"imgID"`
+type UploadImageResp struct {
+	Result  string `json:"result"`
+	ImageID int64  `json:"imageID"`
 }
 
-func (c *Client) UploadImg(req UploadImgReq) (*UploadImgResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/pcm/v1/core/uploadImg")
+func (c *Client) UploadImage(req UploadImageReq) (*UploadImageResp, error) {
+	url, err := url.JoinPath(c.baseURL, "/pcm/v1/core/uploadImage")
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (c *Client) UploadImg(req UploadImgReq) (*UploadImgResp, error) {
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[UploadImgResp]
+		var codeResp response[UploadImageResp]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
@@ -51,16 +51,16 @@ func (c *Client) UploadImg(req UploadImgReq) (*UploadImgResp, error) {
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-type GetImgListReq struct {
+type GetImageListReq struct {
 	NodeID int64 `json:"nodeID"`
 }
 
-type GetImgListResp struct {
-	ImgIDs []int64 `json:"imgIDs"`
+type GetImageListResp struct {
+	ImageIDs []int64 `json:"imageIDs"`
 }
 
-func (c *Client) GetImgList(req GetImgListReq) (*GetImgListResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/pcm/v1/core/getImgList")
+func (c *Client) GetImageList(req GetImageListReq) (*GetImageListResp, error) {
+	url, err := url.JoinPath(c.baseURL, "/pcm/v1/core/getImageList")
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (c *Client) GetImgList(req GetImgListReq) (*GetImgListResp, error) {
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[GetImgListResp]
+		var codeResp response[GetImageListResp]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
@@ -89,17 +89,17 @@ func (c *Client) GetImgList(req GetImgListReq) (*GetImgListResp, error) {
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-type DeleteImgReq struct {
+type DeleteImageReq struct {
 	NodeID   int64 `json:"nodeID"`
 	PCMJobID int64 `json:"pcmJobID"`
 }
 
-type DeleteImgResp struct {
+type DeleteImageResp struct {
 	Result string `json:"result"`
 }
 
-func (c *Client) DeleteImg(req DeleteImgReq) (*DeleteImgResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/pcm/v1/core/deleteImg")
+func (c *Client) DeleteImage(req DeleteImageReq) (*DeleteImageResp, error) {
+	url, err := url.JoinPath(c.baseURL, "/pcm/v1/core/deleteImage")
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (c *Client) DeleteImg(req DeleteImgReq) (*DeleteImgResp, error) {
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[DeleteImgResp]
+		var codeResp response[DeleteImageResp]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
@@ -128,20 +128,20 @@ func (c *Client) DeleteImg(req DeleteImgReq) (*DeleteImgResp, error) {
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-type SchedulerTaskReq struct {
+type ScheduleTaskReq struct {
 	NodeID  int64               `json:"nodeID"`
 	Envs    []map[string]string `json:"envs"`
-	ImgID   int64               `json:"imgID"`
+	ImageID int64               `json:"imageID"`
 	CMDLine string              `json:"cmdLine"`
 }
 
-type SchedulerTaskResp struct {
+type ScheduleTaskResp struct {
 	Result   string `json:"result"`
 	PCMJobID int64  `json:"pcmJobID"`
 }
 
-func (c *Client) SchedulerTask(req SchedulerTaskReq) (*SchedulerTaskResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/pcm/v1/core/schedulerTask")
+func (c *Client) ScheduleTask(req ScheduleTaskReq) (*ScheduleTaskResp, error) {
+	url, err := url.JoinPath(c.baseURL, "/pcm/v1/core/scheduleTask")
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func (c *Client) SchedulerTask(req SchedulerTaskReq) (*SchedulerTaskResp, error)
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[SchedulerTaskResp]
+		var codeResp response[ScheduleTaskResp]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
