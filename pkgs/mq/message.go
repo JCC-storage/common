@@ -6,31 +6,40 @@ import (
 	"reflect"
 	"unsafe"
 
-	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
+const (
+	MessageTypeAppData   = "AppData"
+	MessageTypeHeartbeat = "Heartbeat"
+)
+
 type Message struct {
-	Headers map[string]string `json:"headers"`
-	Body    MessageBodyTypes  `json:"body"`
+	Type    string         `json:"type"`
+	Headers map[string]any `json:"headers"`
+	Body    MessageBody    `json:"body"`
 }
 
-type MessageBodyTypes interface{}
+type MessageBody interface{}
 
 func (m *Message) GetRequestID() string {
-	return m.Headers["requestID"]
+	reqID, _ := m.Headers["requestID"].(string)
+	return reqID
 }
 
 func (m *Message) SetRequestID(id string) {
 	m.Headers["requestID"] = id
 }
 
-func (m *Message) MakeRequestID() string {
-	id := uuid.NewString()
-	m.Headers["requestID"] = id
-	return id
+func (m *Message) GetKeepAlive() int {
+	timeoutMs, _ := m.Headers["keepAliveTimeout"].(float64)
+	return int(timeoutMs)
+}
+
+func (m *Message) SetKeepAlive(timeoutMs int) {
+	m.Headers["keepAliveTimeout"] = timeoutMs
 }
 
 func (m *Message) SetCodeMessage(code string, msg string) {
@@ -39,24 +48,36 @@ func (m *Message) SetCodeMessage(code string, msg string) {
 }
 
 func (m *Message) GetCodeMessage() (string, string) {
-	return m.Headers["responseCode"], m.Headers["responseMessage"]
+	code, _ := m.Headers["responseCode"].(string)
+	msg, _ := m.Headers["responseMessage"].(string)
+	return code, msg
 }
 
-func MakeMessage(body MessageBodyTypes) Message {
+func MakeAppDataMessage(body MessageBody) Message {
 	msg := Message{
-		Headers: make(map[string]string),
+		Type:    MessageTypeAppData,
+		Headers: make(map[string]any),
 		Body:    body,
 	}
 
 	return msg
 }
 
+func MakeHeartbeatMessage() Message {
+	msg := Message{
+		Type:    MessageTypeHeartbeat,
+		Headers: make(map[string]any),
+	}
+
+	return msg
+}
+
 var unionTypes map[myreflect.Type]serder.UnionTypeInfo = make(map[reflect.Type]serder.UnionTypeInfo)
-var messageTypeUnionEles *serder.TypeNameResolver
+var messageBodyTypeUnionEles *serder.TypeNameResolver
 
 // 所有新定义的Message都需要在init中调用此函数
 func RegisterMessage[T any]() {
-	messageTypeUnionEles.Register(myreflect.TypeOf[T]())
+	messageBodyTypeUnionEles.Register(myreflect.TypeOf[T]())
 }
 
 // 在序列化结构体中包含的UnionType类型字段时，会将字段值的实际类型保存在序列化后的结果中。
@@ -122,6 +143,7 @@ func RegisterUnionType(set serder.UnionTypeInfo) {
 		})
 }
 
+/*
 // 如果对一个类型T调用了此函数，那么在序列化结构体中包含的T类型字段时，
 // 会将字段值的实际类型保存在序列化后的结果中
 // 在反序列化时，会根据类型信息重建原本的字段值。
@@ -138,7 +160,6 @@ func RegisterTypeSet[T any](types ...myreflect.Type) *serder.UnionTypeInfo {
 		eleTypes.Register(t)
 	}
 
-	/*
 		TODO 暂时保留这一段代码，如果RegisterUnionType中的非泛型版本出了问题，则重新使用这一部分的代码
 			unionTypes[set.UnionType] = set
 
@@ -196,10 +217,10 @@ func RegisterTypeSet[T any](types ...myreflect.Type) *serder.UnionTypeInfo {
 						return
 					}
 				})
-	*/
 	RegisterUnionType(serder.NewTypeUnion[T]("", serder.NewTypeNameResolver(true)))
 	return &set
 }
+*/
 
 func Serialize(msg Message) ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
@@ -225,6 +246,6 @@ func Deserialize(data []byte) (*Message, error) {
 }
 
 func init() {
-	messageTypeUnionEles = serder.NewTypeNameResolver(true)
-	RegisterUnionType(serder.NewTypeUnion[MessageBodyTypes]("", messageTypeUnionEles))
+	messageBodyTypeUnionEles = serder.NewTypeNameResolver(true)
+	RegisterUnionType(serder.NewTypeUnion[MessageBody]("", messageBodyTypeUnionEles))
 }

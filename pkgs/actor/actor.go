@@ -1,6 +1,7 @@
 package actor
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 
@@ -102,7 +103,7 @@ func (c *CommandChannel) CloseChanReceive() {
 	c.cmdsCounter.WakeupAll()
 }
 
-func Wait(c *CommandChannel, cmd func() error) error {
+func Wait(ctx context.Context, c *CommandChannel, cmd func() error) error {
 	fut := future.NewSetVoid()
 
 	c.Send(func() {
@@ -114,10 +115,10 @@ func Wait(c *CommandChannel, cmd func() error) error {
 		}
 	})
 
-	return fut.Wait()
+	return fut.Wait(ctx)
 }
 
-func WaitValue[T any](c *CommandChannel, cmd func() (T, error)) (T, error) {
+func WaitValue[T any](ctx context.Context, c *CommandChannel, cmd func() (T, error)) (T, error) {
 	fut := future.NewSetValue[T]()
 
 	c.Send(func() {
@@ -125,10 +126,10 @@ func WaitValue[T any](c *CommandChannel, cmd func() (T, error)) (T, error) {
 		fut.SetComplete(val, err)
 	})
 
-	return fut.WaitValue()
+	return fut.WaitValue(ctx)
 }
 
-func WaitValue2[T1 any, T2 any](c *CommandChannel, cmd func() (T1, T2, error)) (T1, T2, error) {
+func WaitValue2[T1 any, T2 any](ctx context.Context, c *CommandChannel, cmd func() (T1, T2, error)) (T1, T2, error) {
 	fut := future.NewSetValue2[T1, T2]()
 
 	c.Send(func() {
@@ -136,5 +137,5 @@ func WaitValue2[T1 any, T2 any](c *CommandChannel, cmd func() (T1, T2, error)) (
 		fut.SetComplete(val1, val2, err)
 	})
 
-	return fut.WaitValue()
+	return fut.WaitValue(ctx)
 }

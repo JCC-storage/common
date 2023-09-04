@@ -1,8 +1,8 @@
 package internal
 
 import (
+	"context"
 	"fmt"
-	"time"
 
 	"gitlink.org.cn/cloudream/common/pkgs/actor"
 	"gitlink.org.cn/cloudream/common/pkgs/distlock"
@@ -39,7 +39,7 @@ func (a *ProvidersActor) AddProvider(prov distlock.LockProvider, path ...any) {
 func (a *ProvidersActor) Init() {
 }
 
-func (a *ProvidersActor) WaitIndexUpdated(index int64, timeoutMs int) error {
+func (a *ProvidersActor) WaitIndexUpdated(ctx context.Context, index int64) error {
 	fut := future.NewSetVoid()
 
 	a.commandChan.Send(func() {
@@ -53,11 +53,11 @@ func (a *ProvidersActor) WaitIndexUpdated(index int64, timeoutMs int) error {
 		}
 	})
 
-	return fut.WaitTimeout(time.Duration(timeoutMs) * time.Millisecond)
+	return fut.Wait(ctx)
 }
 
 func (a *ProvidersActor) ApplyLockRequestEvents(events []LockRequestEvent) error {
-	return actor.Wait(a.commandChan, func() error {
+	return actor.Wait(context.TODO(), a.commandChan, func() error {
 		for _, op := range events {
 			if op.IsLocking {
 				err := a.lockLockRequest(op.Data)
@@ -134,7 +134,7 @@ func (svc *ProvidersActor) unlockLockRequest(reqData LockRequestData) error {
 // TestLockRequestAndMakeData 判断锁能否锁成功，并生成锁数据的字符串表示。注：不会生成请求ID。
 // 在检查单个锁是否能上锁时，不会考虑同一个锁请求中的其他的锁影响。简单来说，就是同一个请求中的锁可以互相冲突。
 func (a *ProvidersActor) TestLockRequestAndMakeData(req distlock.LockRequest) (LockRequestData, error) {
-	return actor.WaitValue[LockRequestData](a.commandChan, func() (LockRequestData, error) {
+	return actor.WaitValue(context.TODO(), a.commandChan, func() (LockRequestData, error) {
 		reqData := LockRequestData{}
 
 		for _, lock := range req.Locks {
@@ -166,7 +166,7 @@ func (a *ProvidersActor) TestLockRequestAndMakeData(req distlock.LockRequest) (L
 
 // ResetState 重置内部状态
 func (a *ProvidersActor) ResetState(index int64, lockRequestData []LockRequestData) error {
-	return actor.Wait(a.commandChan, func() error {
+	return actor.Wait(context.TODO(), a.commandChan, func() error {
 		for _, p := range a.allProviders {
 			p.Clear()
 		}

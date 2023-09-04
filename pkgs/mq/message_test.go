@@ -9,6 +9,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	. "github.com/smartystreets/goconvey/convey"
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
 func TestMessage(t *testing.T) {
@@ -101,7 +102,7 @@ func TestMessage(t *testing.T) {
 		}
 		RegisterMessage[Body]()
 
-		msg := MakeMessage(Body{})
+		msg := MakeAppDataMessage(Body{})
 		data, err := Serialize(msg)
 		So(err, ShouldBeNil)
 
@@ -120,7 +121,7 @@ func TestMessage(t *testing.T) {
 		}
 		RegisterMessage[Body]()
 
-		msg := MakeMessage(Body{Emb: Emb{Value: "test"}})
+		msg := MakeAppDataMessage(Body{Emb: Emb{Value: "test"}})
 		data, err := Serialize(msg)
 		So(err, ShouldBeNil)
 
@@ -139,9 +140,9 @@ func TestMessage(t *testing.T) {
 			Value MyTypeSet
 		}
 		RegisterMessage[Body]()
-		RegisterTypeSet[MyTypeSet]()
+		RegisterUnionType(serder.NewTypeUnion[MyTypeSet]("", serder.NewTypeNameResolver(true)))
 
-		msg := MakeMessage(Body{Value: nil})
+		msg := MakeAppDataMessage(Body{Value: nil})
 		data, err := Serialize(msg)
 		So(err, ShouldBeNil)
 
@@ -158,9 +159,9 @@ func TestMessage(t *testing.T) {
 			Value MyTypeSet
 		}
 		RegisterMessage[Body]()
-		RegisterTypeSet[MyTypeSet]()
+		RegisterUnionType(serder.NewTypeUnion[MyTypeSet]("", serder.NewTypeNameResolver(true)))
 
-		msg := MakeMessage(Body{Value: struct{}{}})
+		msg := MakeAppDataMessage(Body{Value: struct{}{}})
 		_, err := Serialize(msg)
 		So(err, ShouldNotBeNil)
 	})

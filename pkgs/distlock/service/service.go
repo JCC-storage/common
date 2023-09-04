@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -11,8 +12,22 @@ import (
 )
 
 type AcquireOption struct {
-	RetryTimeMs  int // 如果第一次获取锁失败，则在这个时间内进行重试。为0不进行重试。
-	LeaseTimeSec int // 锁的租约时间。为0不设置租约。
+	Timeout time.Duration
+	Lease   time.Duration
+}
+
+type AcquireOptionFn func(opt *AcquireOption)
+
+func WithTimeout(timeout time.Duration) AcquireOptionFn {
+	return func(opt *AcquireOption) {
+		opt.Timeout = timeout
+	}
+}
+
+func WithLease(time time.Duration) AcquireOptionFn {
+	return func(opt *AcquireOption) {
+		opt.Lease = time
+	}
 }
 
 type PathProvider struct {
@@ -79,32 +94,38 @@ func NewService(cfg *distlock.Config, initProvs []PathProvider) (*Service, error
 }
 
 // Acquire 请求一批锁。成功后返回锁请求ID
-func (svc *Service) Acquire(req distlock.LockRequest, opts ...AcquireOption) (string, error) {
-	var opt AcquireOption
-	if len(opts) > 0 {
-		opt = opts[0]
+func (svc *Service) Acquire(req distlock.LockRequest, opts ...AcquireOptionFn) (string, error) {
+	var opt = AcquireOption{
+		Timeout: time.Second * 10,
+	}
+	for _, fn := range opts {
+		fn(&opt)
 	}
 
-	reqID, err := svc.mainActor.Acquire(req)
-	if err != nil {
-		if opt.RetryTimeMs <= 0 {
-			return "", err
-		}
+	ctx := context.Background()
+	if opt.Timeout != 0 {
+		var cancel func()
+		ctx, cancel = context.WithTimeout(ctx, opt.Timeout)
+		defer cancel()
+	}
 
-		fut, err := svc.retryActor.Retry(req, time.Duration(opt.RetryTimeMs)*time.Millisecond, err)
+	reqID, err := svc.mainActor.Acquire(ctx, req)
+	if err != nil {
+		fut, err := svc.retryActor.Retry(ctx, req, err)
 		if err != nil {
 			return "", fmt.Errorf("retrying failed, err: %w", err)
 		}
 
-		reqID, err = fut.WaitValue()
+		// Retry 如果超时，Retry内部会设置fut为Failed，所以这里可以用Background无限等待
+		reqID, err = fut.WaitValue(context.Background())
 		if err != nil {
 			return "", err
 		}
 	}
 
-	if opt.LeaseTimeSec > 0 {
+	if opt.Lease > 0 {
 		// TODO 不影响结果，但考虑打日志
-		err := svc.leaseActor.Add(reqID, time.Duration(opt.LeaseTimeSec)*time.Second)
+		err := svc.leaseActor.Add(reqID, opt.Lease)
 		if err != nil {
 			logger.Std.Warnf("adding lease: %s", err.Error())
 		}
@@ -120,7 +141,7 @@ func (svc *Service) Renew(reqID string) error {
 
 // Release 释放锁
 func (svc *Service) Release(reqID string) error {
-	err := svc.mainActor.Release(reqID)
+	err := svc.mainActor.Release(context.TODO(), reqID)
 
 	// TODO 不影响结果，但考虑打日志
 	err2 := svc.leaseActor.Remove(reqID)

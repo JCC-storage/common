@@ -1,8 +1,8 @@
 package internal
 
 import (
+	"context"
 	"fmt"
-	"time"
 
 	"github.com/samber/lo"
 	"gitlink.org.cn/cloudream/common/pkgs/actor"
@@ -36,11 +36,11 @@ func (a *RetryActor) Init(mainActor *MainActor) {
 	a.mainActor = mainActor
 }
 
-func (a *RetryActor) Retry(req distlock.LockRequest, timeout time.Duration, lastErr error) (future.ValueFuture[string], error) {
+func (a *RetryActor) Retry(ctx context.Context, req distlock.LockRequest, lastErr error) (future.ValueFuture[string], error) {
 	fut := future.NewSetValue[string]()
 
 	var info *retryInfo
-	err := actor.Wait(a.commandChan, func() error {
+	err := actor.Wait(ctx, a.commandChan, func() error {
 		a.retrys = append(a.retrys, req)
 		info = &retryInfo{
 			Callback: fut,
@@ -53,7 +53,8 @@ func (a *RetryActor) Retry(req distlock.LockRequest, timeout time.Duration, last
 		return nil, err
 	}
 
-	time.AfterFunc(timeout, func() {
+	go func() {
+		<-ctx.Done()
 		a.commandChan.Send(func() {
 			// 由于只可能在cmd中修改future状态，所以此处的IsComplete判断可以作为后续操作的依据
 			if fut.IsComplete() {
@@ -70,7 +71,7 @@ func (a *RetryActor) Retry(req distlock.LockRequest, timeout time.Duration, last
 			mylo.RemoveAt(a.retrys, index)
 			mylo.RemoveAt(a.retryInfos, index)
 		})
-	})
+	}()
 
 	return fut, nil
 }
@@ -81,7 +82,7 @@ func (a *RetryActor) OnLocalStateUpdated() {
 			return
 		}
 
-		rets, err := a.mainActor.AcquireMany(a.retrys)
+		rets, err := a.mainActor.AcquireMany(context.Background(), a.retrys)
 		if err != nil {
 			// TODO 处理错误
 			logger.Std.Warnf("acquire many lock requests failed, err: %s", err.Error())

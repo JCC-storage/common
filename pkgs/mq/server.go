@@ -2,6 +2,7 @@ package mq
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/streadway/amqp"
 )
@@ -129,40 +130,64 @@ func (s *RabbitMQServer) Serve() error {
 		select {
 		case rawReq, ok := <-channel:
 			if !ok {
-				if s.OnError != nil {
-					s.OnError(NewReceiveMessageError(fmt.Errorf("channel is closed")))
-				}
+				s.onError(NewDeserializeError(fmt.Errorf("channel is closed")))
 				return NewReceiveMessageError(fmt.Errorf("channel is closed"))
 			}
 
 			reqMsg, err := Deserialize(rawReq.Body)
 			if err != nil {
-				if s.OnError != nil {
-					s.OnError(NewDeserializeError(err))
-				}
-				break
-			}
-
-			reply, err := s.OnMessage(reqMsg)
-			if err != nil {
-				if s.OnError != nil {
-					s.OnError(NewDispatchError(err))
-				}
+				s.onError(NewDeserializeError(err))
 				continue
 			}
 
-			if reply != nil {
-				reply.SetRequestID(reqMsg.GetRequestID())
-				err := s.replyClientMessage(*reply, &rawReq)
-				if err != nil {
-					if s.OnError != nil {
-						s.OnError(NewReplyError(err))
-					}
-				}
-			}
+			go s.handleMessage(reqMsg, rawReq)
 
 		case <-s.closed:
 			return nil
+		}
+	}
+}
+
+func (s *RabbitMQServer) handleMessage(reqMsg *Message, rawReq amqp.Delivery) {
+	replyed := make(chan bool)
+	defer close(replyed)
+
+	keepAliveTimeoutMs := reqMsg.GetKeepAlive()
+	if keepAliveTimeoutMs != 0 {
+		go s.keepAlive(keepAliveTimeoutMs, reqMsg, rawReq, replyed)
+	}
+
+	reply, err := s.OnMessage(reqMsg)
+	if err != nil {
+		s.onError(NewDispatchError(err))
+		return
+	}
+
+	if reply != nil {
+		reply.SetRequestID(reqMsg.GetRequestID())
+		err := s.replyToClient(*reply, &rawReq)
+		if err != nil {
+			s.onError(NewReplyError(err))
+		}
+	}
+}
+
+func (s *RabbitMQServer) keepAlive(keepAliveTimeoutMs int, reqMsg *Message, rawReq amqp.Delivery, replyed chan bool) {
+	ticker := time.NewTicker(time.Millisecond * time.Duration(keepAliveTimeoutMs))
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			hbMsg := MakeHeartbeatMessage()
+			hbMsg.SetRequestID(reqMsg.GetRequestID())
+
+			err := s.replyToClient(hbMsg, &rawReq)
+			if err != nil {
+				s.onError(NewReplyError(err))
+			}
+
+		case <-replyed:
+			return
 		}
 	}
 }
@@ -171,8 +196,14 @@ func (s *RabbitMQServer) Close() {
 	close(s.closed)
 }
 
-// replyClientMessage 回复客户端的消息，需要用到客户端发来的消息中的字段来判断回到哪个队列
-func (s *RabbitMQServer) replyClientMessage(reply Message, reqMsg *amqp.Delivery) error {
+func (s *RabbitMQServer) onError(err error) {
+	if s.OnError != nil {
+		s.OnError(err)
+	}
+}
+
+// replyToClient 回复客户端的消息，需要用到客户端发来的消息中的字段来判断回到哪个队列
+func (s *RabbitMQServer) replyToClient(reply Message, reqMsg *amqp.Delivery) error {
 	msgData, err := Serialize(reply)
 	if err != nil {
 		return fmt.Errorf("serialize message failed: %w", err)

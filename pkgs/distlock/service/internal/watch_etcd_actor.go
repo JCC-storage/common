@@ -38,28 +38,28 @@ func (a *WatchEtcdActor) Init() {
 }
 
 func (a *WatchEtcdActor) StartWatching() error {
-	return actor.Wait(a.commandChan, func() error {
-		a.watchChan = a.etcdCli.Watch(context.Background(), LOCK_REQUEST_DATA_PREFIX, clientv3.WithPrefix(), clientv3.WithPrevKV())
+	return actor.Wait(context.TODO(), a.commandChan, func() error {
+		a.watchChan = a.etcdCli.Watch(context.Background(), EtcdLockRequestData, clientv3.WithPrefix(), clientv3.WithPrevKV())
 		return nil
 	})
 }
 
 func (a *WatchEtcdActor) StopWatching() error {
-	return actor.Wait(a.commandChan, func() error {
+	return actor.Wait(context.TODO(), a.commandChan, func() error {
 		a.watchChan = nil
 		return nil
 	})
 }
 
 func (a *WatchEtcdActor) AddEventWatcher(watcher *LockRequestEventWatcher) error {
-	return actor.Wait(a.commandChan, func() error {
+	return actor.Wait(context.TODO(), a.commandChan, func() error {
 		a.lockReqWatchers = append(a.lockReqWatchers, watcher)
 		return nil
 	})
 }
 
 func (a *WatchEtcdActor) RemoveEventWatcher(watcher *LockRequestEventWatcher) error {
-	return actor.Wait(a.commandChan, func() error {
+	return actor.Wait(context.TODO(), a.commandChan, func() error {
 		a.lockReqWatchers = mylo.Remove(a.lockReqWatchers, watcher)
 		return nil
 	})

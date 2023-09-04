@@ -1,18 +1,17 @@
 package future
 
 import (
+	"context"
 	"fmt"
-	"time"
 )
 
-var ErrWaitTimeout = fmt.Errorf("wait timeout")
+var ErrContextCancelled = fmt.Errorf("context cancelled")
 
 type Future interface {
 	Error() error
 	IsComplete() bool
 
-	Wait() error
-	WaitTimeout(timeout time.Duration) error
+	Wait(ctx context.Context) error
 }
 
 type ValueFuture[T any] interface {
@@ -20,6 +19,5 @@ type ValueFuture[T any] interface {
 
 	Value() T
 
-	WaitValue() (T, error)
-	WaitValueTimeout(timeout time.Duration) (T, error)
+	WaitValue(ctx context.Context) (T, error)
 }
