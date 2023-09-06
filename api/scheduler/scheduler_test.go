@@ -22,14 +22,14 @@ func Test_JobSet(t *testing.T) {
 					models.NormalJobInfo{
 						Type: models.JobTypeNormal,
 						Files: models.JobFilesInfo{
-							Dataset: models.PackageFileInfo{
+							Dataset: models.PackageJobFileInfo{
 								Type: models.FileInfoTypePackage,
 							},
-							Code: models.LocalFileInfo{
+							Code: models.LocalJobFileInfo{
 								Type:      models.FileInfoTypeLocalFile,
 								LocalPath: "code",
 							},
-							Image: models.ImageFileInfo{
+							Image: models.ImageJobFileInfo{
 								Type: models.FileInfoTypeImage,
 							},
 						},

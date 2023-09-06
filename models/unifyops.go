@@ -1,6 +1,7 @@
 package models
 
 import (
+	"gitlink.org.cn/cloudream/common/pkgs/types"
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -25,15 +26,15 @@ type ResourceDataConst interface {
 	ResourceData | CPUResourceData | NPUResourceData | GPUResourceData | MLUResourceData | StorageResourceData | MemoryResourceData
 }
 
-var ResourceDataTypeUnion = serder.NewTypeUnion[ResourceData]("name",
-	serder.NewStringTypeResolver().
-		Add(ResourceTypeCPU, myreflect.TypeOf[CPUResourceData]()).
-		Add(ResourceTypeNPU, myreflect.TypeOf[NPUResourceData]()).
-		Add(ResourceTypeGPU, myreflect.TypeOf[GPUResourceData]()).
-		Add(ResourceTypeMLU, myreflect.TypeOf[MLUResourceData]()).
-		Add(ResourceTypeStorage, myreflect.TypeOf[StorageResourceData]()).
-		Add(ResourceTypeMemory, myreflect.TypeOf[MemoryResourceData]()),
+var ResourceDataTypeUnion = types.NewTypeUnion[ResourceData](
+	myreflect.TypeOf[CPUResourceData](),
+	myreflect.TypeOf[NPUResourceData](),
+	myreflect.TypeOf[GPUResourceData](),
+	myreflect.TypeOf[MLUResourceData](),
+	myreflect.TypeOf[StorageResourceData](),
+	myreflect.TypeOf[MemoryResourceData](),
 )
+var ResourceDataTaggedTypeUnion = serder.NewTaggedTypeUnion(ResourceDataTypeUnion, "Name", "name")
 
 type DetailType[T any] struct {
 	Unit  string `json:"unit"`
@@ -41,7 +42,7 @@ type DetailType[T any] struct {
 }
 
 type CPUResourceData struct {
-	Name      string            `json:"name"`
+	Name      string            `json:"name" union:"CPU"`
 	Total     DetailType[int64] `json:"total"`
 	Available DetailType[int64] `json:"available"`
 }
@@ -55,7 +56,7 @@ func NewCPUResourceData(name string, total DetailType[int64], available DetailTy
 }
 
 type NPUResourceData struct {
-	Name      string            `json:"name"`
+	Name      string            `json:"name" union:"NPU"`
 	Total     DetailType[int64] `json:"total"`
 	Available DetailType[int64] `json:"available"`
 }
@@ -69,7 +70,7 @@ func NewNPUResourceData(name string, total DetailType[int64], available DetailTy
 }
 
 type GPUResourceData struct {
-	Name      string            `json:"name"`
+	Name      string            `json:"name" union:"GPU"`
 	Total     DetailType[int64] `json:"total"`
 	Available DetailType[int64] `json:"available"`
 }
@@ -83,7 +84,7 @@ func NewGPUResourceData(name string, total DetailType[int64], available DetailTy
 }
 
 type MLUResourceData struct {
-	Name      string            `json:"name"`
+	Name      string            `json:"name" union:"MLU"`
 	Total     DetailType[int64] `json:"total"`
 	Available DetailType[int64] `json:"available"`
 }
@@ -97,7 +98,7 @@ func NewMLUResourceData(name string, total DetailType[int64], available DetailTy
 }
 
 type StorageResourceData struct {
-	Name      string              `json:"name"`
+	Name      string              `json:"name" union:"STORAGE"`
 	Total     DetailType[float64] `json:"total"`
 	Available DetailType[float64] `json:"available"`
 }
@@ -111,7 +112,7 @@ func NewStorageResourceData(name string, total DetailType[float64], available De
 }
 
 type MemoryResourceData struct {
-	Name      string              `json:"name"`
+	Name      string              `json:"name" union:"MEMORY"`
 	Total     DetailType[float64] `json:"total"`
 	Available DetailType[float64] `json:"available"`
 }

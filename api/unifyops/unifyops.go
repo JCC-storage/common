@@ -227,13 +227,7 @@ func (c *Client) GetMemoryData(node Node) (*models.MemoryResourceData, error) {
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-type ResourceData struct {
-	Name      string                 `json:"name"`
-	Total     models.DetailType[any] `json:"total"`
-	Available models.DetailType[any] `json:"available"`
-}
-
-func (c *Client) GetIndicatorData(node Node) (*[]ResourceData, error) {
+func (c *Client) GetIndicatorData(node Node) (*[]models.ResourceData, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getIndicatorData")
 	if err != nil {
 		return nil, err
@@ -248,16 +242,31 @@ func (c *Client) GetIndicatorData(node Node) (*[]ResourceData, error) {
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[[]ResourceData]
+		var codeResp response[[]map[string]any]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
 
-		if codeResp.Code == CORRECT_CODE {
-			return &codeResp.Data, nil
+		if codeResp.Code != CORRECT_CODE {
+			return nil, codeResp.ToError()
 		}
 
-		return nil, codeResp.ToError()
+		mapToObjOpt := serder.MapToObjectOption{
+			UnionTypes: []serder.TaggedUnionType{
+				models.ResourceDataTaggedTypeUnion,
+			},
+		}
+		var ret []models.ResourceData
+		for _, mp := range codeResp.Data {
+			var data models.ResourceData
+			err := serder.MapToObject(mp, &data, mapToObjOpt)
+			if err != nil {
+				return nil, err
+			}
+			ret = append(ret, data)
+		}
+
+		return &ret, nil
 	}
 
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
