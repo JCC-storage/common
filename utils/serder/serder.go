@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/pkgs/types"
 )
 
 func ObjectToJSON(obj any) ([]byte, error) {
@@ -49,22 +49,48 @@ type TypeResolver interface {
 	StringToType(typeStr string) (reflect.Type, error)
 }
 
-type UnionTypeInfo struct {
-	UnionType     reflect.Type
-	TypeFieldName string
-	ElementTypes  TypeResolver
+type TaggedUnionType struct {
+	Union          types.TypeUnion
+	StrcutTagField string
+	JSONTagField   string
+	TagToType      map[string]reflect.Type
 }
 
-func NewTypeUnion[TU any](typeField string, eleTypes TypeResolver) UnionTypeInfo {
-	return UnionTypeInfo{
-		UnionType:     myreflect.TypeOf[TU](),
-		TypeFieldName: typeField,
-		ElementTypes:  eleTypes,
+// 根据指定的字段的值来区分不同的类型。值可以通过在字段增加“union”Tag来指定。如果没有指定，则使用类型名。
+func NewTaggedTypeUnion(union types.TypeUnion, structTagField string, jsonTagField string) TaggedUnionType {
+	tagToType := make(map[string]reflect.Type)
+
+	for _, typ := range union.ElementTypes {
+		if structTagField == "" {
+			tagToType[typ.Name()] = typ
+			continue
+		}
+
+		field, ok := typ.FieldByName(structTagField)
+		if !ok {
+			tagToType[typ.Name()] = typ
+			continue
+		}
+
+		tag := field.Tag.Get("union")
+		if tag == "" {
+			tagToType[typ.Name()] = typ
+			continue
+		}
+
+		tagToType[tag] = typ
+	}
+
+	return TaggedUnionType{
+		Union:          union,
+		StrcutTagField: structTagField,
+		JSONTagField:   jsonTagField,
+		TagToType:      tagToType,
 	}
 }
 
 type MapToObjectOption struct {
-	UnionTypes []UnionTypeInfo // 转换过程中遇到这些类型时，会依据指定的字段的值，来决定转换后的实际类型
+	UnionTypes []TaggedUnionType // 转换过程中遇到这些类型时，会依据指定的字段的值，来决定转换后的实际类型
 }
 
 func MapToObject(m map[string]any, obj any, opt ...MapToObjectOption) error {
@@ -73,11 +99,11 @@ func MapToObject(m map[string]any, obj any, opt ...MapToObjectOption) error {
 		op = opt[0]
 	}
 
-	unionTypeMapping := make(map[reflect.Type]*UnionTypeInfo)
+	unionTypeMapping := make(map[reflect.Type]*TaggedUnionType)
 
 	for _, u := range op.UnionTypes {
 		uu := u
-		unionTypeMapping[u.UnionType] = &uu
+		unionTypeMapping[u.Union.UnionType] = &uu
 	}
 
 	convs := []Converter{
@@ -88,19 +114,19 @@ func MapToObject(m map[string]any, obj any, opt ...MapToObjectOption) error {
 			}
 
 			mp := from.Interface().(map[string]any)
-			tag, ok := mp[info.TypeFieldName]
+			tag, ok := mp[info.JSONTagField]
 			if !ok {
-				return nil, fmt.Errorf("converting to %v: no tag field %s in map", to.Type(), info.TypeFieldName)
+				return nil, fmt.Errorf("converting to %v: no tag field %s in map", to.Type(), info.JSONTagField)
 			}
 
 			tagStr, ok := tag.(string)
 			if !ok {
-				return nil, fmt.Errorf("converting to %v: tag field %s value is %v, which is not a string", to.Type(), info.TypeFieldName, tag)
+				return nil, fmt.Errorf("converting to %v: tag field %s value is %v, which is not a string", to.Type(), info.JSONTagField, tag)
 			}
 
-			eleType, err := info.ElementTypes.StringToType(tagStr)
-			if err != nil {
-				return nil, fmt.Errorf("converting to %v: %w", to.Type(), err)
+			eleType, ok := info.TagToType[tagStr]
+			if !ok {
+				return nil, fmt.Errorf("converting to %v: unknow type tag %s", to.Type(), tagStr)
 			}
 
 			to.Set(reflect.Indirect(reflect.New(eleType)))

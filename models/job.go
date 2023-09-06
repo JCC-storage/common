@@ -1,6 +1,7 @@
 package models
 
 import (
+	"gitlink.org.cn/cloudream/common/pkgs/types"
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -21,15 +22,15 @@ type JobSetInfo struct {
 
 type JobInfo interface{}
 
-var JobInfoTypeUnion = serder.NewTypeUnion[JobInfo]("type",
-	serder.NewStringTypeResolver().
-		Add(JobTypeNormal, myreflect.TypeOf[NormalJobInfo]()).
-		Add(JobTypeResource, myreflect.TypeOf[ResourceJobInfo]()),
+var JobInfoTypeUnion = types.NewTypeUnion[JobInfo](
+	myreflect.TypeOf[NormalJobInfo](),
+	myreflect.TypeOf[ResourceJobInfo](),
 )
+var JobInfoTaggedTypeUnion = serder.NewTaggedTypeUnion(JobInfoTypeUnion, "Type", "type")
 
 type NormalJobInfo struct {
 	LocalJobID string           `json:"localJobID"`
-	Type       string           `json:"type"`
+	Type       string           `json:"type" union:"Normal"`
 	Files      JobFilesInfo     `json:"files"`
 	Runtime    JobRuntimeInfo   `json:"runtime"`
 	Resources  JobResourcesInfo `json:"resources"`
@@ -37,43 +38,43 @@ type NormalJobInfo struct {
 
 type ResourceJobInfo struct {
 	LocalJobID       string `json:"localJobID"`
-	Type             string `json:"type"`
+	Type             string `json:"type" union:"Resource"`
 	TargetLocalJobID string `json:"targetLocalJobID"`
 }
 
 type JobFilesInfo struct {
-	Dataset FileInfo `json:"dataset"`
-	Code    FileInfo `json:"code"`
-	Image   FileInfo `json:"image"`
+	Dataset JobFileInfo `json:"dataset"`
+	Code    JobFileInfo `json:"code"`
+	Image   JobFileInfo `json:"image"`
 }
 
-type FileInfo interface{}
+type JobFileInfo interface{}
 
-var FileInfoTypeUnion = serder.NewTypeUnion[FileInfo]("type",
-	serder.NewStringTypeResolver().
-		Add(FileInfoTypePackage, myreflect.TypeOf[PackageFileInfo]()).
-		Add(FileInfoTypeLocalFile, myreflect.TypeOf[LocalFileInfo]()).
-		Add(FileInfoTypeResource, myreflect.TypeOf[ResourceFileInfo]()).
-		Add(FileInfoTypeImage, myreflect.TypeOf[ImageFileInfo]()),
+var FileInfoTypeUnion = types.NewTypeUnion[JobFileInfo](
+	myreflect.TypeOf[PackageJobFileInfo](),
+	myreflect.TypeOf[LocalJobFileInfo](),
+	myreflect.TypeOf[ResourceJobFileInfo](),
+	myreflect.TypeOf[ImageJobFileInfo](),
 )
+var FileInfoTaggedTypeUnion = serder.NewTaggedTypeUnion(FileInfoTypeUnion, "Type", "type")
 
-type PackageFileInfo struct {
-	Type      string `json:"type"`
+type PackageJobFileInfo struct {
+	Type      string `json:"type" union:"Package"`
 	PackageID int64  `json:"packageID"`
 }
 
-type LocalFileInfo struct {
-	Type      string `json:"type"`
+type LocalJobFileInfo struct {
+	Type      string `json:"type" union:"LocalFile"`
 	LocalPath string `json:"localPath"`
 }
 
-type ResourceFileInfo struct {
-	Type               string `json:"type"`
+type ResourceJobFileInfo struct {
+	Type               string `json:"type" union:"Resource"`
 	ResourceLocalJobID string `json:"resourceLocalJobID"`
 }
 
-type ImageFileInfo struct {
-	Type    string `json:"type"`
+type ImageJobFileInfo struct {
+	Type    string `json:"type" union:"Image"`
 	ImageID string `json:"imageID"`
 }
 
@@ -104,9 +105,9 @@ func JobSetInfoFromJSON(data []byte) (*JobSetInfo, error) {
 
 	var ret JobSetInfo
 	err := serder.MapToObject(mp, &ret, serder.MapToObjectOption{
-		UnionTypes: []serder.UnionTypeInfo{
-			JobInfoTypeUnion,
-			FileInfoTypeUnion,
+		UnionTypes: []serder.TaggedUnionType{
+			JobInfoTaggedTypeUnion,
+			FileInfoTaggedTypeUnion,
 		},
 	})
 	if err != nil {

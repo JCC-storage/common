@@ -8,8 +8,8 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlink.org.cn/cloudream/common/pkgs/types"
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
-	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
 func TestMessage(t *testing.T) {
@@ -140,7 +140,7 @@ func TestMessage(t *testing.T) {
 			Value MyTypeSet
 		}
 		RegisterMessage[Body]()
-		RegisterUnionType(serder.NewTypeUnion[MyTypeSet]("", serder.NewTypeNameResolver(true)))
+		RegisterUnionType(types.NewTypeUnion[MyTypeSet]())
 
 		msg := MakeAppDataMessage(Body{Value: nil})
 		data, err := Serialize(msg)
@@ -159,7 +159,7 @@ func TestMessage(t *testing.T) {
 			Value MyTypeSet
 		}
 		RegisterMessage[Body]()
-		RegisterUnionType(serder.NewTypeUnion[MyTypeSet]("", serder.NewTypeNameResolver(true)))
+		RegisterUnionType(types.NewTypeUnion[MyTypeSet]())
 
 		msg := MakeAppDataMessage(Body{Value: struct{}{}})
 		_, err := Serialize(msg)

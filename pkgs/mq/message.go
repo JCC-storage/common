@@ -7,8 +7,8 @@ import (
 	"unsafe"
 
 	jsoniter "github.com/json-iterator/go"
+	"gitlink.org.cn/cloudream/common/pkgs/types"
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
-	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
 const (
@@ -72,33 +72,49 @@ func MakeHeartbeatMessage() Message {
 	return msg
 }
 
-var unionTypes map[myreflect.Type]serder.UnionTypeInfo = make(map[reflect.Type]serder.UnionTypeInfo)
-var messageBodyTypeUnionEles *serder.TypeNameResolver
+type TypeUnionWithTypeName struct {
+	Union          types.TypeUnion
+	TypeNameToType map[string]myreflect.Type
+}
+
+func (u *TypeUnionWithTypeName) Register(typ myreflect.Type) {
+	u.Union.ElementTypes = append(msgBodyTypeUnion.Union.ElementTypes, typ)
+	u.TypeNameToType[makeFullTypeName(typ)] = typ
+}
+
+var msgBodyTypeUnion *TypeUnionWithTypeName
 
 // 所有新定义的Message都需要在init中调用此函数
 func RegisterMessage[T any]() {
-	messageBodyTypeUnionEles.Register(myreflect.TypeOf[T]())
+	msgBodyTypeUnion.Register(myreflect.TypeOf[T]())
 }
 
 // 在序列化结构体中包含的UnionType类型字段时，会将字段值的实际类型保存在序列化后的结果中。
 // 在反序列化时，会根据类型信息重建原本的字段值。
-//
-// 注：不是采用在序列化后的数据中增加TypeFieldName指名的字段数据，因此会无视UnionTypeInfo中的这个字段的设定
-func RegisterUnionType(set serder.UnionTypeInfo) {
-	unionTypes[set.UnionType] = set
+func RegisterUnionType(union types.TypeUnion) *TypeUnionWithTypeName {
+	myUnion := &TypeUnionWithTypeName{
+		Union:          union,
+		TypeNameToType: make(map[string]reflect.Type),
+	}
 
-	jsoniter.RegisterTypeEncoderFunc(set.UnionType.String(),
+	for _, typ := range union.ElementTypes {
+		myUnion.TypeNameToType[makeFullTypeName(typ)] = typ
+	}
+
+	jsoniter.RegisterTypeEncoderFunc(union.UnionType.String(),
 		func(ptr unsafe.Pointer, stream *jsoniter.Stream) {
 			// 此处无法变成*UnionType，只能强转为*any
 			val := *(*any)(ptr)
 			if val != nil {
 				stream.WriteArrayStart()
-				typeStr, err := set.ElementTypes.TypeToString(myreflect.TypeOfValue(val))
-				if err != nil {
-					stream.Error = err
+
+				valType := myreflect.TypeOfValue(val)
+				if !myUnion.Union.Include(valType) {
+					stream.Error = fmt.Errorf("type %v is not in union %v", valType, union.UnionType)
 					return
 				}
-				stream.WriteString(typeStr)
+
+				stream.WriteString(makeFullTypeName(valType))
 				stream.WriteRaw(",")
 				stream.WriteVal(val)
 				stream.WriteArrayEnd()
@@ -110,7 +126,7 @@ func RegisterUnionType(set serder.UnionTypeInfo) {
 			return false
 		})
 
-	jsoniter.RegisterTypeDecoderFunc(set.UnionType.String(),
+	jsoniter.RegisterTypeDecoderFunc(union.UnionType.String(),
 		func(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
 			// 此处无法变成*UnionType，只能强转为*any
 			vp := (*any)(ptr)
@@ -125,9 +141,9 @@ func RegisterUnionType(set serder.UnionTypeInfo) {
 				typeStr := iter.ReadString()
 				iter.ReadArray()
 
-				typ, err := set.ElementTypes.StringToType(typeStr)
-				if err != nil {
-					iter.ReportError("get type from string", err.Error())
+				typ, ok := myUnion.TypeNameToType[typeStr]
+				if !ok {
+					iter.ReportError("decode UnionType", fmt.Sprintf("unknow type string %s under %v", typeStr, union.UnionType))
 					return
 				}
 
@@ -137,10 +153,16 @@ func RegisterUnionType(set serder.UnionTypeInfo) {
 
 				iter.ReadArray()
 			} else {
-				iter.ReportError("parse TypeSet field", fmt.Sprintf("unknow next token type %v", nextTkType))
+				iter.ReportError("decode UnionType", fmt.Sprintf("unknow next token type %v", nextTkType))
 				return
 			}
 		})
+
+	return myUnion
+}
+
+func makeFullTypeName(typ myreflect.Type) string {
+	return fmt.Sprintf("%s.%s", typ.PkgPath(), typ.Name())
 }
 
 /*
@@ -246,6 +268,5 @@ func Deserialize(data []byte) (*Message, error) {
 }
 
 func init() {
-	messageBodyTypeUnionEles = serder.NewTypeNameResolver(true)
-	RegisterUnionType(serder.NewTypeUnion[MessageBody]("", messageBodyTypeUnionEles))
+	msgBodyTypeUnion = RegisterUnionType(types.NewTypeUnion[MessageBody]())
 }

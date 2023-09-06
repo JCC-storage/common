@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"gitlink.org.cn/cloudream/common/pkgs/types"
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 )
 
@@ -361,11 +362,13 @@ func Test_MapToObject(t *testing.T) {
 		type UnionType interface{}
 
 		type EleType1 struct {
+			Type   string `json:"type" union:"1"`
 			Value1 string `json:"value1"`
 		}
 
 		type EleType2 struct {
-			Value2 int `json:"value2"`
+			Type   string `json:"type" union:"2"`
+			Value2 int    `json:"value2"`
 		}
 
 		type St struct {
@@ -387,22 +390,58 @@ func Test_MapToObject(t *testing.T) {
 
 		var ret St
 		err := MapToObject(mp, &ret, MapToObjectOption{
-			UnionTypes: []UnionTypeInfo{
-				{
-					UnionType:     myreflect.TypeOf[UnionType](),
-					TypeFieldName: "type",
-					ElementTypes: NewStringTypeResolver().
-						Add("1", myreflect.TypeOf[EleType1]()).
-						Add("2", myreflect.TypeOf[EleType2]()),
-				},
+			UnionTypes: []TaggedUnionType{
+				NewTaggedTypeUnion(types.NewTypeUnion[UnionType](
+					myreflect.TypeOf[EleType1](),
+					myreflect.TypeOf[EleType2](),
+				),
+					"Type",
+					"type",
+				),
 			},
 		})
 
 		So(err, ShouldBeNil)
 
 		So(ret.Us, ShouldResemble, []UnionType{
-			EleType1{Value1: "1"},
-			EleType2{Value2: 2},
+			EleType1{Type: "1", Value1: "1"},
+			EleType2{Type: "2", Value2: 2},
 		})
+	})
+
+	Convey("要转换到的结构体就是一个UnionType", t, func() {
+		type UnionType interface{}
+
+		type EleType1 struct {
+			Type   string `json:"type" union:"1"`
+			Value1 string `json:"value1"`
+		}
+
+		type EleType2 struct {
+			Type   string `json:"type" union:"2"`
+			Value2 int    `json:"value2"`
+		}
+
+		mp := map[string]any{
+			"type":   "1",
+			"value1": "1",
+		}
+
+		var ret UnionType
+		err := MapToObject(mp, &ret, MapToObjectOption{
+			UnionTypes: []TaggedUnionType{
+				NewTaggedTypeUnion(types.NewTypeUnion[UnionType](
+					myreflect.TypeOf[EleType1](),
+					myreflect.TypeOf[EleType2](),
+				),
+					"Type",
+					"type",
+				),
+			},
+		})
+
+		So(err, ShouldBeNil)
+
+		So(ret, ShouldResemble, EleType1{Type: "1", Value1: "1"})
 	})
 }
