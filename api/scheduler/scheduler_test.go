@@ -40,7 +40,7 @@ func Test_JobSet(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(id.JobSetID, ShouldNotBeEmpty)
 
-		err = cli.JobSetSetLocalFile(JobSetSetLocalFileReq{
+		err = cli.JobSetLocalFileUploaded(JobSetLocalFileUploadedReq{
 			JobSetID:  id.JobSetID,
 			LocalPath: "code",
 			PackageID: 1,
