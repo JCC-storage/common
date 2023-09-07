@@ -14,11 +14,12 @@ import (
 )
 
 type PackageUploadReq struct {
-	UserID     int64                      `json:"userID"`
-	BucketID   int64                      `json:"bucketID"`
-	Name       string                     `json:"name"`
-	Redundancy models.TypedRedundancyInfo `json:"redundancy"`
-	Files      PackageUploadFileIterator  `json:"-"`
+	UserID       int64                      `json:"userID"`
+	BucketID     int64                      `json:"bucketID"`
+	Name         string                     `json:"name"`
+	Redundancy   models.TypedRedundancyInfo `json:"redundancy"`
+	NodeAffinity *int64                     `json:"nodeAffinity"`
+	Files        PackageUploadFileIterator  `json:"-"`
 }
 
 type IterPackageUploadFile struct {
