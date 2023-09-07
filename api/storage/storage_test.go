@@ -23,7 +23,8 @@ func Test_Object(t *testing.T) {
 			fileData[i] = byte(i)
 		}
 
-		_, err := cli.PackageUpload(PackageUploadReq{
+		nodeAff := int64(2)
+		upResp, err := cli.PackageUpload(PackageUploadReq{
 			UserID:   0,
 			BucketID: 1,
 			Name:     uuid.NewString(),
@@ -31,6 +32,7 @@ func Test_Object(t *testing.T) {
 				Type: models.RedundancyRep,
 				Info: models.NewRepRedundancyInfo(1),
 			},
+			NodeAffinity: &nodeAff,
 			Files: iterator.Array(
 				&IterPackageUploadFile{
 					Path: "test",
@@ -55,11 +57,11 @@ func Test_Object(t *testing.T) {
 		// So(downFileData, ShouldResemble, fileData)
 		// downFs.Close()
 
-		//err = cli.PackageDelete(PackageDeleteReq{
-		//	UserID:    0,
-		//	PackageID: upResp.PackageID,
-		//})
-		//So(err, ShouldBeNil)
+		err = cli.PackageDelete(PackageDeleteReq{
+			UserID:    0,
+			PackageID: upResp.PackageID,
+		})
+		So(err, ShouldBeNil)
 	})
 }
 
