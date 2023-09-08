@@ -16,7 +16,8 @@ type JobSetSumbitReq struct {
 }
 
 type JobSetSumbitResp struct {
-	JobSetID string `json:"jobSetID"`
+	JobSetID          string                         `json:"jobSetID"`
+	FilesUploadScheme models.JobSetFilesUploadScheme `json:"filesUploadScheme"`
 }
 
 func (c *Client) JobSetSumbit(req JobSetSumbitReq) (*JobSetSumbitResp, error) {
@@ -49,14 +50,15 @@ func (c *Client) JobSetSumbit(req JobSetSumbitReq) (*JobSetSumbitResp, error) {
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-type JobSetSetLocalFileReq struct {
+type JobSetLocalFileUploadedReq struct {
 	JobSetID  string `json:"jobSetID"`
 	LocalPath string `json:"localPath"`
+	Error     string `json:"error"`
 	PackageID int64  `json:"packageID"`
 }
 
-func (c *Client) JobSetSetLocalFile(req JobSetSetLocalFileReq) error {
-	url, err := url.JoinPath(c.baseURL, "/jobSet/setLocalFile")
+func (c *Client) JobSetLocalFileUploaded(req JobSetLocalFileUploadedReq) error {
+	url, err := url.JoinPath(c.baseURL, "/jobSet/localFileUploaded")
 	if err != nil {
 		return err
 	}
