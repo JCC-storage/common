@@ -12,11 +12,11 @@ import (
 
 const CORRECT_CODE int = 200
 
-type SlwNodeInfo struct {
+type GetAllSlwNodeInfoResp struct {
 	Nodes []models.SlwNode `json:"nodes"`
 }
 
-func (c *Client) GetSlwNodeInfo() (*SlwNodeInfo, error) {
+func (c *Client) GetAllSlwNodeInfo() (*GetAllSlwNodeInfoResp, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getSlwNodeInfo")
 	if err != nil {
 		return nil, err
@@ -28,7 +28,7 @@ func (c *Client) GetSlwNodeInfo() (*SlwNodeInfo, error) {
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[SlwNodeInfo]
+		var codeResp response[GetAllSlwNodeInfoResp]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
@@ -43,11 +43,11 @@ func (c *Client) GetSlwNodeInfo() (*SlwNodeInfo, error) {
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-type Node struct {
-	NodeId int64 `json:"nodeId"`
+type GetOneResourceDataReq struct {
+	SlwNodeID int64 `json:"nodeId"`
 }
 
-func (c *Client) GetCPUData(node Node) (*models.CPUResourceData, error) {
+func (c *Client) GetCPUData(node GetOneResourceDataReq) (*models.CPUResourceData, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getCPUData")
 	if err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func (c *Client) GetCPUData(node Node) (*models.CPUResourceData, error) {
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-func (c *Client) GetNPUData(node Node) (*models.NPUResourceData, error) {
+func (c *Client) GetNPUData(node GetOneResourceDataReq) (*models.NPUResourceData, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getNPUData")
 	if err != nil {
 		return nil, err
@@ -107,7 +107,7 @@ func (c *Client) GetNPUData(node Node) (*models.NPUResourceData, error) {
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-func (c *Client) GetGPUData(node Node) (*models.GPUResourceData, error) {
+func (c *Client) GetGPUData(node GetOneResourceDataReq) (*models.GPUResourceData, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getGPUData")
 	if err != nil {
 		return nil, err
@@ -137,7 +137,7 @@ func (c *Client) GetGPUData(node Node) (*models.GPUResourceData, error) {
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-func (c *Client) GetMLUData(node Node) (*models.MLUResourceData, error) {
+func (c *Client) GetMLUData(node GetOneResourceDataReq) (*models.MLUResourceData, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getMLUData")
 	if err != nil {
 		return nil, err
@@ -167,7 +167,7 @@ func (c *Client) GetMLUData(node Node) (*models.MLUResourceData, error) {
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-func (c *Client) GetStorageData(node Node) (*models.StorageResourceData, error) {
+func (c *Client) GetStorageData(node GetOneResourceDataReq) (*models.StorageResourceData, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getStorageData")
 	if err != nil {
 		return nil, err
@@ -197,7 +197,7 @@ func (c *Client) GetStorageData(node Node) (*models.StorageResourceData, error) 
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-func (c *Client) GetMemoryData(node Node) (*models.MemoryResourceData, error) {
+func (c *Client) GetMemoryData(node GetOneResourceDataReq) (*models.MemoryResourceData, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getMemoryData")
 	if err != nil {
 		return nil, err
@@ -227,7 +227,7 @@ func (c *Client) GetMemoryData(node Node) (*models.MemoryResourceData, error) {
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-func (c *Client) GetIndicatorData(node Node) (*[]models.ResourceData, error) {
+func (c *Client) GetIndicatorData(node GetOneResourceDataReq) (*[]models.ResourceData, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getIndicatorData")
 	if err != nil {
 		return nil, err
