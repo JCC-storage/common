@@ -118,3 +118,43 @@ func JobSetInfoFromJSON(data []byte) (*JobSetInfo, error) {
 
 	return &ret, nil
 }
+
+const (
+	FileScheduleActionNo   = "No"
+	FileScheduleActionMove = "Move"
+	FileScheduleActionLoad = "Load"
+)
+
+type FileScheduleScheme struct {
+	Action          string `json:"action"`
+	TargetStorageID int64  `json:"targetStorageID"`
+}
+
+const (
+	ImageScheduleActionNo     = "No"
+	ImageScheduleActionImport = "Import"
+)
+
+type ImageScheduleScheme struct {
+	Action string `json:"action"`
+}
+
+type JobScheduleScheme struct {
+	TargetSlwNodeID int64               `json:"targetSlwNodeID"`
+	Dataset         FileScheduleScheme  `json:"dataset"`
+	Code            FileScheduleScheme  `json:"code"`
+	Image           ImageScheduleScheme `json:"image"`
+}
+
+type JobSetPreScheduleScheme struct {
+	JobSchemes map[string]JobScheduleScheme `json:"jobSchemes"` // 任务的预调度方案。Key为LocalJobIDs
+}
+
+type JobSetFilesUploadScheme struct {
+	LocalFileSchemes []LocalFileUploadScheme `json:"localFileUploadSchemes"`
+}
+
+type LocalFileUploadScheme struct {
+	LocalPath         string `json:"localPath"`
+	UploadToStgNodeID *int64 `json:"uploadToStgNodeID"`
+}
