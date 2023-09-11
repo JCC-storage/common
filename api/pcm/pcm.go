@@ -12,7 +12,7 @@ import (
 const CORRECT_CODE int = 200
 
 type UploadImageReq struct {
-	NodeID    int64  `json:"nodeID"`
+	SlwNodeID int64  `json:"slwNodeID"`
 	ImagePath string `json:"imagePath"`
 }
 
@@ -52,7 +52,7 @@ func (c *Client) UploadImage(req UploadImageReq) (*UploadImageResp, error) {
 }
 
 type GetImageListReq struct {
-	NodeID int64 `json:"nodeID"`
+	SlwNodeID int64 `json:"slwNodeID"`
 }
 
 type GetImageListResp struct {
@@ -90,8 +90,8 @@ func (c *Client) GetImageList(req GetImageListReq) (*GetImageListResp, error) {
 }
 
 type DeleteImageReq struct {
-	NodeID   int64 `json:"nodeID"`
-	PCMJobID int64 `json:"pcmJobID"`
+	SlwNodeID int64 `json:"slwNodeID"`
+	PCMJobID  int64 `json:"pcmJobID"`
 }
 
 type DeleteImageResp struct {
@@ -129,10 +129,10 @@ func (c *Client) DeleteImage(req DeleteImageReq) (*DeleteImageResp, error) {
 }
 
 type ScheduleTaskReq struct {
-	NodeID  int64               `json:"nodeID"`
-	Envs    []map[string]string `json:"envs"`
-	ImageID int64               `json:"imageID"`
-	CMDLine string              `json:"cmdLine"`
+	SlwNodeID int64               `json:"slwNodeID"`
+	Envs      []map[string]string `json:"envs"`
+	ImageID   int64               `json:"imageID"`
+	CMDLine   string              `json:"cmdLine"`
 }
 
 type ScheduleTaskResp struct {
@@ -171,8 +171,8 @@ func (c *Client) ScheduleTask(req ScheduleTaskReq) (*ScheduleTaskResp, error) {
 }
 
 type GetTaskStatusReq struct {
-	NodeID   int64 `json:"nodeID"`
-	PCMJobID int64 `json:"pcmJobID"`
+	SlwNodeID int64 `json:"slwNodeID"`
+	PCMJobID  int64 `json:"pcmJobID"`
 }
 
 type GetTaskStatusResp struct {
@@ -211,8 +211,8 @@ func (c *Client) GetTaskStatus(req GetTaskStatusReq) (*GetTaskStatusResp, error)
 }
 
 type DeleteTaskReq struct {
-	NodeID   int64 `json:"nodeID"`
-	PCMJobID int64 `json:"pcmJobID"`
+	SlwNodeID int64 `json:"slwNodeID"`
+	PCMJobID  int64 `json:"pcmJobID"`
 }
 
 type DeleteTaskResp struct {
