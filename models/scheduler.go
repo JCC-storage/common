@@ -88,6 +88,8 @@ type EnvVar struct {
 	Value string `json:"value"`
 }
 
+// CPU、GPU、NPU、MLU单位为：核
+// Storage、Memory单位为：字节
 type JobResourcesInfo struct {
 	CPU     float64 `json:"cpu"`
 	GPU     float64 `json:"gpu"`
