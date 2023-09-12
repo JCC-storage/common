@@ -7,6 +7,7 @@ import (
 	"unsafe"
 
 	jsoniter "github.com/json-iterator/go"
+	"github.com/modern-go/reflect2"
 	"gitlink.org.cn/cloudream/common/pkgs/types"
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 )
@@ -16,13 +17,25 @@ const (
 	MessageTypeHeartbeat = "Heartbeat"
 )
 
+type MessageBody interface {
+	// 此方法无任何作用，仅用于避免MessageBody是一个空interface，从而导致任何类型的值都可以赋值给它
+	// 与下方的MessageBodyBase配合使用：
+	// IsMessageBody只让实现了此接口的类型能赋值给它，内嵌MessageBodyBase让类型必须是个指针类型，
+	// 这就确保了Message.Body必是某个类型的指针类型，避免序列化、反序列化过程出错
+	IsMessageBody()
+}
+
+// 这个结构体无任何字段，但实现了IsMessageBody，每种MessageBody都要内嵌这个结构体
+type MessageBodyBase struct{}
+
+// 此处的receiver是指针
+func (b *MessageBodyBase) IsMessageBody() {}
+
 type Message struct {
 	Type    string         `json:"type"`
 	Headers map[string]any `json:"headers"`
 	Body    MessageBody    `json:"body"`
 }
-
-type MessageBody interface{}
 
 func (m *Message) GetRequestID() string {
 	reqID, _ := m.Headers["requestID"].(string)
@@ -91,6 +104,7 @@ func RegisterMessage[T any]() {
 
 // 在序列化结构体中包含的UnionType类型字段时，会将字段值的实际类型保存在序列化后的结果中。
 // 在反序列化时，会根据类型信息重建原本的字段值。
+// 注：TypeUnion.UnionType必须是一个interface
 func RegisterUnionType(union types.TypeUnion) *TypeUnionWithTypeName {
 	myUnion := &TypeUnionWithTypeName{
 		Union:          union,
@@ -101,16 +115,27 @@ func RegisterUnionType(union types.TypeUnion) *TypeUnionWithTypeName {
 		myUnion.TypeNameToType[makeFullTypeName(typ)] = typ
 	}
 
-	jsoniter.RegisterTypeEncoderFunc(union.UnionType.String(),
+	if union.UnionType.NumMethod() == 0 {
+		registerForEFace(myUnion)
+	} else {
+		registerForIFace(myUnion)
+	}
+
+	return myUnion
+}
+
+// 无方法的interface类型
+func registerForEFace(myUnion *TypeUnionWithTypeName) {
+	jsoniter.RegisterTypeEncoderFunc(myUnion.Union.UnionType.String(),
 		func(ptr unsafe.Pointer, stream *jsoniter.Stream) {
-			// 此处无法变成*UnionType，只能强转为*any
+			// 无方法的interface底层数据结构都是eface类型，所以可以直接转*any
 			val := *(*any)(ptr)
 			if val != nil {
 				stream.WriteArrayStart()
 
-				valType := myreflect.TypeOfValue(val)
+				valType := myreflect.TypeOfValue(val).Elem()
 				if !myUnion.Union.Include(valType) {
-					stream.Error = fmt.Errorf("type %v is not in union %v", valType, union.UnionType)
+					stream.Error = fmt.Errorf("type %v is not in union %v", valType, myUnion.Union.UnionType)
 					return
 				}
 
@@ -126,9 +151,9 @@ func RegisterUnionType(union types.TypeUnion) *TypeUnionWithTypeName {
 			return false
 		})
 
-	jsoniter.RegisterTypeDecoderFunc(union.UnionType.String(),
+	jsoniter.RegisterTypeDecoderFunc(myUnion.Union.UnionType.String(),
 		func(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
-			// 此处无法变成*UnionType，只能强转为*any
+			// 无方法的interface底层都是eface结构体，所以可以直接转*any
 			vp := (*any)(ptr)
 
 			nextTkType := iter.WhatIsNext()
@@ -143,13 +168,13 @@ func RegisterUnionType(union types.TypeUnion) *TypeUnionWithTypeName {
 
 				typ, ok := myUnion.TypeNameToType[typeStr]
 				if !ok {
-					iter.ReportError("decode UnionType", fmt.Sprintf("unknow type string %s under %v", typeStr, union.UnionType))
+					iter.ReportError("decode UnionType", fmt.Sprintf("unknow type string %s under %v", typeStr, myUnion.Union.UnionType))
 					return
 				}
 
 				val := reflect.New(typ)
 				iter.ReadVal(val.Interface())
-				*vp = val.Elem().Interface()
+				*vp = val.Interface()
 
 				iter.ReadArray()
 			} else {
@@ -157,8 +182,66 @@ func RegisterUnionType(union types.TypeUnion) *TypeUnionWithTypeName {
 				return
 			}
 		})
+}
 
-	return myUnion
+// 有方法的interface类型
+func registerForIFace(myUnion *TypeUnionWithTypeName) {
+	jsoniter.RegisterTypeEncoderFunc(myUnion.Union.UnionType.String(),
+		func(ptr unsafe.Pointer, stream *jsoniter.Stream) {
+			// 有方法的interface底层都是iface结构体，可以将其转成eface，转换后不损失类型信息
+			val := reflect2.IFaceToEFace(ptr)
+			if val != nil {
+				stream.WriteArrayStart()
+
+				// 此处肯定是指针类型，见MessageBody上的注释的分析
+				valType := myreflect.TypeOfValue(val).Elem()
+				if !myUnion.Union.Include(valType) {
+					stream.Error = fmt.Errorf("type %v is not in union %v", valType, myUnion.Union.UnionType)
+					return
+				}
+
+				stream.WriteString(makeFullTypeName(valType))
+				stream.WriteRaw(",")
+				stream.WriteVal(val)
+				stream.WriteArrayEnd()
+			} else {
+				stream.WriteNil()
+			}
+		},
+		func(p unsafe.Pointer) bool {
+			return false
+		})
+
+	jsoniter.RegisterTypeDecoderFunc(myUnion.Union.UnionType.String(),
+		func(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
+
+			nextTkType := iter.WhatIsNext()
+			if nextTkType == jsoniter.NilValue {
+				iter.ReadNil()
+
+			} else if nextTkType == jsoniter.ArrayValue {
+				iter.ReadArray()
+				typeStr := iter.ReadString()
+				iter.ReadArray()
+
+				typ, ok := myUnion.TypeNameToType[typeStr]
+				if !ok {
+					iter.ReportError("decode UnionType", fmt.Sprintf("unknow type string %s under %v", typeStr, myUnion.Union.UnionType))
+					return
+				}
+
+				val := reflect.New(typ)
+				iter.ReadVal(val.Interface())
+
+				retVal := reflect.NewAt(myUnion.Union.UnionType, ptr)
+				retVal.Elem().Set(val)
+
+				iter.ReadArray()
+			} else {
+				iter.ReportError("decode UnionType", fmt.Sprintf("unknow next token type %v", nextTkType))
+				return
+			}
+		})
 }
 
 func makeFullTypeName(typ myreflect.Type) string {

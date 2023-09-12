@@ -11,6 +11,7 @@ import (
 func Test_ServerClient(t *testing.T) {
 	Convey("心跳", t, func() {
 		type Msg struct {
+			MessageBodyBase
 			Data int64
 		}
 		RegisterMessage[Msg]()
@@ -21,7 +22,7 @@ func Test_ServerClient(t *testing.T) {
 		svr, err := NewRabbitMQServer(rabbitURL, testQueue,
 			func(msg *Message) (*Message, error) {
 				<-time.After(time.Second * 10)
-				reply := MakeAppDataMessage(Msg{Data: 1})
+				reply := MakeAppDataMessage(&Msg{Data: 1})
 				return &reply, nil
 			})
 		So(err, ShouldBeNil)
@@ -31,18 +32,18 @@ func Test_ServerClient(t *testing.T) {
 		cli, err := NewRabbitMQClient(rabbitURL, testQueue, "")
 		So(err, ShouldBeNil)
 
-		_, err = cli.Request(MakeAppDataMessage(Msg{}), RequestOption{
+		_, err = cli.Request(MakeAppDataMessage(&Msg{}), RequestOption{
 			Timeout: time.Second * 2,
 		})
 		So(err, ShouldEqual, ErrWaitResponseTimeout)
 
-		reply, err := cli.Request(MakeAppDataMessage(Msg{}), RequestOption{
+		reply, err := cli.Request(MakeAppDataMessage(&Msg{}), RequestOption{
 			Timeout:   time.Second * 2,
 			KeepAlive: true,
 		})
 		So(err, ShouldBeNil)
 
-		msgReply, ok := reply.Body.(Msg)
+		msgReply, ok := reply.Body.(*Msg)
 		So(ok, ShouldBeTrue)
 		So(msgReply.Data, ShouldEqual, 1)
 
