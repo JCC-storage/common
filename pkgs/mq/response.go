@@ -31,15 +31,19 @@ func Failed(errCode string, msg string) *CodeMessage {
 	}
 }
 
-func ReplyFailed[T any](errCode string, msg string) (*T, *CodeMessage) {
-	return nil, &CodeMessage{
+/*
+// 在支持从调用上下文推导类型之前，不使用这个函数
+func ReplyFailed[T MessageBody](errCode string, msg string) (T, *CodeMessage) {
+	var defRet T
+	return defRet, &CodeMessage{
 		Code:    errCode,
 		Message: msg,
 	}
 }
+*/
 
-func ReplyOK[T any](val T) (*T, *CodeMessage) {
-	return &val, &CodeMessage{
+func ReplyOK[T MessageBody](val T) (T, *CodeMessage) {
+	return val, &CodeMessage{
 		Code:    errorcode.OK,
 		Message: "",
 	}

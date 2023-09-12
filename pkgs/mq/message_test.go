@@ -98,18 +98,19 @@ func TestMessage(t *testing.T) {
 
 	Convey("body中包含nil数组", t, func() {
 		type Body struct {
+			MessageBodyBase
 			NilArr []string
 		}
 		RegisterMessage[Body]()
 
-		msg := MakeAppDataMessage(Body{})
+		msg := MakeAppDataMessage(&Body{})
 		data, err := Serialize(msg)
 		So(err, ShouldBeNil)
 
 		retMsg, err := Deserialize(data)
 		So(err, ShouldBeNil)
 
-		So(retMsg.Body.(Body).NilArr, ShouldBeNil)
+		So(retMsg.Body.(*Body).NilArr, ShouldBeNil)
 	})
 
 	Convey("body中包含匿名结构体", t, func() {
@@ -117,52 +118,112 @@ func TestMessage(t *testing.T) {
 			Value string `json:"value"`
 		}
 		type Body struct {
+			MessageBodyBase
 			Emb
 		}
 		RegisterMessage[Body]()
 
-		msg := MakeAppDataMessage(Body{Emb: Emb{Value: "test"}})
+		msg := MakeAppDataMessage(&Body{Emb: Emb{Value: "test"}})
+		data, err := Serialize(msg)
+		So(err, ShouldBeNil)
+
+		retMsg, err := Deserialize(data)
+		So(err, ShouldBeNil)
+		So(retMsg, ShouldNotBeNil)
+
+		So(retMsg.Body.(*Body).Value, ShouldEqual, "test")
+	})
+
+	Convey("无方法的TypeUnino", t, func() {
+		type MyTypeUnion interface{}
+		type EleType1 struct {
+			Value int
+		}
+
+		type Body struct {
+			MessageBodyBase
+			Value MyTypeUnion
+		}
+		RegisterMessage[Body]()
+		RegisterUnionType(types.NewTypeUnion[MyTypeUnion](myreflect.TypeOf[EleType1]()))
+
+		msg := MakeAppDataMessage(&Body{Value: &EleType1{
+			Value: 1,
+		}})
 		data, err := Serialize(msg)
 		So(err, ShouldBeNil)
 
 		retMsg, err := Deserialize(data)
 		So(err, ShouldBeNil)
 
-		So(retMsg.Body.(Body).Value, ShouldEqual, "test")
+		So(retMsg.Body.(*Body).Value, ShouldResemble, &EleType1{Value: 1})
 	})
 
-	Convey("使用TypeSet类型，但字段值为nil", t, func() {
-		type MyTypeSet interface {
+	Convey("有方法的TypeUnino", t, func() {
+		type MyTypeUnion interface {
+			MessageBody
+		}
+		type EleType1 struct {
+			MessageBodyBase
+			Value int
+		}
+
+		type Body struct {
+			MessageBodyBase
+			Value MyTypeUnion
+		}
+		RegisterMessage[Body]()
+		RegisterUnionType(types.NewTypeUnion[MyTypeUnion](myreflect.TypeOf[EleType1]()))
+
+		msg := MakeAppDataMessage(&Body{Value: &EleType1{
+			Value: 1,
+		}})
+		data, err := Serialize(msg)
+		So(err, ShouldBeNil)
+
+		retMsg, err := Deserialize(data)
+		So(err, ShouldBeNil)
+
+		So(retMsg.Body.(*Body).Value, ShouldNotBeNil)
+
+		So(retMsg.Body.(*Body).Value, ShouldResemble, &EleType1{Value: 1})
+	})
+
+	Convey("使用TypeUnion类型，但字段值为nil", t, func() {
+		type MyTypeUnion interface {
 			Test()
 		}
 
 		type Body struct {
-			Value MyTypeSet
+			MessageBodyBase
+			Value MyTypeUnion
 		}
 		RegisterMessage[Body]()
-		RegisterUnionType(types.NewTypeUnion[MyTypeSet]())
+		RegisterUnionType(types.NewTypeUnion[MyTypeUnion]())
 
-		msg := MakeAppDataMessage(Body{Value: nil})
+		msg := MakeAppDataMessage(&Body{Value: nil})
 		data, err := Serialize(msg)
 		So(err, ShouldBeNil)
 
 		retMsg, err := Deserialize(data)
 		So(err, ShouldBeNil)
 
-		So(retMsg.Body.(Body).Value, ShouldBeNil)
+		So(retMsg.Body.(*Body).Value, ShouldBeNil)
 	})
 
-	Convey("字段实际类型不在TypeSet范围内", t, func() {
-		type MyTypeSet interface{}
+	Convey("字段实际类型不在TypeUnion范围内", t, func() {
+		type MyTypeUnion interface{}
 
 		type Body struct {
-			Value MyTypeSet
+			MessageBodyBase
+			Value MyTypeUnion
 		}
 		RegisterMessage[Body]()
-		RegisterUnionType(types.NewTypeUnion[MyTypeSet]())
+		RegisterUnionType(types.NewTypeUnion[MyTypeUnion]())
 
-		msg := MakeAppDataMessage(Body{Value: struct{}{}})
+		msg := MakeAppDataMessage(&Body{Value: &struct{}{}})
 		_, err := Serialize(msg)
 		So(err, ShouldNotBeNil)
 	})
+
 }

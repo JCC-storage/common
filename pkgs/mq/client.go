@@ -302,15 +302,17 @@ func (c *RabbitMQClient) Close() error {
 }
 
 // 发送消息并等待回应。因为无法自动推断出TResp的类型，所以将其放在第一个手工填写，之后的TBody可以自动推断出来
-func Request[TResp any, TReq any](cli *RabbitMQClient, req TReq, opts ...RequestOption) (*TResp, error) {
+func Request[TSvc any, TReq MessageBody, TResp MessageBody](_ func(svc TSvc, msg TReq) (TResp, *CodeMessage), cli *RabbitMQClient, req TReq, opts ...RequestOption) (TResp, error) {
+	var defRet TResp
+
 	resp, err := cli.Request(MakeAppDataMessage(req), opts...)
 	if err != nil {
-		return nil, fmt.Errorf("requesting: %w", err)
+		return defRet, fmt.Errorf("requesting: %w", err)
 	}
 
 	errCode, errMsg := resp.GetCodeMessage()
 	if errCode != errorcode.OK {
-		return nil, &CodeMessageError{
+		return defRet, &CodeMessageError{
 			code:    errCode,
 			message: errMsg,
 		}
@@ -318,16 +320,16 @@ func Request[TResp any, TReq any](cli *RabbitMQClient, req TReq, opts ...Request
 
 	respBody, ok := resp.Body.(TResp)
 	if !ok {
-		return nil, fmt.Errorf("expect a %s body, but got %s",
+		return defRet, fmt.Errorf("expect a %s body, but got %s",
 			myreflect.ElemTypeOf[TResp]().Name(),
 			myreflect.TypeOfValue(resp.Body).Name())
 	}
 
-	return &respBody, nil
+	return respBody, nil
 }
 
 // 发送消息，不等待回应
-func Send[TReq any](cli *RabbitMQClient, msg TReq, opts ...SendOption) error {
+func Send[TSvc any, TReq MessageBody](_ func(svc TSvc, msg TReq), cli *RabbitMQClient, msg TReq, opts ...SendOption) error {
 	req := MakeAppDataMessage(msg)
 
 	err := cli.Send(req, opts...)
