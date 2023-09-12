@@ -20,7 +20,9 @@ type JobSetInfo struct {
 	Jobs []JobInfo `json:"jobs"`
 }
 
-type JobInfo interface{}
+type JobInfo interface {
+	GetLocalJobID() string
+}
 
 var JobInfoTypeUnion = types.NewTypeUnion[JobInfo](
 	myreflect.TypeOf[NormalJobInfo](),
@@ -28,16 +30,24 @@ var JobInfoTypeUnion = types.NewTypeUnion[JobInfo](
 )
 var JobInfoTaggedTypeUnion = serder.NewTaggedTypeUnion(JobInfoTypeUnion, "Type", "type")
 
+type JobInfoBase struct {
+	LocalJobID string `json:"localJobID"`
+}
+
+func (i *JobInfoBase) GetLocalJobID() string {
+	return i.LocalJobID
+}
+
 type NormalJobInfo struct {
-	LocalJobID string           `json:"localJobID"`
-	Type       string           `json:"type" union:"Normal"`
-	Files      JobFilesInfo     `json:"files"`
-	Runtime    JobRuntimeInfo   `json:"runtime"`
-	Resources  JobResourcesInfo `json:"resources"`
+	JobInfoBase
+	Type      string           `json:"type" union:"Normal"`
+	Files     JobFilesInfo     `json:"files"`
+	Runtime   JobRuntimeInfo   `json:"runtime"`
+	Resources JobResourcesInfo `json:"resources"`
 }
 
 type ResourceJobInfo struct {
-	LocalJobID       string `json:"localJobID"`
+	JobInfoBase
 	Type             string `json:"type" union:"Resource"`
 	TargetLocalJobID string `json:"targetLocalJobID"`
 }
@@ -48,7 +58,9 @@ type JobFilesInfo struct {
 	Image   JobFileInfo `json:"image"`
 }
 
-type JobFileInfo interface{}
+type JobFileInfo interface {
+	Noop()
+}
 
 var FileInfoTypeUnion = types.NewTypeUnion[JobFileInfo](
 	myreflect.TypeOf[PackageJobFileInfo](),
@@ -58,22 +70,30 @@ var FileInfoTypeUnion = types.NewTypeUnion[JobFileInfo](
 )
 var FileInfoTaggedTypeUnion = serder.NewTaggedTypeUnion(FileInfoTypeUnion, "Type", "type")
 
+type JobFileInfoBase struct{}
+
+func (i *JobFileInfoBase) Noop() {}
+
 type PackageJobFileInfo struct {
+	JobFileInfoBase
 	Type      string `json:"type" union:"Package"`
 	PackageID int64  `json:"packageID"`
 }
 
 type LocalJobFileInfo struct {
+	JobFileInfoBase
 	Type      string `json:"type" union:"LocalFile"`
 	LocalPath string `json:"localPath"`
 }
 
 type ResourceJobFileInfo struct {
+	JobFileInfoBase
 	Type               string `json:"type" union:"Resource"`
 	ResourceLocalJobID string `json:"resourceLocalJobID"`
 }
 
 type ImageJobFileInfo struct {
+	JobFileInfoBase
 	Type    string `json:"type" union:"Image"`
 	ImageID string `json:"imageID"`
 }

@@ -108,7 +108,8 @@ func MapToObject(m map[string]any, obj any, opt ...MapToObjectOption) error {
 
 	convs := []Converter{
 		func(from reflect.Value, to reflect.Value) (interface{}, error) {
-			info, ok := unionTypeMapping[to.Type()]
+			toType := to.Type()
+			info, ok := unionTypeMapping[toType]
 			if !ok {
 				return from.Interface(), nil
 			}
@@ -116,20 +117,20 @@ func MapToObject(m map[string]any, obj any, opt ...MapToObjectOption) error {
 			mp := from.Interface().(map[string]any)
 			tag, ok := mp[info.JSONTagField]
 			if !ok {
-				return nil, fmt.Errorf("converting to %v: no tag field %s in map", to.Type(), info.JSONTagField)
+				return nil, fmt.Errorf("converting to %v: no tag field %s in map", toType, info.JSONTagField)
 			}
 
 			tagStr, ok := tag.(string)
 			if !ok {
-				return nil, fmt.Errorf("converting to %v: tag field %s value is %v, which is not a string", to.Type(), info.JSONTagField, tag)
+				return nil, fmt.Errorf("converting to %v: tag field %s value is %v, which is not a string", toType, info.JSONTagField, tag)
 			}
 
 			eleType, ok := info.TagToType[tagStr]
 			if !ok {
-				return nil, fmt.Errorf("converting to %v: unknow type tag %s", to.Type(), tagStr)
+				return nil, fmt.Errorf("converting to %v: unknow type tag %s", toType, tagStr)
 			}
 
-			to.Set(reflect.Indirect(reflect.New(eleType)))
+			to.Set(reflect.New(eleType))
 
 			return from.Interface(), nil
 		},

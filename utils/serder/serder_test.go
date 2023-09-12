@@ -404,8 +404,8 @@ func Test_MapToObject(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		So(ret.Us, ShouldResemble, []UnionType{
-			EleType1{Type: "1", Value1: "1"},
-			EleType2{Type: "2", Value2: 2},
+			&EleType1{Type: "1", Value1: "1"},
+			&EleType2{Type: "2", Value2: 2},
 		})
 	})
 
@@ -442,6 +442,6 @@ func Test_MapToObject(t *testing.T) {
 
 		So(err, ShouldBeNil)
 
-		So(ret, ShouldResemble, EleType1{Type: "1", Value1: "1"})
+		So(ret, ShouldResemble, &EleType1{Type: "1", Value1: "1"})
 	})
 }
