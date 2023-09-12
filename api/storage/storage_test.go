@@ -147,7 +147,7 @@ func Test_Cache(t *testing.T) {
 		err = cli.CacheMovePackage(CacheMovePackageReq{
 			UserID:    0,
 			PackageID: upResp.PackageID,
-			StgNodeID: 1,
+			NodeID:    1,
 		})
 		So(err, ShouldBeNil)
 

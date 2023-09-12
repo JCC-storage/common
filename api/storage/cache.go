@@ -13,7 +13,7 @@ import (
 type CacheMovePackageReq struct {
 	UserID    int64 `json:"userID"`
 	PackageID int64 `json:"packageID"`
-	StgNodeID int64 `json:"stgNodeID"`
+	NodeID    int64 `json:"nodeID"`
 }
 
 func (c *Client) CacheMovePackage(req CacheMovePackageReq) error {
