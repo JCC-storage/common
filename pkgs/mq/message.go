@@ -20,16 +20,16 @@ const (
 type MessageBody interface {
 	// 此方法无任何作用，仅用于避免MessageBody是一个空interface，从而导致任何类型的值都可以赋值给它
 	// 与下方的MessageBodyBase配合使用：
-	// IsMessageBody只让实现了此接口的类型能赋值给它，内嵌MessageBodyBase让类型必须是个指针类型，
+	// Noop只让实现了此接口的类型能赋值给它，内嵌MessageBodyBase让类型必须是个指针类型，
 	// 这就确保了Message.Body必是某个类型的指针类型，避免序列化、反序列化过程出错
-	IsMessageBody()
+	Noop()
 }
 
-// 这个结构体无任何字段，但实现了IsMessageBody，每种MessageBody都要内嵌这个结构体
+// 这个结构体无任何字段，但实现了Noop，每种MessageBody都要内嵌这个结构体
 type MessageBodyBase struct{}
 
 // 此处的receiver是指针
-func (b *MessageBodyBase) IsMessageBody() {}
+func (b *MessageBodyBase) Noop() {}
 
 type Message struct {
 	Type    string         `json:"type"`

@@ -16,20 +16,20 @@ func Test_JobSet(t *testing.T) {
 		id, err := cli.JobSetSumbit(JobSetSumbitReq{
 			JobSetInfo: models.JobSetInfo{
 				Jobs: []models.JobInfo{
-					models.ResourceJobInfo{
+					&models.ResourceJobInfo{
 						Type: models.JobTypeResource,
 					},
-					models.NormalJobInfo{
+					&models.NormalJobInfo{
 						Type: models.JobTypeNormal,
 						Files: models.JobFilesInfo{
-							Dataset: models.PackageJobFileInfo{
+							Dataset: &models.PackageJobFileInfo{
 								Type: models.FileInfoTypePackage,
 							},
-							Code: models.LocalJobFileInfo{
+							Code: &models.LocalJobFileInfo{
 								Type:      models.FileInfoTypeLocalFile,
 								LocalPath: "code",
 							},
-							Image: models.ImageJobFileInfo{
+							Image: &models.ImageJobFileInfo{
 								Type: models.FileInfoTypeImage,
 							},
 						},
