@@ -128,3 +128,17 @@ func NewPackageCachingInfo(nodeInfos []NodePackageCachingInfo, packageSize int64
 		RedunancyType: redunancyType,
 	}
 }
+
+type ObjectCacheInfo struct {
+	ObjectID int64  `json:"objectID"`
+	FileHash string `json:"fileHash"`
+}
+
+type CodeError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+func (e *CodeError) Error() string {
+	return fmt.Sprintf("code: %s, message: %s", e.Code, e.Message)
+}
