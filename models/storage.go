@@ -134,6 +134,13 @@ type ObjectCacheInfo struct {
 	FileHash string `json:"fileHash"`
 }
 
+func NewObjectCacheInfo(objectID int64, fileHash string) ObjectCacheInfo {
+	return ObjectCacheInfo{
+		ObjectID: objectID,
+		FileHash: fileHash,
+	}
+}
+
 type CodeError struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`

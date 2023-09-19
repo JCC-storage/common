@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
+	"gitlink.org.cn/cloudream/common/models"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -15,33 +16,36 @@ type CacheMovePackageReq struct {
 	PackageID int64 `json:"packageID"`
 	NodeID    int64 `json:"nodeID"`
 }
+type CacheMovePackageResp struct {
+	CacheInfos []models.ObjectCacheInfo `json:"cacheInfos"`
+}
 
-func (c *Client) CacheMovePackage(req CacheMovePackageReq) error {
+func (c *Client) CacheMovePackage(req CacheMovePackageReq) (*CacheMovePackageResp, error) {
 	url, err := url.JoinPath(c.baseURL, "/cache/movePackage")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
 		Body: req,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
-		var codeResp response[any]
+		var codeResp response[CacheMovePackageResp]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
-			return fmt.Errorf("parsing response: %w", err)
+			return nil, fmt.Errorf("parsing response: %w", err)
 		}
 
 		if codeResp.Code == errorcode.OK {
-			return nil
+			return &codeResp.Data, nil
 		}
 
-		return codeResp.ToError()
+		return nil, codeResp.ToError()
 	}
 
-	return fmt.Errorf("unknow response content type: %s", contType)
+	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
