@@ -15,12 +15,16 @@ const (
 	ResourceTypeMemory  = "MEMORY"
 )
 
+type SlwNodeID int64
+
+type SlwNodeImageID int64
+
 type SlwNode struct {
-	ID          int64  `json:"ID"`
-	Name        string `json:"name"`
-	SlwRegionID int64  `json:"slwRegionID"`
-	StgNodeID   int64  `json:"stgNodeID"`
-	StorageID   int64  `json:"StorageID"`
+	ID          SlwNodeID `json:"ID"`
+	Name        string    `json:"name"`
+	SlwRegionID int64     `json:"slwRegionID"`
+	StgNodeID   int64     `json:"stgNodeID"`
+	StorageID   int64     `json:"StorageID"`
 }
 
 type ResourceData interface {

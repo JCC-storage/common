@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 
+	"gitlink.org.cn/cloudream/common/models"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -12,13 +13,13 @@ import (
 const CORRECT_CODE int = 200
 
 type UploadImageReq struct {
-	SlwNodeID int64  `json:"slwNodeID"`
-	ImagePath string `json:"imagePath"`
+	SlwNodeID models.SlwNodeID `json:"slwNodeID"`
+	ImagePath string           `json:"imagePath"`
 }
 
 type UploadImageResp struct {
-	Result  string `json:"result"`
-	ImageID int64  `json:"imageID"`
+	Result  string                `json:"result"`
+	ImageID models.SlwNodeImageID `json:"imageID"`
 }
 
 func (c *Client) UploadImage(req UploadImageReq) (*UploadImageResp, error) {
@@ -129,10 +130,10 @@ func (c *Client) DeleteImage(req DeleteImageReq) (*DeleteImageResp, error) {
 }
 
 type ScheduleTaskReq struct {
-	SlwNodeID int64               `json:"slwNodeID"`
-	Envs      []map[string]string `json:"envs"`
-	ImageID   int64               `json:"imageID"`
-	CMDLine   string              `json:"cmdLine"`
+	SlwNodeID models.SlwNodeID      `json:"slwNodeID"`
+	Envs      []models.EnvVar       `json:"envs"`
+	ImageID   models.SlwNodeImageID `json:"imageID"`
+	CMDLine   string                `json:"cmdLine"`
 }
 
 type ScheduleTaskResp struct {
@@ -171,8 +172,8 @@ func (c *Client) ScheduleTask(req ScheduleTaskReq) (*ScheduleTaskResp, error) {
 }
 
 type GetTaskStatusReq struct {
-	SlwNodeID int64 `json:"slwNodeID"`
-	PCMJobID  int64 `json:"pcmJobID"`
+	SlwNodeID models.SlwNodeID `json:"slwNodeID"`
+	PCMJobID  int64            `json:"pcmJobID"`
 }
 
 type GetTaskStatusResp struct {

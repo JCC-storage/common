@@ -44,7 +44,7 @@ func (c *Client) GetAllSlwNodeInfo() (*GetAllSlwNodeInfoResp, error) {
 }
 
 type GetOneResourceDataReq struct {
-	SlwNodeID int64 `json:"nodeId"`
+	SlwNodeID models.SlwNodeID `json:"nodeId"`
 }
 
 func (c *Client) GetCPUData(node GetOneResourceDataReq) (*models.CPUResourceData, error) {

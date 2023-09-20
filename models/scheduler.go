@@ -16,6 +16,10 @@ const (
 	FileInfoTypeImage     = "Image"
 )
 
+type JobID string
+
+type JobSetID string
+
 type JobSetInfo struct {
 	Jobs []JobInfo `json:"jobs"`
 }
