@@ -16,6 +16,10 @@ const (
 	FileInfoTypeImage     = "Image"
 )
 
+type JobID string
+
+type JobSetID string
+
 type JobSetInfo struct {
 	Jobs []JobInfo `json:"jobs"`
 }
@@ -48,8 +52,10 @@ type NormalJobInfo struct {
 
 type ResourceJobInfo struct {
 	JobInfoBase
-	Type             string `json:"type" union:"Resource"`
-	TargetLocalJobID string `json:"targetLocalJobID"`
+	Type             string              `json:"type" union:"Resource"`
+	BucketID         int64               `json:"bucketID"`
+	Redundancy       TypedRedundancyInfo `json:"redundancy"`
+	TargetLocalJobID string              `json:"targetLocalJobID"`
 }
 
 type JobFilesInfo struct {
