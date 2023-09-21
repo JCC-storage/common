@@ -1,10 +1,9 @@
-package scheduler
+package schsdk
 
 import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlink.org.cn/cloudream/common/models"
 )
 
 func Test_JobSet(t *testing.T) {
@@ -14,23 +13,23 @@ func Test_JobSet(t *testing.T) {
 		})
 
 		id, err := cli.JobSetSumbit(JobSetSumbitReq{
-			JobSetInfo: models.JobSetInfo{
-				Jobs: []models.JobInfo{
-					&models.ResourceJobInfo{
-						Type: models.JobTypeResource,
+			JobSetInfo: JobSetInfo{
+				Jobs: []JobInfo{
+					&ResourceJobInfo{
+						Type: JobTypeResource,
 					},
-					&models.NormalJobInfo{
-						Type: models.JobTypeNormal,
-						Files: models.JobFilesInfo{
-							Dataset: &models.PackageJobFileInfo{
-								Type: models.FileInfoTypePackage,
+					&NormalJobInfo{
+						Type: JobTypeNormal,
+						Files: JobFilesInfo{
+							Dataset: &PackageJobFileInfo{
+								Type: FileInfoTypePackage,
 							},
-							Code: &models.LocalJobFileInfo{
-								Type:      models.FileInfoTypeLocalFile,
+							Code: &LocalJobFileInfo{
+								Type:      FileInfoTypeLocalFile,
 								LocalPath: "code",
 							},
-							Image: &models.ImageJobFileInfo{
-								Type: models.FileInfoTypeImage,
+							Image: &ImageJobFileInfo{
+								Type: FileInfoTypeImage,
 							},
 						},
 					},

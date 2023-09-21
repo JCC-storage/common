@@ -1,4 +1,4 @@
-package models
+package uopsdk
 
 import (
 	"gitlink.org.cn/cloudream/common/pkgs/types"

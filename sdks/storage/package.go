@@ -1,4 +1,4 @@
-package storage
+package stgsdk
 
 import (
 	"fmt"
@@ -7,19 +7,18 @@ import (
 	"strings"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
-	"gitlink.org.cn/cloudream/common/models"
 	"gitlink.org.cn/cloudream/common/pkgs/iterator"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
 type PackageUploadReq struct {
-	UserID       int64                      `json:"userID"`
-	BucketID     int64                      `json:"bucketID"`
-	Name         string                     `json:"name"`
-	Redundancy   models.TypedRedundancyInfo `json:"redundancy"`
-	NodeAffinity *int64                     `json:"nodeAffinity"`
-	Files        PackageUploadFileIterator  `json:"-"`
+	UserID       int64                     `json:"userID"`
+	BucketID     int64                     `json:"bucketID"`
+	Name         string                    `json:"name"`
+	Redundancy   TypedRedundancyInfo       `json:"redundancy"`
+	NodeAffinity *int64                    `json:"nodeAffinity"`
+	Files        PackageUploadFileIterator `json:"-"`
 }
 
 type IterPackageUploadFile struct {
@@ -118,7 +117,7 @@ type PackageGetCachedNodesReq struct {
 }
 
 type PackageGetCachedNodesResp struct {
-	models.PackageCachingInfo
+	PackageCachingInfo
 }
 
 func (c *Client) PackageGetCachedNodes(req PackageGetCachedNodesReq) (*PackageGetCachedNodesResp, error) {

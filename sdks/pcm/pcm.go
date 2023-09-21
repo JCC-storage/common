@@ -1,11 +1,12 @@
-package pcm
+package pcmsdk
 
 import (
 	"fmt"
 	"net/url"
 	"strings"
 
-	"gitlink.org.cn/cloudream/common/models"
+	schsdk "gitlink.org.cn/cloudream/common/sdks/scheduler"
+	uopsdk "gitlink.org.cn/cloudream/common/sdks/unifyops"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -13,13 +14,13 @@ import (
 const CORRECT_CODE int = 200
 
 type UploadImageReq struct {
-	SlwNodeID models.SlwNodeID `json:"slwNodeID"`
+	SlwNodeID uopsdk.SlwNodeID `json:"slwNodeID"`
 	ImagePath string           `json:"imagePath"`
 }
 
 type UploadImageResp struct {
 	Result  string                `json:"result"`
-	ImageID models.SlwNodeImageID `json:"imageID"`
+	ImageID uopsdk.SlwNodeImageID `json:"imageID"`
 }
 
 func (c *Client) UploadImage(req UploadImageReq) (*UploadImageResp, error) {
@@ -130,9 +131,9 @@ func (c *Client) DeleteImage(req DeleteImageReq) (*DeleteImageResp, error) {
 }
 
 type ScheduleTaskReq struct {
-	SlwNodeID models.SlwNodeID      `json:"slwNodeID"`
-	Envs      []models.EnvVar       `json:"envs"`
-	ImageID   models.SlwNodeImageID `json:"imageID"`
+	SlwNodeID uopsdk.SlwNodeID      `json:"slwNodeID"`
+	Envs      []schsdk.EnvVar       `json:"envs"`
+	ImageID   uopsdk.SlwNodeImageID `json:"imageID"`
 	CMDLine   string                `json:"cmdLine"`
 }
 
@@ -172,7 +173,7 @@ func (c *Client) ScheduleTask(req ScheduleTaskReq) (*ScheduleTaskResp, error) {
 }
 
 type GetTaskStatusReq struct {
-	SlwNodeID models.SlwNodeID `json:"slwNodeID"`
+	SlwNodeID uopsdk.SlwNodeID `json:"slwNodeID"`
 	PCMJobID  int64            `json:"pcmJobID"`
 }
 

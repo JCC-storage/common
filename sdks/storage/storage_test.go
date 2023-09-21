@@ -1,4 +1,4 @@
-package storage
+package stgsdk
 
 import (
 	"bytes"
@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlink.org.cn/cloudream/common/models"
 	"gitlink.org.cn/cloudream/common/pkgs/iterator"
 )
 
@@ -28,9 +27,9 @@ func Test_Object(t *testing.T) {
 			UserID:   0,
 			BucketID: 1,
 			Name:     uuid.NewString(),
-			Redundancy: models.TypedRedundancyInfo{
-				Type: models.RedundancyRep,
-				Info: models.NewRepRedundancyInfo(1),
+			Redundancy: TypedRedundancyInfo{
+				Type: RedundancyRep,
+				Info: NewRepRedundancyInfo(1),
 			},
 			NodeAffinity: &nodeAff,
 			Files: iterator.Array(
@@ -80,9 +79,9 @@ func Test_Storage(t *testing.T) {
 			UserID:   0,
 			BucketID: 1,
 			Name:     uuid.NewString(),
-			Redundancy: models.TypedRedundancyInfo{
-				Type: models.RedundancyRep,
-				Info: models.NewRepRedundancyInfo(1),
+			Redundancy: TypedRedundancyInfo{
+				Type: RedundancyRep,
+				Info: NewRepRedundancyInfo(1),
 			},
 			Files: iterator.Array(
 				&IterPackageUploadFile{
@@ -127,9 +126,9 @@ func Test_Cache(t *testing.T) {
 			UserID:   0,
 			BucketID: 1,
 			Name:     uuid.NewString(),
-			Redundancy: models.TypedRedundancyInfo{
-				Type: models.RedundancyRep,
-				Info: models.NewRepRedundancyInfo(1),
+			Redundancy: TypedRedundancyInfo{
+				Type: RedundancyRep,
+				Info: NewRepRedundancyInfo(1),
 			},
 			Files: iterator.Array(
 				&IterPackageUploadFile{

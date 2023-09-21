@@ -1,4 +1,4 @@
-package unifyops
+package uopsdk
 
 import (
 	"fmt"

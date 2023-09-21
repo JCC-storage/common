@@ -1,4 +1,4 @@
-package storage
+package stgsdk
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
-	"gitlink.org.cn/cloudream/common/models"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -17,7 +16,7 @@ type CacheMovePackageReq struct {
 	NodeID    int64 `json:"nodeID"`
 }
 type CacheMovePackageResp struct {
-	CacheInfos []models.ObjectCacheInfo `json:"cacheInfos"`
+	CacheInfos []ObjectCacheInfo `json:"cacheInfos"`
 }
 
 func (c *Client) CacheMovePackage(req CacheMovePackageReq) (*CacheMovePackageResp, error) {

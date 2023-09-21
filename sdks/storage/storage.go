@@ -1,4 +1,4 @@
-package storage
+package stgsdk
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
-	"gitlink.org.cn/cloudream/common/models"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -48,12 +47,12 @@ func (c *Client) StorageLoadPackage(req StorageLoadPackageReq) error {
 }
 
 type StorageCreatePackageReq struct {
-	UserID     int64                      `json:"userID"`
-	StorageID  int64                      `json:"storageID"`
-	Path       string                     `json:"path"`
-	BucketID   int64                      `json:"bucketID"`
-	Name       string                     `json:"name"`
-	Redundancy models.TypedRedundancyInfo `json:"redundancy"`
+	UserID     int64               `json:"userID"`
+	StorageID  int64               `json:"storageID"`
+	Path       string              `json:"path"`
+	BucketID   int64               `json:"bucketID"`
+	Name       string              `json:"name"`
+	Redundancy TypedRedundancyInfo `json:"redundancy"`
 }
 
 type StorageCreatePackageResp struct {
