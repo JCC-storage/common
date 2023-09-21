@@ -1,4 +1,4 @@
-package storage
+package stgsdk
 
 import "path/filepath"
 

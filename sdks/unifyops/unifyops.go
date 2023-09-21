@@ -1,11 +1,10 @@
-package unifyops
+package uopsdk
 
 import (
 	"fmt"
 	"net/url"
 	"strings"
 
-	"gitlink.org.cn/cloudream/common/models"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -13,7 +12,7 @@ import (
 const CORRECT_CODE int = 200
 
 type GetAllSlwNodeInfoResp struct {
-	Nodes []models.SlwNode `json:"nodes"`
+	Nodes []SlwNode `json:"nodes"`
 }
 
 func (c *Client) GetAllSlwNodeInfo() (*GetAllSlwNodeInfoResp, error) {
@@ -44,10 +43,10 @@ func (c *Client) GetAllSlwNodeInfo() (*GetAllSlwNodeInfoResp, error) {
 }
 
 type GetOneResourceDataReq struct {
-	SlwNodeID models.SlwNodeID `json:"nodeId"`
+	SlwNodeID SlwNodeID `json:"nodeId"`
 }
 
-func (c *Client) GetCPUData(node GetOneResourceDataReq) (*models.CPUResourceData, error) {
+func (c *Client) GetCPUData(node GetOneResourceDataReq) (*CPUResourceData, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getCPUData")
 	if err != nil {
 		return nil, err
@@ -62,7 +61,7 @@ func (c *Client) GetCPUData(node GetOneResourceDataReq) (*models.CPUResourceData
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[models.CPUResourceData]
+		var codeResp response[CPUResourceData]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
@@ -77,7 +76,7 @@ func (c *Client) GetCPUData(node GetOneResourceDataReq) (*models.CPUResourceData
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-func (c *Client) GetNPUData(node GetOneResourceDataReq) (*models.NPUResourceData, error) {
+func (c *Client) GetNPUData(node GetOneResourceDataReq) (*NPUResourceData, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getNPUData")
 	if err != nil {
 		return nil, err
@@ -92,7 +91,7 @@ func (c *Client) GetNPUData(node GetOneResourceDataReq) (*models.NPUResourceData
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[models.NPUResourceData]
+		var codeResp response[NPUResourceData]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
@@ -107,7 +106,7 @@ func (c *Client) GetNPUData(node GetOneResourceDataReq) (*models.NPUResourceData
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-func (c *Client) GetGPUData(node GetOneResourceDataReq) (*models.GPUResourceData, error) {
+func (c *Client) GetGPUData(node GetOneResourceDataReq) (*GPUResourceData, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getGPUData")
 	if err != nil {
 		return nil, err
@@ -122,7 +121,7 @@ func (c *Client) GetGPUData(node GetOneResourceDataReq) (*models.GPUResourceData
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[models.GPUResourceData]
+		var codeResp response[GPUResourceData]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
@@ -137,7 +136,7 @@ func (c *Client) GetGPUData(node GetOneResourceDataReq) (*models.GPUResourceData
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-func (c *Client) GetMLUData(node GetOneResourceDataReq) (*models.MLUResourceData, error) {
+func (c *Client) GetMLUData(node GetOneResourceDataReq) (*MLUResourceData, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getMLUData")
 	if err != nil {
 		return nil, err
@@ -152,7 +151,7 @@ func (c *Client) GetMLUData(node GetOneResourceDataReq) (*models.MLUResourceData
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[models.MLUResourceData]
+		var codeResp response[MLUResourceData]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
@@ -167,7 +166,7 @@ func (c *Client) GetMLUData(node GetOneResourceDataReq) (*models.MLUResourceData
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-func (c *Client) GetStorageData(node GetOneResourceDataReq) (*models.StorageResourceData, error) {
+func (c *Client) GetStorageData(node GetOneResourceDataReq) (*StorageResourceData, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getStorageData")
 	if err != nil {
 		return nil, err
@@ -182,7 +181,7 @@ func (c *Client) GetStorageData(node GetOneResourceDataReq) (*models.StorageReso
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[models.StorageResourceData]
+		var codeResp response[StorageResourceData]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
@@ -197,7 +196,7 @@ func (c *Client) GetStorageData(node GetOneResourceDataReq) (*models.StorageReso
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-func (c *Client) GetMemoryData(node GetOneResourceDataReq) (*models.MemoryResourceData, error) {
+func (c *Client) GetMemoryData(node GetOneResourceDataReq) (*MemoryResourceData, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getMemoryData")
 	if err != nil {
 		return nil, err
@@ -212,7 +211,7 @@ func (c *Client) GetMemoryData(node GetOneResourceDataReq) (*models.MemoryResour
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[models.MemoryResourceData]
+		var codeResp response[MemoryResourceData]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
@@ -227,7 +226,7 @@ func (c *Client) GetMemoryData(node GetOneResourceDataReq) (*models.MemoryResour
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-func (c *Client) GetIndicatorData(node GetOneResourceDataReq) (*[]models.ResourceData, error) {
+func (c *Client) GetIndicatorData(node GetOneResourceDataReq) (*[]ResourceData, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getIndicatorData")
 	if err != nil {
 		return nil, err
@@ -253,12 +252,12 @@ func (c *Client) GetIndicatorData(node GetOneResourceDataReq) (*[]models.Resourc
 
 		mapToObjOpt := serder.MapToObjectOption{
 			UnionTypes: []serder.TaggedUnionType{
-				models.ResourceDataTaggedTypeUnion,
+				ResourceDataTaggedTypeUnion,
 			},
 		}
-		var ret []models.ResourceData
+		var ret []ResourceData
 		for _, mp := range codeResp.Data {
-			var data models.ResourceData
+			var data ResourceData
 			err := serder.MapToObject(mp, &data, mapToObjOpt)
 			if err != nil {
 				return nil, err

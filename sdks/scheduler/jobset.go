@@ -1,4 +1,4 @@
-package scheduler
+package schsdk
 
 import (
 	"fmt"
@@ -6,18 +6,17 @@ import (
 	"strings"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
-	"gitlink.org.cn/cloudream/common/models"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
 type JobSetSumbitReq struct {
-	models.JobSetInfo
+	JobSetInfo
 }
 
 type JobSetSumbitResp struct {
-	JobSetID          string                         `json:"jobSetID"`
-	FilesUploadScheme models.JobSetFilesUploadScheme `json:"filesUploadScheme"`
+	JobSetID          string                  `json:"jobSetID"`
+	FilesUploadScheme JobSetFilesUploadScheme `json:"filesUploadScheme"`
 }
 
 func (c *Client) JobSetSumbit(req JobSetSumbitReq) (*JobSetSumbitResp, error) {

@@ -1,7 +1,8 @@
-package models
+package schsdk
 
 import (
 	"gitlink.org.cn/cloudream/common/pkgs/types"
+	stgsdk "gitlink.org.cn/cloudream/common/sdks/storage"
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -52,10 +53,10 @@ type NormalJobInfo struct {
 
 type ResourceJobInfo struct {
 	JobInfoBase
-	Type             string              `json:"type" union:"Resource"`
-	BucketID         int64               `json:"bucketID"`
-	Redundancy       TypedRedundancyInfo `json:"redundancy"`
-	TargetLocalJobID string              `json:"targetLocalJobID"`
+	Type             string                     `json:"type" union:"Resource"`
+	BucketID         int64                      `json:"bucketID"`
+	Redundancy       stgsdk.TypedRedundancyInfo `json:"redundancy"`
+	TargetLocalJobID string                     `json:"targetLocalJobID"`
 }
 
 type JobFilesInfo struct {

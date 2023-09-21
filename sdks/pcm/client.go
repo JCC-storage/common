@@ -1,9 +1,9 @@
-package pcm
+package pcmsdk
 
 import (
 	"fmt"
 
-	"gitlink.org.cn/cloudream/common/api"
+	"gitlink.org.cn/cloudream/common/sdks"
 )
 
 type response[T any] struct {
@@ -12,8 +12,8 @@ type response[T any] struct {
 	Data    T      `json:"data"`
 }
 
-func (r *response[T]) ToError() *api.CodeMessageError {
-	return &api.CodeMessageError{
+func (r *response[T]) ToError() *sdks.CodeMessageError {
+	return &sdks.CodeMessageError{
 		Code:    fmt.Sprintf("%d", r.Code),
 		Message: r.Message,
 	}

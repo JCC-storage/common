@@ -1,20 +1,16 @@
-package unifyops
+package stgsdk
 
-import (
-	"fmt"
-
-	"gitlink.org.cn/cloudream/common/api"
-)
+import "gitlink.org.cn/cloudream/common/sdks"
 
 type response[T any] struct {
-	Code    int    `json:"code"`
+	Code    string `json:"code"`
 	Message string `json:"message"`
 	Data    T      `json:"data"`
 }
 
-func (r *response[T]) ToError() *api.CodeMessageError {
-	return &api.CodeMessageError{
-		Code:    fmt.Sprintf("%d", r.Code),
+func (r *response[T]) ToError() *sdks.CodeMessageError {
+	return &sdks.CodeMessageError{
+		Code:    r.Code,
 		Message: r.Message,
 	}
 }
