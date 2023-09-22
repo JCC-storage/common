@@ -6,13 +6,15 @@ import (
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
+type ResourceType string
+
 const (
-	ResourceTypeCPU     = "CPU"
-	ResourceTypeNPU     = "NPU"
-	ResourceTypeGPU     = "GPU"
-	ResourceTypeMLU     = "MLU"
-	ResourceTypeStorage = "STORAGE"
-	ResourceTypeMemory  = "MEMORY"
+	ResourceTypeCPU     ResourceType = "CPU"
+	ResourceTypeNPU     ResourceType = "NPU"
+	ResourceTypeGPU     ResourceType = "GPU"
+	ResourceTypeMLU     ResourceType = "MLU"
+	ResourceTypeStorage ResourceType = "STORAGE"
+	ResourceTypeMemory  ResourceType = "MEMORY"
 )
 
 type SlwNodeID int64
@@ -52,12 +54,12 @@ type DetailType[T any] struct {
 
 type CPUResourceData struct {
 	ResourceDataBase
-	Name      string            `json:"name" union:"CPU"`
+	Name      ResourceType      `json:"name" union:"CPU"`
 	Total     DetailType[int64] `json:"total"`
 	Available DetailType[int64] `json:"available"`
 }
 
-func NewCPUResourceData(name string, total DetailType[int64], available DetailType[int64]) *CPUResourceData {
+func NewCPUResourceData(name ResourceType, total DetailType[int64], available DetailType[int64]) *CPUResourceData {
 	return &CPUResourceData{
 		Name:      name,
 		Total:     total,
@@ -67,12 +69,12 @@ func NewCPUResourceData(name string, total DetailType[int64], available DetailTy
 
 type NPUResourceData struct {
 	ResourceDataBase
-	Name      string            `json:"name" union:"NPU"`
+	Name      ResourceType      `json:"name" union:"NPU"`
 	Total     DetailType[int64] `json:"total"`
 	Available DetailType[int64] `json:"available"`
 }
 
-func NewNPUResourceData(name string, total DetailType[int64], available DetailType[int64]) *NPUResourceData {
+func NewNPUResourceData(name ResourceType, total DetailType[int64], available DetailType[int64]) *NPUResourceData {
 	return &NPUResourceData{
 		Name:      name,
 		Total:     total,
@@ -82,12 +84,12 @@ func NewNPUResourceData(name string, total DetailType[int64], available DetailTy
 
 type GPUResourceData struct {
 	ResourceDataBase
-	Name      string            `json:"name" union:"GPU"`
+	Name      ResourceType      `json:"name" union:"GPU"`
 	Total     DetailType[int64] `json:"total"`
 	Available DetailType[int64] `json:"available"`
 }
 
-func NewGPUResourceData(name string, total DetailType[int64], available DetailType[int64]) *GPUResourceData {
+func NewGPUResourceData(name ResourceType, total DetailType[int64], available DetailType[int64]) *GPUResourceData {
 	return &GPUResourceData{
 		Name:      name,
 		Total:     total,
@@ -97,12 +99,12 @@ func NewGPUResourceData(name string, total DetailType[int64], available DetailTy
 
 type MLUResourceData struct {
 	ResourceDataBase
-	Name      string            `json:"name" union:"MLU"`
+	Name      ResourceType      `json:"name" union:"MLU"`
 	Total     DetailType[int64] `json:"total"`
 	Available DetailType[int64] `json:"available"`
 }
 
-func NewMLUResourceData(name string, total DetailType[int64], available DetailType[int64]) *MLUResourceData {
+func NewMLUResourceData(name ResourceType, total DetailType[int64], available DetailType[int64]) *MLUResourceData {
 	return &MLUResourceData{
 		Name:      name,
 		Total:     total,
@@ -112,12 +114,12 @@ func NewMLUResourceData(name string, total DetailType[int64], available DetailTy
 
 type StorageResourceData struct {
 	ResourceDataBase
-	Name      string              `json:"name" union:"STORAGE"`
+	Name      ResourceType        `json:"name" union:"STORAGE"`
 	Total     DetailType[float64] `json:"total"`
 	Available DetailType[float64] `json:"available"`
 }
 
-func NewStorageResourceData(name string, total DetailType[float64], available DetailType[float64]) *StorageResourceData {
+func NewStorageResourceData(name ResourceType, total DetailType[float64], available DetailType[float64]) *StorageResourceData {
 	return &StorageResourceData{
 		Name:      name,
 		Total:     total,
@@ -127,12 +129,12 @@ func NewStorageResourceData(name string, total DetailType[float64], available De
 
 type MemoryResourceData struct {
 	ResourceDataBase
-	Name      string              `json:"name" union:"MEMORY"`
+	Name      ResourceType        `json:"name" union:"MEMORY"`
 	Total     DetailType[float64] `json:"total"`
 	Available DetailType[float64] `json:"available"`
 }
 
-func NewMemoryResourceData(name string, total DetailType[float64], available DetailType[float64]) *MemoryResourceData {
+func NewMemoryResourceData(name ResourceType, total DetailType[float64], available DetailType[float64]) *MemoryResourceData {
 	return &MemoryResourceData{
 		Name:      name,
 		Total:     total,

@@ -359,16 +359,17 @@ func Test_MapToObject(t *testing.T) {
 	})
 
 	Convey("包含UnionType", t, func() {
+		type EleType string
 		type UnionType interface{}
 
 		type EleType1 struct {
-			Type   string `json:"type" union:"1"`
-			Value1 string `json:"value1"`
+			Type   EleType `json:"type" union:"1"`
+			Value1 string  `json:"value1"`
 		}
 
 		type EleType2 struct {
-			Type   string `json:"type" union:"2"`
-			Value2 int    `json:"value2"`
+			Type   EleType `json:"type" union:"2"`
+			Value2 int     `json:"value2"`
 		}
 
 		type St struct {
