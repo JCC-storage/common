@@ -29,7 +29,7 @@ func Test_ServerClient(t *testing.T) {
 
 		go svr.Serve()
 
-		cli, err := NewRabbitMQClient(rabbitURL, testQueue, "")
+		cli, err := NewRabbitMQTransport(rabbitURL, testQueue, "")
 		So(err, ShouldBeNil)
 
 		_, err = cli.Request(MakeAppDataMessage(&Msg{}), RequestOption{
