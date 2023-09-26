@@ -21,6 +21,8 @@ type JobID string
 
 type JobSetID string
 
+type ImageID string
+
 type JobSetInfo struct {
 	Jobs []JobInfo `json:"jobs"`
 }
@@ -101,8 +103,8 @@ type ResourceJobFileInfo struct {
 
 type ImageJobFileInfo struct {
 	JobFileInfoBase
-	Type    string `json:"type" union:"Image"`
-	ImageID string `json:"imageID"`
+	Type    string  `json:"type" union:"Image"`
+	ImageID ImageID `json:"imageID"`
 }
 
 type JobRuntimeInfo struct {
