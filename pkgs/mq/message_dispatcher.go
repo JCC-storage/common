@@ -26,7 +26,7 @@ func (h *MessageDispatcher) Handle(svcBase any, msg *Message) (*Message, error) 
 	typ := myreflect.TypeOfValue(msg.Body)
 	fn, ok := h.Handlers[typ]
 	if !ok {
-		return nil, fmt.Errorf("unsupported message type: %s", typ.Name())
+		return nil, fmt.Errorf("unsupported message type: %s", typ.String())
 	}
 
 	return fn(svcBase, msg)

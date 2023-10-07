@@ -391,10 +391,10 @@ func Test_MapToObject(t *testing.T) {
 
 		var ret St
 		err := MapToObject(mp, &ret, MapToObjectOption{
-			UnionTypes: []TaggedUnionType{
+			UnionTypes: []*TaggedUnionType{
 				NewTaggedTypeUnion(types.NewTypeUnion[UnionType](
-					myreflect.TypeOf[EleType1](),
-					myreflect.TypeOf[EleType2](),
+					(*EleType1)(nil),
+					(*EleType2)(nil),
 				),
 					"Type",
 					"type",
@@ -430,10 +430,10 @@ func Test_MapToObject(t *testing.T) {
 
 		var ret UnionType
 		err := MapToObject(mp, &ret, MapToObjectOption{
-			UnionTypes: []TaggedUnionType{
+			UnionTypes: []*TaggedUnionType{
 				NewTaggedTypeUnion(types.NewTypeUnion[UnionType](
-					myreflect.TypeOf[EleType1](),
-					myreflect.TypeOf[EleType2](),
+					(*EleType1)(nil),
+					(*EleType2)(nil),
 				),
 					"Type",
 					"type",
@@ -444,5 +444,44 @@ func Test_MapToObject(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		So(ret, ShouldResemble, &EleType1{Type: "1", Value1: "1"})
+	})
+
+	Convey("NewType", t, func() {
+		type Str string
+
+		type St struct {
+			Str Str
+		}
+
+		mp := map[string]any{
+			"Str": "1",
+		}
+
+		var ret St
+		err := MapToObject(mp, &ret)
+		So(err, ShouldBeNil)
+
+		So(string(ret.Str), ShouldEqual, "1")
+	})
+}
+func Test_JSON(t *testing.T) {
+	Convey("NewType", t, func() {
+		type Str string
+
+		type St struct {
+			Str Str `json:"str"`
+		}
+
+		st := St{
+			Str: Str("1"),
+		}
+
+		data, err := ObjectToJSON(st)
+		So(err, ShouldBeNil)
+
+		var ret St
+		err = JSONToObject(data, &ret)
+		So(err, ShouldBeNil)
+		So(string(ret.Str), ShouldEqual, "1")
 	})
 }

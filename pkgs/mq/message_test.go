@@ -3,6 +3,7 @@ package mq
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"testing"
 	"unsafe"
 
@@ -101,7 +102,7 @@ func TestMessage(t *testing.T) {
 			MessageBodyBase
 			NilArr []string
 		}
-		RegisterMessage[Body]()
+		RegisterMessage[*Body]()
 
 		msg := MakeAppDataMessage(&Body{})
 		data, err := Serialize(msg)
@@ -121,7 +122,7 @@ func TestMessage(t *testing.T) {
 			MessageBodyBase
 			Emb
 		}
-		RegisterMessage[Body]()
+		RegisterMessage[*Body]()
 
 		msg := MakeAppDataMessage(&Body{Emb: Emb{Value: "test"}})
 		data, err := Serialize(msg)
@@ -144,8 +145,8 @@ func TestMessage(t *testing.T) {
 			MessageBodyBase
 			Value MyTypeUnion
 		}
-		RegisterMessage[Body]()
-		RegisterUnionType(types.NewTypeUnion[MyTypeUnion](myreflect.TypeOf[EleType1]()))
+		RegisterMessage[*Body]()
+		RegisterUnionType(types.NewTypeUnion[MyTypeUnion]((*EleType1)(nil)))
 
 		msg := MakeAppDataMessage(&Body{Value: &EleType1{
 			Value: 1,
@@ -172,8 +173,8 @@ func TestMessage(t *testing.T) {
 			MessageBodyBase
 			Value MyTypeUnion
 		}
-		RegisterMessage[Body]()
-		RegisterUnionType(types.NewTypeUnion[MyTypeUnion](myreflect.TypeOf[EleType1]()))
+		RegisterMessage[*Body]()
+		RegisterUnionType(types.NewTypeUnion[MyTypeUnion]((*EleType1)(nil)))
 
 		msg := MakeAppDataMessage(&Body{Value: &EleType1{
 			Value: 1,
@@ -198,7 +199,7 @@ func TestMessage(t *testing.T) {
 			MessageBodyBase
 			Value MyTypeUnion
 		}
-		RegisterMessage[Body]()
+		RegisterMessage[*Body]()
 		RegisterUnionType(types.NewTypeUnion[MyTypeUnion]())
 
 		msg := MakeAppDataMessage(&Body{Value: nil})
@@ -218,7 +219,7 @@ func TestMessage(t *testing.T) {
 			MessageBodyBase
 			Value MyTypeUnion
 		}
-		RegisterMessage[Body]()
+		RegisterMessage[*Body]()
 		RegisterUnionType(types.NewTypeUnion[MyTypeUnion]())
 
 		msg := MakeAppDataMessage(&Body{Value: &struct{}{}})
@@ -226,4 +227,19 @@ func TestMessage(t *testing.T) {
 		So(err, ShouldNotBeNil)
 	})
 
+}
+
+func TestMakeFullTypeName(t *testing.T) {
+	Convey("指针类型", t, func() {
+		type St struct{}
+
+		typeName := makeFullTypeName(myreflect.TypeOf[St]())
+		So(typeName, ShouldEqual, "gitlink.org.cn/cloudream/common/pkgs/mq.St")
+
+		typeName = makeFullTypeName(reflect.PointerTo(myreflect.TypeOf[St]()))
+		So(typeName, ShouldEqual, "*gitlink.org.cn/cloudream/common/pkgs/mq.St")
+
+		typeName = makeFullTypeName(reflect.PointerTo(reflect.PointerTo(myreflect.TypeOf[St]())))
+		So(typeName, ShouldEqual, "**gitlink.org.cn/cloudream/common/pkgs/mq.St")
+	})
 }

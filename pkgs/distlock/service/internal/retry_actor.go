@@ -68,8 +68,8 @@ func (a *RetryActor) Retry(ctx context.Context, req distlock.LockRequest, lastEr
 
 			a.retryInfos[index].Callback.SetError(a.retryInfos[index].LastErr)
 
-			mylo.RemoveAt(a.retrys, index)
-			mylo.RemoveAt(a.retryInfos, index)
+			a.retrys = mylo.RemoveAt(a.retrys, index)
+			a.retryInfos = mylo.RemoveAt(a.retryInfos, index)
 		})
 	}()
 

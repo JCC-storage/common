@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"strings"
 	"unsafe"
 
 	jsoniter "github.com/json-iterator/go"
@@ -98,7 +99,7 @@ func (u *TypeUnionWithTypeName) Register(typ myreflect.Type) {
 var msgBodyTypeUnion *TypeUnionWithTypeName
 
 // 所有新定义的Message都需要在init中调用此函数
-func RegisterMessage[T any]() {
+func RegisterMessage[T MessageBody]() {
 	msgBodyTypeUnion.Register(myreflect.TypeOf[T]())
 }
 
@@ -133,7 +134,7 @@ func registerForEFace(myUnion *TypeUnionWithTypeName) {
 			if val != nil {
 				stream.WriteArrayStart()
 
-				valType := myreflect.TypeOfValue(val).Elem()
+				valType := myreflect.TypeOfValue(val)
 				if !myUnion.Union.Include(valType) {
 					stream.Error = fmt.Errorf("type %v is not in union %v", valType, myUnion.Union.UnionType)
 					return
@@ -172,9 +173,18 @@ func registerForEFace(myUnion *TypeUnionWithTypeName) {
 					return
 				}
 
-				val := reflect.New(typ)
-				iter.ReadVal(val.Interface())
-				*vp = val.Interface()
+				// 如果目标类型已经是个指针类型*T，那么在New的时候就需要使用T，
+				// 否则New出来的是会是**T，这将导致后续的反序列化出问题
+				if typ.Kind() == reflect.Pointer {
+					val := reflect.New(typ.Elem())
+					iter.ReadVal(val.Interface())
+					*vp = val.Interface()
+
+				} else {
+					val := reflect.New(typ)
+					iter.ReadVal(val.Interface())
+					*vp = val.Elem().Interface()
+				}
 
 				iter.ReadArray()
 			} else {
@@ -193,8 +203,7 @@ func registerForIFace(myUnion *TypeUnionWithTypeName) {
 			if val != nil {
 				stream.WriteArrayStart()
 
-				// 此处肯定是指针类型，见MessageBody上的注释的分析
-				valType := myreflect.TypeOfValue(val).Elem()
+				valType := myreflect.TypeOfValue(val)
 				if !myUnion.Union.Include(valType) {
 					stream.Error = fmt.Errorf("type %v is not in union %v", valType, myUnion.Union.UnionType)
 					return
@@ -230,11 +239,22 @@ func registerForIFace(myUnion *TypeUnionWithTypeName) {
 					return
 				}
 
-				val := reflect.New(typ)
-				iter.ReadVal(val.Interface())
+				// 如果目标类型已经是个指针类型*T，那么在New的时候就需要使用T，
+				// 否则New出来的是会是**T，这将导致后续的反序列化出问题
+				if typ.Kind() == reflect.Pointer {
+					val := reflect.New(typ.Elem())
+					iter.ReadVal(val.Interface())
 
-				retVal := reflect.NewAt(myUnion.Union.UnionType, ptr)
-				retVal.Elem().Set(val)
+					retVal := reflect.NewAt(myUnion.Union.UnionType, ptr)
+					retVal.Elem().Set(val)
+
+				} else {
+					val := reflect.New(typ)
+					iter.ReadVal(val.Interface())
+
+					retVal := reflect.NewAt(myUnion.Union.UnionType, ptr)
+					retVal.Elem().Set(val.Elem())
+				}
 
 				iter.ReadArray()
 			} else {
@@ -245,7 +265,15 @@ func registerForIFace(myUnion *TypeUnionWithTypeName) {
 }
 
 func makeFullTypeName(typ myreflect.Type) string {
-	return fmt.Sprintf("%s.%s", typ.PkgPath(), typ.Name())
+	refs := 0
+
+	realType := typ
+	for realType.Kind() == reflect.Pointer {
+		refs++
+		realType = realType.Elem()
+	}
+
+	return fmt.Sprintf("%s%s.%s", strings.Repeat("*", refs), realType.PkgPath(), realType.Name())
 }
 
 /*

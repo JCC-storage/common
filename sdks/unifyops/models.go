@@ -1,8 +1,8 @@
 package uopsdk
 
 import (
+	"gitlink.org.cn/cloudream/common/pkgs/mq"
 	"gitlink.org.cn/cloudream/common/pkgs/types"
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -34,14 +34,15 @@ type ResourceData interface {
 }
 
 var ResourceDataTypeUnion = types.NewTypeUnion[ResourceData](
-	myreflect.TypeOf[CPUResourceData](),
-	myreflect.TypeOf[NPUResourceData](),
-	myreflect.TypeOf[GPUResourceData](),
-	myreflect.TypeOf[MLUResourceData](),
-	myreflect.TypeOf[StorageResourceData](),
-	myreflect.TypeOf[MemoryResourceData](),
+	(*CPUResourceData)(nil),
+	(*NPUResourceData)(nil),
+	(*GPUResourceData)(nil),
+	(*MLUResourceData)(nil),
+	(*StorageResourceData)(nil),
+	(*MemoryResourceData)(nil),
 )
-var ResourceDataTaggedTypeUnion = serder.NewTaggedTypeUnion(ResourceDataTypeUnion, "Name", "name")
+var _ = serder.RegisterNewTaggedTypeUnion(ResourceDataTypeUnion, "Name", "name")
+var _ = mq.RegisterUnionType(ResourceDataTypeUnion)
 
 type ResourceDataBase struct{}
 
@@ -59,9 +60,9 @@ type CPUResourceData struct {
 	Available DetailType[int64] `json:"available"`
 }
 
-func NewCPUResourceData(name ResourceType, total DetailType[int64], available DetailType[int64]) *CPUResourceData {
+func NewCPUResourceData(total DetailType[int64], available DetailType[int64]) *CPUResourceData {
 	return &CPUResourceData{
-		Name:      name,
+		Name:      ResourceTypeCPU,
 		Total:     total,
 		Available: available,
 	}
@@ -74,9 +75,9 @@ type NPUResourceData struct {
 	Available DetailType[int64] `json:"available"`
 }
 
-func NewNPUResourceData(name ResourceType, total DetailType[int64], available DetailType[int64]) *NPUResourceData {
+func NewNPUResourceData(total DetailType[int64], available DetailType[int64]) *NPUResourceData {
 	return &NPUResourceData{
-		Name:      name,
+		Name:      ResourceTypeNPU,
 		Total:     total,
 		Available: available,
 	}
@@ -89,9 +90,9 @@ type GPUResourceData struct {
 	Available DetailType[int64] `json:"available"`
 }
 
-func NewGPUResourceData(name ResourceType, total DetailType[int64], available DetailType[int64]) *GPUResourceData {
+func NewGPUResourceData(total DetailType[int64], available DetailType[int64]) *GPUResourceData {
 	return &GPUResourceData{
-		Name:      name,
+		Name:      ResourceTypeGPU,
 		Total:     total,
 		Available: available,
 	}
@@ -104,9 +105,9 @@ type MLUResourceData struct {
 	Available DetailType[int64] `json:"available"`
 }
 
-func NewMLUResourceData(name ResourceType, total DetailType[int64], available DetailType[int64]) *MLUResourceData {
+func NewMLUResourceData(total DetailType[int64], available DetailType[int64]) *MLUResourceData {
 	return &MLUResourceData{
-		Name:      name,
+		Name:      ResourceTypeMLU,
 		Total:     total,
 		Available: available,
 	}
@@ -119,9 +120,9 @@ type StorageResourceData struct {
 	Available DetailType[float64] `json:"available"`
 }
 
-func NewStorageResourceData(name ResourceType, total DetailType[float64], available DetailType[float64]) *StorageResourceData {
+func NewStorageResourceData(total DetailType[float64], available DetailType[float64]) *StorageResourceData {
 	return &StorageResourceData{
-		Name:      name,
+		Name:      ResourceTypeStorage,
 		Total:     total,
 		Available: available,
 	}
@@ -134,9 +135,9 @@ type MemoryResourceData struct {
 	Available DetailType[float64] `json:"available"`
 }
 
-func NewMemoryResourceData(name ResourceType, total DetailType[float64], available DetailType[float64]) *MemoryResourceData {
+func NewMemoryResourceData(total DetailType[float64], available DetailType[float64]) *MemoryResourceData {
 	return &MemoryResourceData{
-		Name:      name,
+		Name:      ResourceTypeMemory,
 		Total:     total,
 		Available: available,
 	}

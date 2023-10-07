@@ -49,6 +49,8 @@ type TypeResolver interface {
 	StringToType(typeStr string) (reflect.Type, error)
 }
 
+var registeredTaggedTypeUnions []*TaggedUnionType
+
 type TaggedUnionType struct {
 	Union          types.TypeUnion
 	StrcutTagField string
@@ -57,7 +59,7 @@ type TaggedUnionType struct {
 }
 
 // 根据指定的字段的值来区分不同的类型。值可以通过在字段增加“union”Tag来指定。如果没有指定，则使用类型名。
-func NewTaggedTypeUnion(union types.TypeUnion, structTagField string, jsonTagField string) TaggedUnionType {
+func NewTaggedTypeUnion(union types.TypeUnion, structTagField string, jsonTagField string) *TaggedUnionType {
 	tagToType := make(map[string]reflect.Type)
 
 	for _, typ := range union.ElementTypes {
@@ -66,7 +68,13 @@ func NewTaggedTypeUnion(union types.TypeUnion, structTagField string, jsonTagFie
 			continue
 		}
 
-		field, ok := typ.FieldByName(structTagField)
+		// 如果ElementType是一个指向结构体的指针，那么就遍历结构体的字段（解引用）
+		structType := typ
+		for structType.Kind() == reflect.Pointer {
+			structType = structType.Elem()
+		}
+
+		field, ok := structType.FieldByName(structTagField)
 		if !ok {
 			tagToType[typ.Name()] = typ
 			continue
@@ -81,7 +89,7 @@ func NewTaggedTypeUnion(union types.TypeUnion, structTagField string, jsonTagFie
 		tagToType[tag] = typ
 	}
 
-	return TaggedUnionType{
+	return &TaggedUnionType{
 		Union:          union,
 		StrcutTagField: structTagField,
 		JSONTagField:   jsonTagField,
@@ -89,8 +97,22 @@ func NewTaggedTypeUnion(union types.TypeUnion, structTagField string, jsonTagFie
 	}
 }
 
+// 注册一个TaggedTypeUnion
+func RegisterTaggedTypeUnion(union *TaggedUnionType) *TaggedUnionType {
+	registeredTaggedTypeUnions = append(registeredTaggedTypeUnions, union)
+	return union
+}
+
+// 创建并注册一个TaggedTypeUnion
+func RegisterNewTaggedTypeUnion(union types.TypeUnion, structTagField string, jsonTagField string) *TaggedUnionType {
+	taggedUnion := NewTaggedTypeUnion(union, structTagField, jsonTagField)
+	RegisterTaggedTypeUnion(taggedUnion)
+	return taggedUnion
+}
+
 type MapToObjectOption struct {
-	UnionTypes []TaggedUnionType // 转换过程中遇到这些类型时，会依据指定的字段的值，来决定转换后的实际类型
+	UnionTypes             []*TaggedUnionType // 转换过程中遇到这些类型时，会依据指定的字段的值，来决定转换后的实际类型
+	NoRegisteredUnionTypes bool               // 是否不使用全局注册的UnionType
 }
 
 func MapToObject(m map[string]any, obj any, opt ...MapToObjectOption) error {
@@ -102,8 +124,13 @@ func MapToObject(m map[string]any, obj any, opt ...MapToObjectOption) error {
 	unionTypeMapping := make(map[reflect.Type]*TaggedUnionType)
 
 	for _, u := range op.UnionTypes {
-		uu := u
-		unionTypeMapping[u.Union.UnionType] = &uu
+		unionTypeMapping[u.Union.UnionType] = u
+	}
+
+	if !op.NoRegisteredUnionTypes {
+		for _, u := range registeredTaggedTypeUnions {
+			unionTypeMapping[u.Union.UnionType] = u
+		}
 	}
 
 	convs := []Converter{
@@ -130,7 +157,7 @@ func MapToObject(m map[string]any, obj any, opt ...MapToObjectOption) error {
 				return nil, fmt.Errorf("converting to %v: unknow type tag %s", toType, tagStr)
 			}
 
-			to.Set(reflect.New(eleType))
+			to.Set(reflect.New(eleType).Elem())
 
 			return from.Interface(), nil
 		},
