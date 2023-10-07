@@ -1,9 +1,9 @@
 package schsdk
 
 import (
+	"gitlink.org.cn/cloudream/common/pkgs/mq"
 	"gitlink.org.cn/cloudream/common/pkgs/types"
 	stgsdk "gitlink.org.cn/cloudream/common/sdks/storage"
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -32,10 +32,11 @@ type JobInfo interface {
 }
 
 var JobInfoTypeUnion = types.NewTypeUnion[JobInfo](
-	myreflect.TypeOf[NormalJobInfo](),
-	myreflect.TypeOf[ResourceJobInfo](),
+	(*NormalJobInfo)(nil),
+	(*ResourceJobInfo)(nil),
 )
-var JobInfoTaggedTypeUnion = serder.NewTaggedTypeUnion(JobInfoTypeUnion, "Type", "type")
+var _ = serder.RegisterNewTaggedTypeUnion(JobInfoTypeUnion, "Type", "type")
+var _ = mq.RegisterUnionType(JobInfoTypeUnion)
 
 type JobInfoBase struct {
 	LocalJobID string `json:"localJobID"`
@@ -72,12 +73,13 @@ type JobFileInfo interface {
 }
 
 var FileInfoTypeUnion = types.NewTypeUnion[JobFileInfo](
-	myreflect.TypeOf[PackageJobFileInfo](),
-	myreflect.TypeOf[LocalJobFileInfo](),
-	myreflect.TypeOf[ResourceJobFileInfo](),
-	myreflect.TypeOf[ImageJobFileInfo](),
+	(*PackageJobFileInfo)(nil),
+	(*LocalJobFileInfo)(nil),
+	(*ResourceJobFileInfo)(nil),
+	(*ImageJobFileInfo)(nil),
 )
-var FileInfoTaggedTypeUnion = serder.NewTaggedTypeUnion(FileInfoTypeUnion, "Type", "type")
+var _ = serder.RegisterNewTaggedTypeUnion(FileInfoTypeUnion, "Type", "type")
+var _ = mq.RegisterUnionType(FileInfoTypeUnion)
 
 type JobFileInfoBase struct{}
 
@@ -135,12 +137,7 @@ func JobSetInfoFromJSON(data []byte) (*JobSetInfo, error) {
 	}
 
 	var ret JobSetInfo
-	err := serder.MapToObject(mp, &ret, serder.MapToObjectOption{
-		UnionTypes: []serder.TaggedUnionType{
-			JobInfoTaggedTypeUnion,
-			FileInfoTaggedTypeUnion,
-		},
-	})
+	err := serder.MapToObject(mp, &ret)
 	if err != nil {
 		return nil, err
 	}

@@ -14,7 +14,7 @@ func Test_ServerClient(t *testing.T) {
 			MessageBodyBase
 			Data int64
 		}
-		RegisterMessage[Msg]()
+		RegisterMessage[*Msg]()
 
 		rabbitURL := "amqp://cloudream:123456@127.0.0.1:5672/"
 		testQueue := "Test" + uuid.NewString()
@@ -29,7 +29,7 @@ func Test_ServerClient(t *testing.T) {
 
 		go svr.Serve()
 
-		cli, err := NewRabbitMQClient(rabbitURL, testQueue, "")
+		cli, err := NewRabbitMQTransport(rabbitURL, testQueue, "")
 		So(err, ShouldBeNil)
 
 		_, err = cli.Request(MakeAppDataMessage(&Msg{}), RequestOption{

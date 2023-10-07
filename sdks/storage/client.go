@@ -1,6 +1,8 @@
 package stgsdk
 
-import "gitlink.org.cn/cloudream/common/sdks"
+import (
+	"gitlink.org.cn/cloudream/common/sdks"
+)
 
 type response[T any] struct {
 	Code    string `json:"code"`
@@ -25,32 +27,25 @@ func NewClient(cfg *Config) *Client {
 	}
 }
 
-type PoolClient struct {
-	*Client
-	owner *Pool
+type Pool interface {
+	Acquire() (*Client, error)
+	Release(cli *Client)
 }
 
-func (c *PoolClient) Close() {
-	c.owner.Release(c)
-}
-
-type Pool struct {
+type pool struct {
 	cfg *Config
 }
 
-func NewPool(cfg *Config) *Pool {
-	return &Pool{
+func NewPool(cfg *Config) Pool {
+	return &pool{
 		cfg: cfg,
 	}
 }
-func (p *Pool) Acquire() (*PoolClient, error) {
+func (p *pool) Acquire() (*Client, error) {
 	cli := NewClient(p.cfg)
-	return &PoolClient{
-		Client: cli,
-		owner:  p,
-	}, nil
+	return cli, nil
 }
 
-func (p *Pool) Release(cli *PoolClient) {
+func (p *pool) Release(cli *Client) {
 
 }

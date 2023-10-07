@@ -143,12 +143,13 @@ func Test_Cache(t *testing.T) {
 		})
 		So(err, ShouldBeNil)
 
-		_, err = cli.CacheMovePackage(CacheMovePackageReq{
+		cacheMoveResp, err := cli.CacheMovePackage(CacheMovePackageReq{
 			UserID:    0,
 			PackageID: upResp.PackageID,
 			NodeID:    1,
 		})
 		So(err, ShouldBeNil)
+		So(len(cacheMoveResp.CacheInfos), ShouldEqual, 2)
 
 		err = cli.PackageDelete(PackageDeleteReq{
 			UserID:    0,

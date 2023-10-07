@@ -1,6 +1,8 @@
 package types
 
 import (
+	"reflect"
+
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 )
 
@@ -12,7 +14,13 @@ type TypeUnion struct {
 	ElementTypes []myreflect.Type
 }
 
-func NewTypeUnion[TU any](eleTypes ...myreflect.Type) TypeUnion {
+// 创建一个TypeUnion。泛型参数为Union的类型，形参为Union中包含的类型的一个实例，无实际用途，仅用于获取类型。
+func NewTypeUnion[TU any](eleValues ...TU) TypeUnion {
+	var eleTypes []reflect.Type
+	for _, v := range eleValues {
+		eleTypes = append(eleTypes, reflect.TypeOf(v))
+	}
+
 	return TypeUnion{
 		UnionType:    myreflect.TypeOf[TU](),
 		ElementTypes: eleTypes,
