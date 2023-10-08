@@ -109,6 +109,20 @@ func PostForm(url string, param RequestParam) (*http.Response, error) {
 	return http.DefaultClient.Do(req)
 }
 
+func ParseJSONResponse[TBody any](resp *http.Response) (TBody, error) {
+	var ret TBody
+	contType := resp.Header.Get("Content-Type")
+	if strings.Contains(contType, ContentTypeJSON) {
+		if err := serder.JSONToObjectStream(resp.Body, &ret); err != nil {
+			return ret, fmt.Errorf("parsing response: %w", err)
+		}
+
+		return ret, nil
+	}
+
+	return ret, fmt.Errorf("unknow response content type: %s", contType)
+}
+
 type MultiPartRequestParam struct {
 	Header any
 	Query  any

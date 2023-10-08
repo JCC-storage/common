@@ -96,7 +96,7 @@ func Test_Storage(t *testing.T) {
 		})
 		So(err, ShouldBeNil)
 
-		err = cli.StorageLoadPackage(StorageLoadPackageReq{
+		_, err = cli.StorageLoadPackage(StorageLoadPackageReq{
 			UserID:    0,
 			PackageID: upResp.PackageID,
 			StorageID: 1,
