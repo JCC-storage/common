@@ -12,6 +12,39 @@ import (
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
+type PackageGetReq struct {
+	UserID    int64 `json:"userID"`
+	PackageID int64 `json:"packageID"`
+}
+type PackageGetResp struct {
+	Package
+}
+
+func (c *Client) PackageGet(req PackageGetReq) (*PackageGetResp, error) {
+	url, err := url.JoinPath(c.baseURL, "/package/get")
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+		Query: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	codeResp, err := myhttp.ParseJSONResponse[response[PackageGetResp]](resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if codeResp.Code == errorcode.OK {
+		return &codeResp.Data, nil
+	}
+
+	return nil, codeResp.ToError()
+}
+
 type PackageUploadReq struct {
 	UserID       int64                     `json:"userID"`
 	BucketID     int64                     `json:"bucketID"`

@@ -11,6 +11,56 @@ import (
 	"gitlink.org.cn/cloudream/common/pkgs/iterator"
 )
 
+func Test_PackageGet(t *testing.T) {
+	Convey("上传后获取Package信息", t, func() {
+		cli := NewClient(&Config{
+			URL: "http://localhost:7890",
+		})
+
+		fileData := make([]byte, 4096)
+		for i := 0; i < len(fileData); i++ {
+			fileData[i] = byte(i)
+		}
+
+		pkgName := uuid.NewString()
+		upResp, err := cli.PackageUpload(PackageUploadReq{
+			UserID:   0,
+			BucketID: 1,
+			Name:     pkgName,
+			Redundancy: TypedRedundancyInfo{
+				Type: RedundancyRep,
+				Info: NewRepRedundancyInfo(1),
+			},
+			Files: iterator.Array(
+				&IterPackageUploadFile{
+					Path: "test",
+					File: io.NopCloser(bytes.NewBuffer(fileData)),
+				},
+				&IterPackageUploadFile{
+					Path: "test2",
+					File: io.NopCloser(bytes.NewBuffer(fileData)),
+				},
+			),
+		})
+		So(err, ShouldBeNil)
+
+		getResp, err := cli.PackageGet(PackageGetReq{
+			UserID:    0,
+			PackageID: upResp.PackageID,
+		})
+		So(err, ShouldBeNil)
+
+		So(getResp.PackageID, ShouldEqual, upResp.PackageID)
+		So(getResp.Package.Name, ShouldEqual, pkgName)
+
+		err = cli.PackageDelete(PackageDeleteReq{
+			UserID:    0,
+			PackageID: upResp.PackageID,
+		})
+		So(err, ShouldBeNil)
+	})
+}
+
 func Test_Object(t *testing.T) {
 	Convey("上传，下载，删除", t, func() {
 		cli := NewClient(&Config{
@@ -149,7 +199,14 @@ func Test_Cache(t *testing.T) {
 			NodeID:    1,
 		})
 		So(err, ShouldBeNil)
-		So(len(cacheMoveResp.CacheInfos), ShouldEqual, 2)
+
+		cacheInfoResp, err := cli.GetPackageObjectCacheInfos(GetPackageObjectCacheInfosReq{
+			UserID:    0,
+			PackageID: upResp.PackageID,
+		})
+		So(err, ShouldBeNil)
+
+		So(cacheInfoResp.Infos, ShouldResemble, cacheMoveResp.CacheInfos)
 
 		err = cli.PackageDelete(PackageDeleteReq{
 			UserID:    0,

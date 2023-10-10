@@ -129,14 +129,29 @@ func NewPackageCachingInfo(nodeInfos []NodePackageCachingInfo, packageSize int64
 	}
 }
 
+type Object struct {
+	ObjectID  int64  `db:"ObjectID" json:"objectID"`
+	PackageID int64  `db:"PackageID" json:"packageID"`
+	Path      string `db:"Path" json:"path"`
+	Size      int64  `db:"Size" json:"size,string"`
+}
+
+type Package struct {
+	PackageID  int64               `db:"PackageID" json:"packageID"`
+	Name       string              `db:"Name" json:"name"`
+	BucketID   int64               `db:"BucketID" json:"bucketID"`
+	State      string              `db:"State" json:"state"`
+	Redundancy TypedRedundancyInfo `db:"Redundancy" json:"redundancy"`
+}
+
 type ObjectCacheInfo struct {
-	ObjectID int64  `json:"objectID"`
+	Object   Object `json:"object"`
 	FileHash string `json:"fileHash"`
 }
 
-func NewObjectCacheInfo(objectID int64, fileHash string) ObjectCacheInfo {
+func NewObjectCacheInfo(object Object, fileHash string) ObjectCacheInfo {
 	return ObjectCacheInfo{
-		ObjectID: objectID,
+		Object:   object,
 		FileHash: fileHash,
 	}
 }
