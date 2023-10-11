@@ -41,15 +41,15 @@ func (c *Client) CacheMovePackage(req CacheMovePackageReq) (*CacheMovePackageRes
 	return nil, jsonResp.ToError()
 }
 
-type GetPackageObjectCacheInfosReq struct {
+type CacheGetPackageObjectCacheInfosReq struct {
 	UserID    int64 `json:"userID"`
 	PackageID int64 `json:"packageID"`
 }
-type GetPackageObjectCacheInfosResp struct {
+type CacheGetPackageObjectCacheInfosResp struct {
 	Infos []ObjectCacheInfo `json:"cacheInfos"`
 }
 
-func (c *Client) GetPackageObjectCacheInfos(req GetPackageObjectCacheInfosReq) (*GetPackageObjectCacheInfosResp, error) {
+func (c *Client) CacheGetPackageObjectCacheInfos(req CacheGetPackageObjectCacheInfosReq) (*CacheGetPackageObjectCacheInfosResp, error) {
 	url, err := url.JoinPath(c.baseURL, "/cache/getPackageObjectCacheInfos")
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func (c *Client) GetPackageObjectCacheInfos(req GetPackageObjectCacheInfosReq) (
 		return nil, err
 	}
 
-	jsonResp, err := myhttp.ParseJSONResponse[response[GetPackageObjectCacheInfosResp]](resp)
+	jsonResp, err := myhttp.ParseJSONResponse[response[CacheGetPackageObjectCacheInfosResp]](resp)
 	if err != nil {
 		return nil, err
 	}

@@ -200,7 +200,7 @@ func Test_Cache(t *testing.T) {
 		})
 		So(err, ShouldBeNil)
 
-		cacheInfoResp, err := cli.GetPackageObjectCacheInfos(GetPackageObjectCacheInfosReq{
+		cacheInfoResp, err := cli.CacheGetPackageObjectCacheInfos(CacheGetPackageObjectCacheInfosReq{
 			UserID:    0,
 			PackageID: upResp.PackageID,
 		})

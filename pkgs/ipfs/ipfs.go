@@ -9,6 +9,11 @@ import (
 	myio "gitlink.org.cn/cloudream/common/utils/io"
 )
 
+type ReadOption struct {
+	Offset int64 // 从指定位置开始读取，为-1时代表不设置，从头开始读
+	Length int64 // 读取长度，为-1时代表不设置，读取Offset之后的所有内容
+}
+
 type Client struct {
 	shell *shell.Shell
 }
@@ -54,8 +59,33 @@ func (fs *Client) CreateFile(file io.Reader) (string, error) {
 	return fs.shell.Add(file)
 }
 
-func (fs *Client) OpenRead(hash string) (io.ReadCloser, error) {
-	return fs.shell.Cat(hash)
+func (fs *Client) OpenRead(hash string, opts ...ReadOption) (io.ReadCloser, error) {
+	opt := ReadOption{
+		Offset: 0,
+		Length: -1,
+	}
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+
+	req := fs.shell.Request("cat", hash)
+	if opt.Offset >= 0 {
+		req.Option("offset", opt.Offset)
+	}
+
+	if opt.Length >= 0 {
+		req.Option("length", opt.Length)
+	}
+
+	resp, err := req.Send(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+
+	return resp.Output, nil
 }
 
 func (fs *Client) Pin(hash string) error {
