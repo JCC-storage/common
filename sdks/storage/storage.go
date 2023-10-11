@@ -15,35 +15,33 @@ type StorageLoadPackageReq struct {
 	PackageID int64 `json:"packageID"`
 	StorageID int64 `json:"storageID"`
 }
+type StorageLoadPackageResp struct {
+	FullPath string `json:"fullPath"`
+}
 
-func (c *Client) StorageLoadPackage(req StorageLoadPackageReq) error {
+func (c *Client) StorageLoadPackage(req StorageLoadPackageReq) (*StorageLoadPackageResp, error) {
 	url, err := url.JoinPath(c.baseURL, "/storage/loadPackage")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
 		Body: req,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
-		var codeResp response[any]
-		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
-			return fmt.Errorf("parsing response: %w", err)
-		}
-
-		if codeResp.Code == errorcode.OK {
-			return nil
-		}
-
-		return codeResp.ToError()
+	codeResp, err := myhttp.ParseJSONResponse[response[StorageLoadPackageResp]](resp)
+	if err != nil {
+		return nil, err
 	}
 
-	return fmt.Errorf("unknow response content type: %s", contType)
+	if codeResp.Code == errorcode.OK {
+		return &codeResp.Data, nil
+	}
+
+	return nil, codeResp.ToError()
 }
 
 type StorageCreatePackageReq struct {
@@ -87,4 +85,38 @@ func (c *Client) StorageCreatePackage(req StorageCreatePackageReq) (*StorageCrea
 	}
 
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
+}
+
+type StorageGetInfoReq struct {
+	StorageID int64 `json:"storageID"`
+}
+type StorageGetInfoResp struct {
+	Name      string `json:"name"`
+	NodeID    int64  `json:"nodeID"`
+	Directory string `json:"directory"`
+}
+
+func (c *Client) StorageGetInfo(req StorageGetInfoReq) (*StorageGetInfoResp, error) {
+	url, err := url.JoinPath(c.baseURL, "/storage/getInfo")
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+		Body: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	codeResp, err := myhttp.ParseJSONResponse[response[StorageGetInfoResp]](resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if codeResp.Code == errorcode.OK {
+		return &codeResp.Data, nil
+	}
+
+	return nil, codeResp.ToError()
 }
