@@ -15,7 +15,7 @@ const IPFSReadPath = "/ipfs/read"
 type IPFSRead struct {
 	FileHash string `json:"fileHash"`
 	Offset   int64  `json:"offset"`
-	Length   int64  `json:"length,omitempty"` // 接口允许设置Length为0，所以这里只能omitempty
+	Length   int64  `json:"length"`
 }
 
 func (c *Client) IPFSRead(req IPFSRead) (io.ReadCloser, error) {

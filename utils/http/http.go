@@ -120,7 +120,7 @@ func ParseJSONResponse[TBody any](resp *http.Response) (TBody, error) {
 		return ret, nil
 	}
 
-	return ret, fmt.Errorf("unknow response content type: %s", contType)
+	return ret, fmt.Errorf("unknow response content type: %s, status: %d", contType, resp.StatusCode)
 }
 
 type MultiPartRequestParam struct {
