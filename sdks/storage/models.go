@@ -7,6 +7,10 @@ import (
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
+const (
+	ObjectPathSeperator = "/"
+)
+
 /// TODO 将分散在各处的公共结构体定义集中到这里来
 
 const (
