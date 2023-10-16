@@ -19,6 +19,11 @@ func AMD64() {
 	magefiles.Global.Arch = "amd64"
 }
 
+// [配置项]设置编译架构为arm64
+func ARM64() {
+	magefiles.Global.Arch = "arm64"
+}
+
 // [配置项]设置编译的根目录
 func BuildRoot(dir string) {
 	magefiles.Global.BuildRoot = dir
