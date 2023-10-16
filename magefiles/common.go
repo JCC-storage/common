@@ -23,7 +23,7 @@ type BuildArgs struct {
 	OutputName string
 	OutputDir  string
 	AssetsDir  string
-	EntryFile    string
+	EntryFile  string
 }
 
 type goBuildArgs struct {
@@ -50,12 +50,12 @@ func Build(args BuildArgs) error {
 	binPath := filepath.Join(fullOutputDir, args.OutputName+goBuildArgs.OutputExt)
 	fmt.Printf("building to %s\n", binPath)
 
-	goCmdArgs := []string{ "build", "-o", binPath}
+	goCmdArgs := []string{"build", "-o", binPath}
 	if args.EntryFile != "" {
 		goCmdArgs = append(goCmdArgs, args.EntryFile)
 	}
 
-	err = sh.RunWith(goBuildArgs.Env,"go", goCmdArgs...)
+	err = sh.RunWith(goBuildArgs.Env, "go", goCmdArgs...)
 	if err != nil {
 		return err
 	}
@@ -83,8 +83,17 @@ func makeGoBuildArgs() (goBuildArgs, error) {
 		args.OutputExt = ""
 		args.Env["CGO_ENABLE"] = "0"
 		args.Env["GOOS"] = "linux"
+
 	} else if Global.OS != "" {
 		return goBuildArgs{}, fmt.Errorf("unknow os type: %s", Global.OS)
+	}
+
+	if Global.Arch == "amd64" {
+		args.Env["GOARCH"] = "amd64"
+	} else if Global.Arch == "arm64" {
+		args.Env["GOARCH"] = "arm64"
+	} else if Global.Arch != "" {
+		return goBuildArgs{}, fmt.Errorf("unknow arch type: %s", Global.Arch)
 	}
 
 	var pltParts []string
