@@ -37,9 +37,9 @@ func NewWatchEtcdActor(etcdCli *clientv3.Client) *WatchEtcdActor {
 func (a *WatchEtcdActor) Init() {
 }
 
-func (a *WatchEtcdActor) StartWatching() error {
+func (a *WatchEtcdActor) StartWatching(revision int64) error {
 	return actor.Wait(context.TODO(), a.commandChan, func() error {
-		a.watchChan = a.etcdCli.Watch(context.Background(), EtcdLockRequestData, clientv3.WithPrefix(), clientv3.WithPrevKV())
+		a.watchChan = a.etcdCli.Watch(context.Background(), EtcdLockRequestData, clientv3.WithPrefix(), clientv3.WithPrevKV(), clientv3.WithRev(revision))
 		return nil
 	})
 }

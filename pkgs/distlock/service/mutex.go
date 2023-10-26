@@ -25,6 +25,6 @@ func (m *Mutex) Lock() error {
 	return nil
 }
 
-func (m *Mutex) Unlock() error {
-	return m.svc.Release(m.lockReqID)
+func (m *Mutex) Unlock() {
+	m.svc.Release(m.lockReqID)
 }

@@ -7,6 +7,7 @@ import (
 	"gitlink.org.cn/cloudream/common/pkgs/actor"
 	"gitlink.org.cn/cloudream/common/pkgs/distlock"
 	"gitlink.org.cn/cloudream/common/pkgs/future"
+	"gitlink.org.cn/cloudream/common/pkgs/logger"
 	"gitlink.org.cn/cloudream/common/pkgs/trie"
 )
 
@@ -56,30 +57,31 @@ func (a *ProvidersActor) WaitIndexUpdated(ctx context.Context, index int64) erro
 	return fut.Wait(ctx)
 }
 
-func (a *ProvidersActor) ApplyLockRequestEvents(events []LockRequestEvent) error {
-	return actor.Wait(context.TODO(), a.commandChan, func() error {
+func (a *ProvidersActor) ApplyLockRequestEvents(events []LockRequestEvent) {
+	a.commandChan.Send(func() {
 		for _, op := range events {
 			if op.IsLocking {
 				err := a.lockLockRequest(op.Data)
 				if err != nil {
-					return fmt.Errorf("lock by lock request data failed, err: %w", err)
+					// TODO 发生这种错误需要重新加载全量状态，下同
+					logger.Std.Warnf("applying locking event: %s", err.Error())
+					return
 				}
 
 			} else {
 				err := a.unlockLockRequest(op.Data)
 				if err != nil {
-					return fmt.Errorf("unlock by lock request data failed, err: %w", err)
+					logger.Std.Warnf("applying unlocking event: %s", err.Error())
+					return
 				}
 			}
+
+			// 处理了多少事件，Index就往后移动多少个
+			a.localLockReqIndex++
 		}
 
-		// 处理了多少事件，Index就往后移动多少个
-		a.localLockReqIndex += int64(len(events))
-
 		// 检查是否有等待同步进度的需求
-		a.checkIndexWaiter()
-
-		return nil
+		a.wakeUpIndexWaiter()
 	})
 }
 
@@ -181,13 +183,13 @@ func (a *ProvidersActor) ResetState(index int64, lockRequestData []LockRequestDa
 		a.localLockReqIndex = index
 
 		// 检查是否有等待同步进度的需求
-		a.checkIndexWaiter()
+		a.wakeUpIndexWaiter()
 
 		return nil
 	})
 }
 
-func (a *ProvidersActor) checkIndexWaiter() {
+func (a *ProvidersActor) wakeUpIndexWaiter() {
 	var resetWaiters []indexWaiter
 	for _, waiter := range a.indexWaiters {
 		if waiter.Index <= a.localLockReqIndex {

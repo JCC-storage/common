@@ -21,7 +21,7 @@ type LeaseActor struct {
 
 	commandChan *actor.CommandChannel
 
-	mainActor *MainActor
+	releaseActor *ReleaseActor
 }
 
 func NewLeaseActor() *LeaseActor {
@@ -31,8 +31,8 @@ func NewLeaseActor() *LeaseActor {
 	}
 }
 
-func (a *LeaseActor) Init(mainActor *MainActor) {
-	a.mainActor = mainActor
+func (a *LeaseActor) Init(releaseActor *ReleaseActor) {
+	a.releaseActor = releaseActor
 }
 
 func (a *LeaseActor) StartChecking() error {
@@ -113,15 +113,7 @@ func (a *LeaseActor) Serve() error {
 						// TODO 可以考虑打个日志
 						logger.Std.Infof("lock request %s is timeout, will release it", reqID)
 
-						// TODO 可以考虑让超时时间可配置
-						ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-						err := a.mainActor.Release(ctx, reqID)
-						cancel()
-						if err == nil {
-							delete(a.leases, reqID)
-						} else {
-							logger.Std.Warnf("releasing lock request: %s", err.Error())
-						}
+						a.releaseActor.DelayRelease([]string{reqID})
 					}
 				}
 
