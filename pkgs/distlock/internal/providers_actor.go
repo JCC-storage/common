@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"gitlink.org.cn/cloudream/common/pkgs/actor"
-	"gitlink.org.cn/cloudream/common/pkgs/distlock"
 	"gitlink.org.cn/cloudream/common/pkgs/future"
 	"gitlink.org.cn/cloudream/common/pkgs/logger"
 	"gitlink.org.cn/cloudream/common/pkgs/trie"
@@ -18,8 +17,8 @@ type indexWaiter struct {
 
 type ProvidersActor struct {
 	localLockReqIndex int64
-	provdersTrie      trie.Trie[distlock.LockProvider]
-	allProviders      []distlock.LockProvider
+	provdersTrie      trie.Trie[LockProvider]
+	allProviders      []LockProvider
 
 	indexWaiters []indexWaiter
 
@@ -32,7 +31,7 @@ func NewProvidersActor() *ProvidersActor {
 	}
 }
 
-func (a *ProvidersActor) AddProvider(prov distlock.LockProvider, path ...any) {
+func (a *ProvidersActor) AddProvider(prov LockProvider, path ...any) {
 	a.provdersTrie.Create(path).Value = prov
 	a.allProviders = append(a.allProviders, prov)
 }
@@ -97,7 +96,7 @@ func (svc *ProvidersActor) lockLockRequest(reqData LockRequestData) error {
 			return fmt.Errorf("parse target data failed, err: %w", err)
 		}
 
-		err = node.Value.Lock(reqData.ID, distlock.Lock{
+		err = node.Value.Lock(reqData.ID, Lock{
 			Path:   lockData.Path,
 			Name:   lockData.Name,
 			Target: target,
@@ -121,7 +120,7 @@ func (svc *ProvidersActor) unlockLockRequest(reqData LockRequestData) error {
 			return fmt.Errorf("parse target data failed, err: %w", err)
 		}
 
-		err = node.Value.Unlock(reqData.ID, distlock.Lock{
+		err = node.Value.Unlock(reqData.ID, Lock{
 			Path:   lockData.Path,
 			Name:   lockData.Name,
 			Target: target,
@@ -135,7 +134,7 @@ func (svc *ProvidersActor) unlockLockRequest(reqData LockRequestData) error {
 
 // TestLockRequestAndMakeData 判断锁能否锁成功，并生成锁数据的字符串表示。注：不会生成请求ID。
 // 在检查单个锁是否能上锁时，不会考虑同一个锁请求中的其他的锁影响。简单来说，就是同一个请求中的锁可以互相冲突。
-func (a *ProvidersActor) TestLockRequestAndMakeData(req distlock.LockRequest) (LockRequestData, error) {
+func (a *ProvidersActor) TestLockRequestAndMakeData(req LockRequest) (LockRequestData, error) {
 	return actor.WaitValue(context.TODO(), a.commandChan, func() (LockRequestData, error) {
 		reqData := LockRequestData{}
 

@@ -1,4 +1,4 @@
-package distlock
+package internal
 
 type Config struct {
 	EtcdAddress  string `json:"etcdAddress"`

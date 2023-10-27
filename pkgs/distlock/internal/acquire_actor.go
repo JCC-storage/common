@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"sync"
 
-	"gitlink.org.cn/cloudream/common/pkgs/distlock"
 	"gitlink.org.cn/cloudream/common/pkgs/future"
 	"gitlink.org.cn/cloudream/common/pkgs/logger"
 	mylo "gitlink.org.cn/cloudream/common/utils/lo"
@@ -18,30 +17,14 @@ import (
 
 var ErrAcquiringTimeout = errors.New("acquiring timeout")
 
-const (
-	EtcdLockRequestData  = "/distlock/lockRequest/data"
-	EtcdLockRequestIndex = "/distlock/lockRequest/index"
-	EtcdLockRequestLock  = "/distlock/lockRequest/lock"
-)
-
-type lockData struct {
-	Path   []string `json:"path"`
-	Name   string   `json:"name"`
-	Target string   `json:"target"`
-}
-type LockRequestData struct {
-	ID    string     `json:"id"`
-	Locks []lockData `json:"locks"`
-}
-
 type acquireInfo struct {
-	Request  distlock.LockRequest
+	Request  LockRequest
 	Callback *future.SetValueFuture[string]
 	LastErr  error
 }
 
 type AcquireActor struct {
-	cfg            *distlock.Config
+	cfg            *Config
 	etcdCli        *clientv3.Client
 	providersActor *ProvidersActor
 
@@ -49,7 +32,7 @@ type AcquireActor struct {
 	lock       sync.Mutex
 }
 
-func NewAcquireActor(cfg *distlock.Config, etcdCli *clientv3.Client) *AcquireActor {
+func NewAcquireActor(cfg *Config, etcdCli *clientv3.Client) *AcquireActor {
 	return &AcquireActor{
 		cfg:     cfg,
 		etcdCli: etcdCli,
@@ -61,7 +44,7 @@ func (a *AcquireActor) Init(providersActor *ProvidersActor) {
 }
 
 // Acquire 请求一批锁。成功后返回锁请求ID
-func (a *AcquireActor) Acquire(ctx context.Context, req distlock.LockRequest) (string, error) {
+func (a *AcquireActor) Acquire(ctx context.Context, req LockRequest) (string, error) {
 	info := &acquireInfo{
 		Request:  req,
 		Callback: future.NewSetValue[string](),

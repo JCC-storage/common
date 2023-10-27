@@ -1,14 +1,14 @@
-package service
+package distlock
 
-import "gitlink.org.cn/cloudream/common/pkgs/distlock"
+import "gitlink.org.cn/cloudream/common/pkgs/distlock/internal"
 
 type Mutex struct {
 	svc       *Service
-	lockReq   distlock.LockRequest
+	lockReq   internal.LockRequest
 	lockReqID string
 }
 
-func NewMutex(svc *Service, lockReq distlock.LockRequest) *Mutex {
+func NewMutex(svc *Service, lockReq internal.LockRequest) *Mutex {
 	return &Mutex{
 		svc:     svc,
 		lockReq: lockReq,

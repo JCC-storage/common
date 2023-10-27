@@ -1,4 +1,4 @@
-package service
+package distlock
 
 import (
 	"context"
@@ -6,8 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"gitlink.org.cn/cloudream/common/pkgs/distlock"
-	"gitlink.org.cn/cloudream/common/pkgs/distlock/service/internal"
+	"gitlink.org.cn/cloudream/common/pkgs/distlock/internal"
 	"gitlink.org.cn/cloudream/common/pkgs/logger"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -34,10 +33,10 @@ func WithLease(time time.Duration) AcquireOptionFn {
 
 type PathProvider struct {
 	Path     []any
-	Provider distlock.LockProvider
+	Provider internal.LockProvider
 }
 
-func NewPathProvider(prov distlock.LockProvider, path ...any) PathProvider {
+func NewPathProvider(prov internal.LockProvider, path ...any) PathProvider {
 	return PathProvider{
 		Path:     path,
 		Provider: prov,
@@ -45,7 +44,7 @@ func NewPathProvider(prov distlock.LockProvider, path ...any) PathProvider {
 }
 
 type Service struct {
-	cfg     *distlock.Config
+	cfg     *internal.Config
 	etcdCli *clientv3.Client
 
 	acquireActor   *internal.AcquireActor
@@ -57,7 +56,7 @@ type Service struct {
 	lockReqEventWatcher internal.LockRequestEventWatcher
 }
 
-func NewService(cfg *distlock.Config, initProvs []PathProvider) (*Service, error) {
+func NewService(cfg *internal.Config, initProvs []PathProvider) (*Service, error) {
 	etcdCli, err := clientv3.New(clientv3.Config{
 		Endpoints:   []string{cfg.EtcdAddress},
 		Username:    cfg.EtcdUsername,
@@ -95,7 +94,7 @@ func NewService(cfg *distlock.Config, initProvs []PathProvider) (*Service, error
 }
 
 // Acquire 请求一批锁。成功后返回锁请求ID
-func (svc *Service) Acquire(req distlock.LockRequest, opts ...AcquireOptionFn) (string, error) {
+func (svc *Service) Acquire(req internal.LockRequest, opts ...AcquireOptionFn) (string, error) {
 	var opt = AcquireOption{
 		Timeout: time.Second * 10,
 	}
@@ -145,7 +144,7 @@ func (svc *Service) Release(reqID string) {
 func (svc *Service) Serve() error {
 	// TODO 需要停止service的方法
 	// 目前已知问题：
-	// 1. client退出时直接中断进程，此时RetryActor可能正在进行Retry，于是导致Etcd锁没有解除就退出了进程。
+	// 1. client退出时直接中断进程，此时AcquireActor可能正在进行重试，于是导致Etcd锁没有解除就退出了进程。
 	// 虽然由于租约的存在不会导致系统长期卡死，但会影响client的使用
 
 	go func() {

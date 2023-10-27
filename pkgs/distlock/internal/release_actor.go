@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"gitlink.org.cn/cloudream/common/pkgs/distlock"
 	"gitlink.org.cn/cloudream/common/pkgs/logger"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/clientv3util"
@@ -20,7 +19,7 @@ const (
 )
 
 type ReleaseActor struct {
-	cfg     *distlock.Config
+	cfg     *Config
 	etcdCli *clientv3.Client
 
 	releasingLockRequestIDs map[string]bool
@@ -29,7 +28,7 @@ type ReleaseActor struct {
 	lock                    sync.Mutex
 }
 
-func NewReleaseActor(cfg *distlock.Config, etcdCli *clientv3.Client) *ReleaseActor {
+func NewReleaseActor(cfg *Config, etcdCli *clientv3.Client) *ReleaseActor {
 	return &ReleaseActor{
 		cfg:                     cfg,
 		etcdCli:                 etcdCli,
