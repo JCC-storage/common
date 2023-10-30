@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
 	"gitlink.org.cn/cloudream/common/pkgs/future"
 	"gitlink.org.cn/cloudream/common/pkgs/logger"
@@ -28,6 +29,7 @@ type AcquireActor struct {
 	etcdCli        *clientv3.Client
 	providersActor *ProvidersActor
 
+	serviceID  string
 	acquirings []*acquireInfo
 	lock       sync.Mutex
 }
@@ -98,6 +100,21 @@ func (a *AcquireActor) TryAcquireNow() {
 	}()
 }
 
+func (a *AcquireActor) ResetState(serviceID string) {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	a.serviceID = serviceID
+	for _, info := range a.acquirings {
+		if info.LastErr != nil {
+			info.Callback.SetError(info.LastErr)
+		} else {
+			info.Callback.SetError(ErrAcquiringTimeout)
+		}
+	}
+	a.acquirings = nil
+}
+
 func (a *AcquireActor) doAcquiring() error {
 	ctx := context.Background()
 
@@ -126,24 +143,29 @@ func (a *AcquireActor) doAcquiring() error {
 
 	// TODO 可以考虑一次性获得多个锁
 	for i := 0; i < len(a.acquirings); i++ {
+		req := a.acquirings[i]
+
 		// 测试锁，并获得锁数据
-		reqData, err := a.providersActor.TestLockRequestAndMakeData(a.acquirings[i].Request)
+		reqData, err := a.providersActor.TestLockRequestAndMakeData(req.Request)
 		if err != nil {
-			a.acquirings[i].LastErr = err
+			req.LastErr = err
 			continue
 		}
 
 		nextIndexStr := strconv.FormatInt(index+1, 10)
 		reqData.ID = nextIndexStr
+		reqData.SerivceID = a.serviceID
+		reqData.Reason = req.Request.Reason
+		reqData.Timestamp = time.Now().Unix()
 
 		// 锁成功，提交锁数据
 		err = a.submitLockRequest(ctx, nextIndexStr, reqData)
 		if err != nil {
-			a.acquirings[i].LastErr = err
+			req.LastErr = err
 			continue
 		}
 
-		a.acquirings[i].Callback.SetValue(reqData.ID)
+		req.Callback.SetValue(reqData.ID)
 		a.acquirings = mylo.RemoveAt(a.acquirings, i)
 		break
 	}
@@ -159,7 +181,7 @@ func (a *AcquireActor) submitLockRequest(ctx context.Context, index string, reqD
 
 	etcdOps := []clientv3.Op{
 		clientv3.OpPut(EtcdLockRequestIndex, index),
-		clientv3.OpPut(makeEtcdLockRequestKey(reqData.ID), string(reqBytes)),
+		clientv3.OpPut(MakeEtcdLockRequestKey(reqData.ID), string(reqBytes)),
 	}
 	txResp, err := a.etcdCli.Txn(ctx).Then(etcdOps...).Commit()
 	if err != nil {

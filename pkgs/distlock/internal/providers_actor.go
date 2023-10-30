@@ -2,17 +2,20 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"sync"
 
-	"gitlink.org.cn/cloudream/common/pkgs/actor"
 	"gitlink.org.cn/cloudream/common/pkgs/future"
 	"gitlink.org.cn/cloudream/common/pkgs/logger"
 	"gitlink.org.cn/cloudream/common/pkgs/trie"
 )
 
+var ErrWaitIndexUpdateTimeout = errors.New("waitting local index updating timeout")
+
 type indexWaiter struct {
-	Index  int64
-	Future *future.SetVoidFuture
+	Index    int64
+	Callback *future.SetVoidFuture
 }
 
 type ProvidersActor struct {
@@ -21,14 +24,11 @@ type ProvidersActor struct {
 	allProviders      []LockProvider
 
 	indexWaiters []indexWaiter
-
-	commandChan *actor.CommandChannel
+	lock         sync.Mutex
 }
 
 func NewProvidersActor() *ProvidersActor {
-	return &ProvidersActor{
-		commandChan: actor.NewCommandChannel(),
-	}
+	return &ProvidersActor{}
 }
 
 func (a *ProvidersActor) AddProvider(prov LockProvider, path ...any) {
@@ -42,46 +42,46 @@ func (a *ProvidersActor) Init() {
 func (a *ProvidersActor) WaitIndexUpdated(ctx context.Context, index int64) error {
 	fut := future.NewSetVoid()
 
-	a.commandChan.Send(func() {
-		if index <= a.localLockReqIndex {
-			fut.SetVoid()
-		} else {
-			a.indexWaiters = append(a.indexWaiters, indexWaiter{
-				Index:  index,
-				Future: fut,
-			})
-		}
-	})
+	a.lock.Lock()
+	if index <= a.localLockReqIndex {
+		fut.SetVoid()
+	} else {
+		a.indexWaiters = append(a.indexWaiters, indexWaiter{
+			Index:    index,
+			Callback: fut,
+		})
+	}
+	a.lock.Unlock()
 
 	return fut.Wait(ctx)
 }
 
-func (a *ProvidersActor) ApplyLockRequestEvents(events []LockRequestEvent) {
-	a.commandChan.Send(func() {
-		for _, op := range events {
-			if op.IsLocking {
-				err := a.lockLockRequest(op.Data)
-				if err != nil {
-					// TODO 发生这种错误需要重新加载全量状态，下同
-					logger.Std.Warnf("applying locking event: %s", err.Error())
-					return
-				}
+func (a *ProvidersActor) OnLockRequestEvent(evt LockRequestEvent) {
+	func() {
+		a.lock.Lock()
+		defer a.lock.Unlock()
 
-			} else {
-				err := a.unlockLockRequest(op.Data)
-				if err != nil {
-					logger.Std.Warnf("applying unlocking event: %s", err.Error())
-					return
-				}
+		if evt.IsLocking {
+			err := a.lockLockRequest(evt.Data)
+			if err != nil {
+				// TODO 发生这种错误需要重新加载全量状态，下同
+				logger.Std.Warnf("applying locking event: %s", err.Error())
+				return
 			}
 
-			// 处理了多少事件，Index就往后移动多少个
-			a.localLockReqIndex++
+		} else {
+			err := a.unlockLockRequest(evt.Data)
+			if err != nil {
+				logger.Std.Warnf("applying unlocking event: %s", err.Error())
+				return
+			}
 		}
 
-		// 检查是否有等待同步进度的需求
-		a.wakeUpIndexWaiter()
-	})
+		a.localLockReqIndex++
+	}()
+
+	// 检查是否有等待同步进度的需求
+	a.wakeUpIndexWaiter()
 }
 
 func (svc *ProvidersActor) lockLockRequest(reqData LockRequestData) error {
@@ -135,83 +135,74 @@ func (svc *ProvidersActor) unlockLockRequest(reqData LockRequestData) error {
 // TestLockRequestAndMakeData 判断锁能否锁成功，并生成锁数据的字符串表示。注：不会生成请求ID。
 // 在检查单个锁是否能上锁时，不会考虑同一个锁请求中的其他的锁影响。简单来说，就是同一个请求中的锁可以互相冲突。
 func (a *ProvidersActor) TestLockRequestAndMakeData(req LockRequest) (LockRequestData, error) {
-	return actor.WaitValue(context.TODO(), a.commandChan, func() (LockRequestData, error) {
-		reqData := LockRequestData{}
+	a.lock.Lock()
+	defer a.lock.Unlock()
 
-		for _, lock := range req.Locks {
-			n, ok := a.provdersTrie.WalkEnd(lock.Path)
-			if !ok || n.Value == nil {
-				return LockRequestData{}, fmt.Errorf("lock provider not found for path %v", lock.Path)
-			}
+	reqData := LockRequestData{}
 
-			err := n.Value.CanLock(lock)
-			if err != nil {
-				return LockRequestData{}, err
-			}
-
-			targetStr, err := n.Value.GetTargetString(lock.Target)
-			if err != nil {
-				return LockRequestData{}, fmt.Errorf("get lock target string failed, err: %w", err)
-			}
-
-			reqData.Locks = append(reqData.Locks, lockData{
-				Path:   lock.Path,
-				Name:   lock.Name,
-				Target: targetStr,
-			})
+	for _, lock := range req.Locks {
+		n, ok := a.provdersTrie.WalkEnd(lock.Path)
+		if !ok || n.Value == nil {
+			return LockRequestData{}, fmt.Errorf("lock provider not found for path %v", lock.Path)
 		}
 
-		return reqData, nil
-	})
+		err := n.Value.CanLock(lock)
+		if err != nil {
+			return LockRequestData{}, err
+		}
+
+		targetStr, err := n.Value.GetTargetString(lock.Target)
+		if err != nil {
+			return LockRequestData{}, fmt.Errorf("get lock target string failed, err: %w", err)
+		}
+
+		reqData.Locks = append(reqData.Locks, lockData{
+			Path:   lock.Path,
+			Name:   lock.Name,
+			Target: targetStr,
+		})
+	}
+
+	return reqData, nil
 }
 
-// ResetState 重置内部状态
 func (a *ProvidersActor) ResetState(index int64, lockRequestData []LockRequestData) error {
-	return actor.Wait(context.TODO(), a.commandChan, func() error {
-		for _, p := range a.allProviders {
-			p.Clear()
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	var err error
+
+	for _, p := range a.allProviders {
+		p.Clear()
+	}
+
+	for _, reqData := range lockRequestData {
+		err = a.lockLockRequest(reqData)
+		if err != nil {
+			err = fmt.Errorf("applying lock request data: %w", err)
+			break
 		}
+	}
 
-		for _, reqData := range lockRequestData {
-			err := a.lockLockRequest(reqData)
-			if err != nil {
-				return fmt.Errorf("lock by lock request data failed, err: %w", err)
-			}
-		}
+	a.localLockReqIndex = index
 
-		a.localLockReqIndex = index
+	// 内部状态已被破坏，停止所有监听器
+	for _, w := range a.indexWaiters {
+		w.Callback.SetError(ErrWaitIndexUpdateTimeout)
+	}
+	a.indexWaiters = nil
 
-		// 检查是否有等待同步进度的需求
-		a.wakeUpIndexWaiter()
-
-		return nil
-	})
+	return err
 }
 
 func (a *ProvidersActor) wakeUpIndexWaiter() {
 	var resetWaiters []indexWaiter
 	for _, waiter := range a.indexWaiters {
 		if waiter.Index <= a.localLockReqIndex {
-			waiter.Future.SetVoid()
+			waiter.Callback.SetVoid()
 		} else {
 			resetWaiters = append(resetWaiters, waiter)
 		}
 	}
 	a.indexWaiters = resetWaiters
-}
-
-func (a *ProvidersActor) Serve() error {
-	cmdChan := a.commandChan.BeginChanReceive()
-	defer a.commandChan.CloseChanReceive()
-
-	for {
-		select {
-		case cmd, ok := <-cmdChan:
-			if !ok {
-				return fmt.Errorf("command channel closed")
-			}
-
-			cmd()
-		}
-	}
 }

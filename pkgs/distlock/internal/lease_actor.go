@@ -35,14 +35,14 @@ func (a *LeaseActor) Init(releaseActor *ReleaseActor) {
 	a.releaseActor = releaseActor
 }
 
-func (a *LeaseActor) StartChecking() error {
+func (a *LeaseActor) Start() error {
 	return actor.Wait(context.TODO(), a.commandChan, func() error {
 		a.ticker = time.NewTicker(time.Second)
 		return nil
 	})
 }
 
-func (a *LeaseActor) StopChecking() error {
+func (a *LeaseActor) Stop() error {
 	return actor.Wait(context.TODO(), a.commandChan, func() error {
 		if a.ticker != nil {
 			a.ticker.Stop()
@@ -87,6 +87,13 @@ func (a *LeaseActor) Renew(reqID string) error {
 func (a *LeaseActor) Remove(reqID string) error {
 	return actor.Wait(context.TODO(), a.commandChan, func() error {
 		delete(a.leases, reqID)
+		return nil
+	})
+}
+
+func (a *LeaseActor) ResetState() {
+	actor.Wait(context.Background(), a.commandChan, func() error {
+		a.leases = make(map[string]*lockRequestLease)
 		return nil
 	})
 }

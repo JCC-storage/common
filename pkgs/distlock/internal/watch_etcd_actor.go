@@ -3,9 +3,9 @@ package internal
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"gitlink.org.cn/cloudream/common/pkgs/actor"
-	mylo "gitlink.org.cn/cloudream/common/utils/lo"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -15,16 +15,23 @@ type LockRequestEvent struct {
 	Data      LockRequestData
 }
 
-type LockRequestEventWatcher struct {
-	OnEvent func(events []LockRequestEvent)
+type ServiceEvent struct {
+	IsNew bool
+	Info  ServiceInfo
 }
 
-type WatchEtcdActor struct {
-	etcdCli         *clientv3.Client
-	watchChan       clientv3.WatchChan
-	lockReqWatchers []*LockRequestEventWatcher
+type OnLockRequestEventFn func(event LockRequestEvent)
 
-	commandChan *actor.CommandChannel
+type OnServiceEventFn func(event ServiceEvent)
+
+type WatchEtcdActor struct {
+	etcdCli *clientv3.Client
+
+	watchChan            clientv3.WatchChan
+	watchChanCancel      func()
+	onLockRequestEventFn OnLockRequestEventFn
+	onServiceEventFn     OnServiceEventFn
+	commandChan          *actor.CommandChannel
 }
 
 func NewWatchEtcdActor(etcdCli *clientv3.Client) *WatchEtcdActor {
@@ -34,33 +41,32 @@ func NewWatchEtcdActor(etcdCli *clientv3.Client) *WatchEtcdActor {
 	}
 }
 
-func (a *WatchEtcdActor) Init() {
+func (a *WatchEtcdActor) Init(onLockRequestEvent OnLockRequestEventFn, onServiceDown OnServiceEventFn) {
+	a.onLockRequestEventFn = onLockRequestEvent
+	a.onServiceEventFn = onServiceDown
 }
 
-func (a *WatchEtcdActor) StartWatching(revision int64) error {
-	return actor.Wait(context.TODO(), a.commandChan, func() error {
-		a.watchChan = a.etcdCli.Watch(context.Background(), EtcdLockRequestData, clientv3.WithPrefix(), clientv3.WithPrevKV(), clientv3.WithRev(revision))
+func (a *WatchEtcdActor) Start(revision int64) {
+	actor.Wait(context.Background(), a.commandChan, func() error {
+		if a.watchChanCancel != nil {
+			a.watchChanCancel()
+			a.watchChanCancel = nil
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		a.watchChan = a.etcdCli.Watch(ctx, EtcdWatchPrefix, clientv3.WithPrefix(), clientv3.WithPrevKV(), clientv3.WithRev(revision))
+		a.watchChanCancel = cancel
 		return nil
 	})
 }
 
-func (a *WatchEtcdActor) StopWatching() error {
-	return actor.Wait(context.TODO(), a.commandChan, func() error {
+func (a *WatchEtcdActor) Stop() {
+	actor.Wait(context.Background(), a.commandChan, func() error {
+		if a.watchChanCancel != nil {
+			a.watchChanCancel()
+			a.watchChanCancel = nil
+		}
 		a.watchChan = nil
-		return nil
-	})
-}
-
-func (a *WatchEtcdActor) AddEventWatcher(watcher *LockRequestEventWatcher) error {
-	return actor.Wait(context.TODO(), a.commandChan, func() error {
-		a.lockReqWatchers = append(a.lockReqWatchers, watcher)
-		return nil
-	})
-}
-
-func (a *WatchEtcdActor) RemoveEventWatcher(watcher *LockRequestEventWatcher) error {
-	return actor.Wait(context.TODO(), a.commandChan, func() error {
-		a.lockReqWatchers = mylo.Remove(a.lockReqWatchers, watcher)
 		return nil
 	})
 }
@@ -85,14 +91,10 @@ func (a *WatchEtcdActor) Serve() error {
 					return fmt.Errorf("watch etcd channel closed")
 				}
 
-				events, err := a.parseEvents(msg)
+				err := a.dispatchEtcdEvent(msg)
 				if err != nil {
 					// TODO 更好的错误处理
-					return fmt.Errorf("parse etcd lock request data failed, err: %w", err)
-				}
-
-				for _, w := range a.lockReqWatchers {
-					w.OnEvent(events)
+					return err
 				}
 			}
 
@@ -109,41 +111,79 @@ func (a *WatchEtcdActor) Serve() error {
 	}
 }
 
-func (a *WatchEtcdActor) parseEvents(watchResp clientv3.WatchResponse) ([]LockRequestEvent, error) {
-	var events []LockRequestEvent
-
+func (a *WatchEtcdActor) dispatchEtcdEvent(watchResp clientv3.WatchResponse) error {
 	for _, e := range watchResp.Events {
+		key := string(e.Kv.Key)
 
-		shouldParseData := false
-		isLocking := true
-		var valueData []byte
+		if strings.HasPrefix(key, EtcdLockRequestDataPrefix) {
+			if err := a.applyLockRequestEvent(e); err != nil {
+				return fmt.Errorf("parsing lock request event: %w", err)
+			}
 
-		// 只监听新建和删除的事件，因为在设计上约定只有这两种事件才会影响Index
-		if e.Type == clientv3.EventTypeDelete {
-			shouldParseData = true
-			isLocking = false
-			valueData = e.PrevKv.Value
-		} else if e.IsCreate() {
-			shouldParseData = true
-			isLocking = true
-			valueData = e.Kv.Value
+		} else if strings.HasPrefix(key, EtcdServiceInfoPrefix) {
+			if err := a.applyServiceEvent(e); err != nil {
+				return fmt.Errorf("parsing service event: %w", err)
+			}
 		}
-
-		if !shouldParseData {
-			continue
-		}
-
-		var reqData LockRequestData
-		err := serder.JSONToObject(valueData, &reqData)
-		if err != nil {
-			return nil, fmt.Errorf("parse lock request data failed, err: %w", err)
-		}
-
-		events = append(events, LockRequestEvent{
-			IsLocking: isLocking,
-			Data:      reqData,
-		})
 	}
 
-	return events, nil
+	return nil
+}
+
+func (a *WatchEtcdActor) applyLockRequestEvent(evt *clientv3.Event) error {
+	isLocking := true
+	var valueData []byte
+
+	// 只监听新建和删除的事件，因为在设计上约定只有这两种事件才会影响Index
+	if evt.Type == clientv3.EventTypeDelete {
+		isLocking = false
+		valueData = evt.PrevKv.Value
+	} else if evt.IsCreate() {
+		isLocking = true
+		valueData = evt.Kv.Value
+	} else {
+		return nil
+	}
+
+	var reqData LockRequestData
+	err := serder.JSONToObject(valueData, &reqData)
+	if err != nil {
+		return fmt.Errorf("parse lock request data failed, err: %w", err)
+	}
+
+	a.onLockRequestEventFn(LockRequestEvent{
+		IsLocking: isLocking,
+		Data:      reqData,
+	})
+
+	return nil
+}
+
+func (a *WatchEtcdActor) applyServiceEvent(evt *clientv3.Event) error {
+	isNew := true
+	var valueData []byte
+
+	// 只监听新建和删除的事件，因为在设计上约定只有这两种事件才会影响Index
+	if evt.Type == clientv3.EventTypeDelete {
+		isNew = false
+		valueData = evt.PrevKv.Value
+	} else if evt.IsCreate() {
+		isNew = true
+		valueData = evt.Kv.Value
+	} else {
+		return nil
+	}
+
+	var svcInfo ServiceInfo
+	err := serder.JSONToObject(valueData, &svcInfo)
+	if err != nil {
+		return fmt.Errorf("parsing service info: %w", err)
+	}
+
+	a.onServiceEventFn(ServiceEvent{
+		IsNew: isNew,
+		Info:  svcInfo,
+	})
+
+	return nil
 }

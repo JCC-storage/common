@@ -1,9 +1,13 @@
 package internal
 
+import "strings"
+
 const (
-	EtcdLockRequestData  = "/distlock/lockRequest/data"
-	EtcdLockRequestIndex = "/distlock/lockRequest/index"
-	EtcdLockRequestLock  = "/distlock/lockRequest/lock"
+	EtcdLockRequestDataPrefix = "/distlock/lockRequest/data"
+	EtcdLockRequestIndex      = "/distlock/lockRequest/index"
+	EtcdLockRequestLock       = "/distlock/lockRequest/lock"
+	EtcdServiceInfoPrefix     = "/distlock/services"
+	EtcdWatchPrefix           = "/distlock"
 )
 
 type Lock struct {
@@ -13,7 +17,8 @@ type Lock struct {
 }
 
 type LockRequest struct {
-	Locks []Lock
+	Reason string
+	Locks  []Lock
 }
 
 func (b *LockRequest) Add(lock Lock) {
@@ -47,6 +52,25 @@ type lockData struct {
 }
 
 type LockRequestData struct {
-	ID    string     `json:"id"`
-	Locks []lockData `json:"locks"`
+	ID        string     `json:"id"`
+	SerivceID string     `json:"serviceID"`
+	Reason    string     `json:"reason"`
+	Timestamp int64      `json:"timestamp"`
+	Locks     []lockData `json:"locks"`
+}
+
+func MakeEtcdLockRequestKey(reqID string) string {
+	return EtcdLockRequestDataPrefix + "/" + reqID
+}
+
+func GetLockRequestID(key string) string {
+	return strings.TrimPrefix(key, EtcdLockRequestDataPrefix+"/")
+}
+
+func MakeServiceInfoKey(svcID string) string {
+	return EtcdServiceInfoPrefix + "/" + svcID
+}
+
+type ServiceInfo struct {
+	ID string `json:"id"`
 }

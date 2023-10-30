@@ -24,7 +24,7 @@ type ReleaseActor struct {
 
 	releasingLockRequestIDs map[string]bool
 	timer                   *time.Timer
-	timerSetuped            bool
+	timerSetup              bool
 	lock                    sync.Mutex
 }
 
@@ -66,6 +66,27 @@ func (a *ReleaseActor) DelayRelease(reqIDs []string) {
 	a.setupTimer()
 }
 
+func (a *ReleaseActor) ResetState(reqIDs []string) {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	a.releasingLockRequestIDs = make(map[string]bool)
+	for _, id := range reqIDs {
+		a.releasingLockRequestIDs[id] = true
+	}
+
+	a.setupTimer()
+}
+
+func (a *ReleaseActor) OnLockRequestEvent(event LockRequestEvent) {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	if !event.IsLocking {
+		delete(a.releasingLockRequestIDs, event.Data.ID)
+	}
+}
+
 func (a *ReleaseActor) doReleasing() error {
 	ctx := context.TODO()
 
@@ -87,7 +108,7 @@ func (a *ReleaseActor) doReleasing() error {
 
 	// TODO 可以考虑优化成一次性删除多个锁
 	for id := range a.releasingLockRequestIDs {
-		lockReqKey := makeEtcdLockRequestKey(id)
+		lockReqKey := MakeEtcdLockRequestKey(id)
 
 		txResp, err := a.etcdCli.Txn(ctx).
 			If(clientv3util.KeyExists(lockReqKey)).
@@ -110,10 +131,10 @@ func (a *ReleaseActor) setupTimer() {
 		return
 	}
 
-	if a.timerSetuped {
+	if a.timerSetup {
 		return
 	}
-	a.timerSetuped = true
+	a.timerSetup = true
 
 	delay := int64(0)
 	if a.cfg.RandomReleasingDelayMs == 0 {
@@ -130,7 +151,11 @@ func (a *ReleaseActor) setupTimer() {
 
 	go func() {
 		<-a.timer.C
-		a.timerSetuped = false
+
+		a.lock.Lock()
+		defer a.lock.Unlock()
+
+		a.timerSetup = false
 
 		// TODO 处理错误
 		err := a.doReleasing()

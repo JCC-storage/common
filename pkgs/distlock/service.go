@@ -47,13 +47,12 @@ type Service struct {
 	cfg     *internal.Config
 	etcdCli *clientv3.Client
 
-	acquireActor   *internal.AcquireActor
-	releaseActor   *internal.ReleaseActor
-	providersActor *internal.ProvidersActor
-	watchEtcdActor *internal.WatchEtcdActor
-	leaseActor     *internal.LeaseActor
-
-	lockReqEventWatcher internal.LockRequestEventWatcher
+	acquireActor     *internal.AcquireActor
+	releaseActor     *internal.ReleaseActor
+	providersActor   *internal.ProvidersActor
+	watchEtcdActor   *internal.WatchEtcdActor
+	leaseActor       *internal.LeaseActor
+	serviceInfoActor *internal.ServiceInfoActor
 }
 
 func NewService(cfg *internal.Config, initProvs []PathProvider) (*Service, error) {
@@ -72,24 +71,36 @@ func NewService(cfg *internal.Config, initProvs []PathProvider) (*Service, error
 	providersActor := internal.NewProvidersActor()
 	watchEtcdActor := internal.NewWatchEtcdActor(etcdCli)
 	leaseActor := internal.NewLeaseActor()
+	serviceInfoActor := internal.NewServiceInfoActor(cfg, etcdCli)
 
 	acquireActor.Init(providersActor)
-	providersActor.Init()
-	watchEtcdActor.Init()
 	leaseActor.Init(releaseActor)
+	providersActor.Init()
+	watchEtcdActor.Init(
+		func(event internal.LockRequestEvent) {
+			providersActor.OnLockRequestEvent(event)
+			acquireActor.TryAcquireNow()
+			releaseActor.OnLockRequestEvent(event)
+			serviceInfoActor.OnLockRequestEvent(event)
+		},
+		func(event internal.ServiceEvent) {
+			serviceInfoActor.OnServiceEvent(event)
+		},
+	)
 
 	for _, prov := range initProvs {
 		providersActor.AddProvider(prov.Provider, prov.Path...)
 	}
 
 	return &Service{
-		cfg:            cfg,
-		etcdCli:        etcdCli,
-		acquireActor:   acquireActor,
-		releaseActor:   releaseActor,
-		providersActor: providersActor,
-		watchEtcdActor: watchEtcdActor,
-		leaseActor:     leaseActor,
+		cfg:              cfg,
+		etcdCli:          etcdCli,
+		acquireActor:     acquireActor,
+		releaseActor:     releaseActor,
+		providersActor:   providersActor,
+		watchEtcdActor:   watchEtcdActor,
+		leaseActor:       leaseActor,
+		serviceInfoActor: serviceInfoActor,
 	}, nil
 }
 
@@ -149,14 +160,6 @@ func (svc *Service) Serve() error {
 
 	go func() {
 		// TODO 处理错误
-		err := svc.providersActor.Serve()
-		if err != nil {
-			logger.Std.Warnf("serving providers actor failed, err: %s", err.Error())
-		}
-	}()
-
-	go func() {
-		// TODO 处理错误
 		err := svc.watchEtcdActor.Serve()
 		if err != nil {
 			logger.Std.Warnf("serving watch etcd actor actor failed, err: %s", err.Error())
@@ -171,32 +174,11 @@ func (svc *Service) Serve() error {
 		}
 	}()
 
-	revision, err := svc.loadState()
+	// TODO context
+	err := svc.resetState(context.Background())
 	if err != nil {
 		// TODO 关闭其他的Actor，或者更好的错误处理方式
 		return fmt.Errorf("init data failed, err: %w", err)
-	}
-
-	svc.lockReqEventWatcher.OnEvent = func(events []internal.LockRequestEvent) {
-		svc.acquireActor.TryAcquireNow()
-		svc.providersActor.ApplyLockRequestEvents(events)
-	}
-	err = svc.watchEtcdActor.AddEventWatcher(&svc.lockReqEventWatcher)
-	if err != nil {
-		// TODO 关闭其他的Actor，或者更好的错误处理方式
-		return fmt.Errorf("add lock request event watcher failed, err: %w", err)
-	}
-
-	err = svc.watchEtcdActor.StartWatching(revision)
-	if err != nil {
-		// TODO 关闭其他的Actor，或者更好的错误处理方式
-		return fmt.Errorf("start watching etcd failed, err: %w", err)
-	}
-
-	err = svc.leaseActor.StartChecking()
-	if err != nil {
-		// TODO 关闭其他的Actor，或者更好的错误处理方式
-		return fmt.Errorf("start checking lease failed, err: %w", err)
 	}
 
 	// TODO 防止退出的临时解决办法
@@ -206,51 +188,81 @@ func (svc *Service) Serve() error {
 	return nil
 }
 
-func (svc *Service) loadState() (int64, error) {
-	// 使用事务一次性获取index和锁数据，就不需要加全局锁了
-	txResp, err := svc.etcdCli.Txn(context.Background()).
+// ResetState 重置内部状态。注：只要调用到了此函数，无论在哪一步出的错，
+// 都要将内部状态视为已被破坏，直到成功调用了此函数才能继续后面的步骤
+func (svc *Service) resetState(ctx context.Context) error {
+	// 必须使用事务一次性获取所有数据
+	txResp, err := svc.etcdCli.Txn(ctx).
 		Then(
 			clientv3.OpGet(internal.EtcdLockRequestIndex),
-			clientv3.OpGet(internal.EtcdLockRequestData, clientv3.WithPrefix()),
+			clientv3.OpGet(internal.EtcdLockRequestDataPrefix, clientv3.WithPrefix()),
+			clientv3.OpGet(internal.EtcdServiceInfoPrefix, clientv3.WithPrefix()),
 		).
 		Commit()
 	if err != nil {
-		return 0, fmt.Errorf("get etcd data failed, err: %w", err)
+		return fmt.Errorf("getting etcd data: %w", err)
 	}
 
-	indexKvs := txResp.Responses[0].GetResponseRange().Kvs
-	lockKvs := txResp.Responses[1].GetResponseRange().Kvs
-
-	var index int64
-	var reqData []internal.LockRequestData
-
 	// 解析Index
+	var index int64 = 0
+	indexKvs := txResp.Responses[0].GetResponseRange().Kvs
 	if len(indexKvs) > 0 {
 		val, err := strconv.ParseInt(string(indexKvs[0].Value), 0, 64)
 		if err != nil {
-			return 0, fmt.Errorf("parse lock request index failed, err: %w", err)
+			return fmt.Errorf("parsing lock request index: %w", err)
 		}
 		index = val
-
-	} else {
-		index = 0
 	}
 
 	// 解析锁请求数据
+	var reqData []internal.LockRequestData
+	lockKvs := txResp.Responses[1].GetResponseRange().Kvs
 	for _, kv := range lockKvs {
 		var req internal.LockRequestData
 		err := serder.JSONToObject(kv.Value, &req)
 		if err != nil {
-			return 0, fmt.Errorf("parse lock request data failed, err: %w", err)
+			return fmt.Errorf("parsing lock request data: %w", err)
 		}
 
 		reqData = append(reqData, req)
 	}
 
-	err = svc.providersActor.ResetState(index, reqData)
-	if err != nil {
-		return 0, fmt.Errorf("reset lock providers state failed, err: %w", err)
+	// 解析服务信息数据
+	var svcInfo []internal.ServiceInfo
+	svcInfoKvs := txResp.Responses[2].GetResponseRange().Kvs
+	for _, kv := range svcInfoKvs {
+		var info internal.ServiceInfo
+		err := serder.JSONToObject(kv.Value, &info)
+		if err != nil {
+			return fmt.Errorf("parsing service info data: %w", err)
+		}
+
+		svcInfo = append(svcInfo, info)
 	}
 
-	return txResp.Header.Revision, nil
+	// 先停止监听等定时事件
+	svc.watchEtcdActor.Stop()
+	svc.leaseActor.Stop()
+
+	// 然后将新获取到的状态装填到Actor中。注：执行顺序需要考虑Actor会被谁调用，不会被调用的优先Reset。
+	releasingIDs, err := svc.serviceInfoActor.ResetState(ctx, svcInfo, reqData)
+	if err != nil {
+		return fmt.Errorf("reseting service info actor: %w", err)
+	}
+
+	svc.acquireActor.ResetState(svc.serviceInfoActor.GetSelfInfo().ID)
+
+	svc.leaseActor.ResetState()
+
+	err = svc.providersActor.ResetState(index, reqData)
+	if err != nil {
+		return fmt.Errorf("reseting providers actor: %w", err)
+	}
+
+	svc.releaseActor.ResetState(releasingIDs)
+
+	// 重置完了之后再启动监听
+	svc.watchEtcdActor.Start(txResp.Header.Revision)
+	svc.leaseActor.Start()
+	return nil
 }
