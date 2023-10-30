@@ -24,6 +24,8 @@ type OnLockRequestEventFn func(event LockRequestEvent)
 
 type OnServiceEventFn func(event ServiceEvent)
 
+type OnWatchFailedFn func(err error)
+
 type WatchEtcdActor struct {
 	etcdCli *clientv3.Client
 
@@ -31,6 +33,7 @@ type WatchEtcdActor struct {
 	watchChanCancel      func()
 	onLockRequestEventFn OnLockRequestEventFn
 	onServiceEventFn     OnServiceEventFn
+	onWatchFailedFn      OnWatchFailedFn
 	commandChan          *actor.CommandChannel
 }
 
@@ -41,9 +44,10 @@ func NewWatchEtcdActor(etcdCli *clientv3.Client) *WatchEtcdActor {
 	}
 }
 
-func (a *WatchEtcdActor) Init(onLockRequestEvent OnLockRequestEventFn, onServiceDown OnServiceEventFn) {
+func (a *WatchEtcdActor) Init(onLockRequestEvent OnLockRequestEventFn, onServiceDown OnServiceEventFn, onWatchFailed OnWatchFailedFn) {
 	a.onLockRequestEventFn = onLockRequestEvent
 	a.onServiceEventFn = onServiceDown
+	a.onWatchFailedFn = onWatchFailed
 }
 
 func (a *WatchEtcdActor) Start(revision int64) {
@@ -71,40 +75,37 @@ func (a *WatchEtcdActor) Stop() {
 	})
 }
 
-func (a *WatchEtcdActor) Serve() error {
+func (a *WatchEtcdActor) Serve() {
 	cmdChan := a.commandChan.BeginChanReceive()
 	defer a.commandChan.CloseChanReceive()
 
 	for {
 		if a.watchChan != nil {
 			select {
-			case cmd, ok := <-cmdChan:
-				if !ok {
-					return fmt.Errorf("command channel closed")
-				}
-
+			case cmd := <-cmdChan:
 				cmd()
 
 			case msg := <-a.watchChan:
+				// 只要发生错误，就停止监听，通知外部处理
 				if msg.Canceled {
-					// TODO 更好的错误处理
-					return fmt.Errorf("watch etcd channel closed")
+					a.onWatchFailedFn(fmt.Errorf("watch etcd channel closed"))
+					a.watchChanCancel()
+					a.watchChan = nil
+					continue
 				}
 
 				err := a.dispatchEtcdEvent(msg)
 				if err != nil {
-					// TODO 更好的错误处理
-					return err
+					a.onWatchFailedFn(err)
+					a.watchChanCancel()
+					a.watchChan = nil
+					continue
 				}
 			}
 
 		} else {
 			select {
-			case cmd, ok := <-cmdChan:
-				if !ok {
-					return fmt.Errorf("command channel closed")
-				}
-
+			case cmd := <-cmdChan:
 				cmd()
 			}
 		}

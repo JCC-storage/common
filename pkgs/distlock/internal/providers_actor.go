@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"gitlink.org.cn/cloudream/common/pkgs/future"
-	"gitlink.org.cn/cloudream/common/pkgs/logger"
 	"gitlink.org.cn/cloudream/common/pkgs/trie"
 )
 
@@ -39,7 +38,7 @@ func (a *ProvidersActor) AddProvider(prov LockProvider, path ...any) {
 func (a *ProvidersActor) Init() {
 }
 
-func (a *ProvidersActor) WaitIndexUpdated(ctx context.Context, index int64) error {
+func (a *ProvidersActor) WaitLocalIndexTo(ctx context.Context, index int64) error {
 	fut := future.NewSetVoid()
 
 	a.lock.Lock()
@@ -56,32 +55,34 @@ func (a *ProvidersActor) WaitIndexUpdated(ctx context.Context, index int64) erro
 	return fut.Wait(ctx)
 }
 
-func (a *ProvidersActor) OnLockRequestEvent(evt LockRequestEvent) {
-	func() {
+func (a *ProvidersActor) OnLockRequestEvent(evt LockRequestEvent) error {
+	err := func() error {
 		a.lock.Lock()
 		defer a.lock.Unlock()
 
 		if evt.IsLocking {
 			err := a.lockLockRequest(evt.Data)
 			if err != nil {
-				// TODO 发生这种错误需要重新加载全量状态，下同
-				logger.Std.Warnf("applying locking event: %s", err.Error())
-				return
+				return fmt.Errorf("applying locking event: %w", err)
 			}
 
 		} else {
 			err := a.unlockLockRequest(evt.Data)
 			if err != nil {
-				logger.Std.Warnf("applying unlocking event: %s", err.Error())
-				return
+				return fmt.Errorf("applying unlocking event: %w", err)
 			}
 		}
 
 		a.localLockReqIndex++
+		return nil
 	}()
+	if err != nil {
+		return err
+	}
 
 	// 检查是否有等待同步进度的需求
 	a.wakeUpIndexWaiter()
+	return nil
 }
 
 func (svc *ProvidersActor) lockLockRequest(reqData LockRequestData) error {

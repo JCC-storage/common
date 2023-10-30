@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -10,6 +11,8 @@ import (
 	"gitlink.org.cn/cloudream/common/utils/serder"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
+
+var ErrSelfServiceDown = errors.New("self service is down, need to restart")
 
 type serviceStatus struct {
 	Info           ServiceInfo
@@ -27,10 +30,11 @@ type ServiceInfoActor struct {
 	services map[string]*serviceStatus
 }
 
-func NewServiceInfoActor(cfg *Config, etcdCli *clientv3.Client) *ServiceInfoActor {
+func NewServiceInfoActor(cfg *Config, etcdCli *clientv3.Client, baseSelfInfo ServiceInfo) *ServiceInfoActor {
 	return &ServiceInfoActor{
-		cfg:     cfg,
-		etcdCli: etcdCli,
+		cfg:      cfg,
+		etcdCli:  etcdCli,
+		selfInfo: baseSelfInfo,
 	}
 }
 
@@ -91,7 +95,7 @@ func (a *ServiceInfoActor) ResetState(ctx context.Context, currentServices []Ser
 	return willReleaseIDs, nil
 }
 
-func (a *ServiceInfoActor) OnServiceEvent(evt ServiceEvent) {
+func (a *ServiceInfoActor) OnServiceEvent(evt ServiceEvent) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
@@ -104,15 +108,20 @@ func (a *ServiceInfoActor) OnServiceEvent(evt ServiceEvent) {
 	} else {
 		status, ok := a.services[evt.Info.ID]
 		if !ok {
-			return
+			return nil
 		}
 
 		a.releaseActor.DelayRelease(status.LockRequestIDs)
 
 		delete(a.services, evt.Info.ID)
 
-		// TODO 处理收到自己崩溃的消息
+		// 如果收到的被删除服务信息是自己的，那么自己要重启，重新获取全量数据
+		if evt.Info.ID == a.selfInfo.ID {
+			return ErrSelfServiceDown
+		}
 	}
+
+	return nil
 }
 
 func (a *ServiceInfoActor) OnLockRequestEvent(evt LockRequestEvent) {
@@ -121,8 +130,9 @@ func (a *ServiceInfoActor) OnLockRequestEvent(evt LockRequestEvent) {
 
 	status, ok := a.services[evt.Data.SerivceID]
 	if !ok {
-		// 加锁的是一个没有注册过的锁服务，大概率是因为这个锁服务之前网络发生了波动，
-		// 在波动期间它注册的信息过期，于是被当前的服务删除了。
+		// 加锁的是一个没有注册过的锁服务，可能是因为这个锁服务之前网络发生了波动，
+		// 在波动期间它注册的信息过期，于是被大家认为服务下线，清理掉了它管理的锁，
+		// 而在网络恢复回来之后，它还没有意识到自己被认为下线了，于是还在提交锁请求。
 		// 为了防止它加了这个锁之后又崩溃，导致的无限锁定，它加的锁我们都直接释放。
 		a.releaseActor.Release([]string{evt.Data.ID})
 		return

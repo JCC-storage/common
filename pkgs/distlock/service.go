@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"gitlink.org.cn/cloudream/common/pkgs/actor"
 	"gitlink.org.cn/cloudream/common/pkgs/distlock/internal"
 	"gitlink.org.cn/cloudream/common/pkgs/logger"
 	"gitlink.org.cn/cloudream/common/utils/serder"
@@ -47,6 +48,7 @@ type Service struct {
 	cfg     *internal.Config
 	etcdCli *clientv3.Client
 
+	cmdChan          *actor.CommandChannel
 	acquireActor     *internal.AcquireActor
 	releaseActor     *internal.ReleaseActor
 	providersActor   *internal.ProvidersActor
@@ -66,42 +68,55 @@ func NewService(cfg *internal.Config, initProvs []PathProvider) (*Service, error
 		return nil, fmt.Errorf("new etcd client failed, err: %w", err)
 	}
 
-	acquireActor := internal.NewAcquireActor(cfg, etcdCli)
-	releaseActor := internal.NewReleaseActor(cfg, etcdCli)
-	providersActor := internal.NewProvidersActor()
-	watchEtcdActor := internal.NewWatchEtcdActor(etcdCli)
-	leaseActor := internal.NewLeaseActor()
-	serviceInfoActor := internal.NewServiceInfoActor(cfg, etcdCli)
+	svc := &Service{
+		cfg:     cfg,
+		etcdCli: etcdCli,
+		cmdChan: actor.NewCommandChannel(),
+	}
 
-	acquireActor.Init(providersActor)
-	leaseActor.Init(releaseActor)
-	providersActor.Init()
-	watchEtcdActor.Init(
+	svc.acquireActor = internal.NewAcquireActor(cfg, etcdCli)
+	svc.releaseActor = internal.NewReleaseActor(cfg, etcdCli)
+	svc.providersActor = internal.NewProvidersActor()
+	svc.watchEtcdActor = internal.NewWatchEtcdActor(etcdCli)
+	svc.leaseActor = internal.NewLeaseActor()
+	svc.serviceInfoActor = internal.NewServiceInfoActor(cfg, etcdCli, internal.ServiceInfo{
+		Description: cfg.ServiceDescription,
+	})
+
+	svc.acquireActor.Init(svc.providersActor)
+	svc.leaseActor.Init(svc.releaseActor)
+	svc.providersActor.Init()
+	svc.watchEtcdActor.Init(
 		func(event internal.LockRequestEvent) {
-			providersActor.OnLockRequestEvent(event)
-			acquireActor.TryAcquireNow()
-			releaseActor.OnLockRequestEvent(event)
-			serviceInfoActor.OnLockRequestEvent(event)
+			err := svc.providersActor.OnLockRequestEvent(event)
+			if err != nil {
+				logger.Std.Warnf("%s, will reset service state", err.Error())
+				svc.cmdChan.Send(func() { svc.doResetState() })
+				return
+			}
+
+			svc.acquireActor.TryAcquireNow()
+			svc.releaseActor.OnLockRequestEvent(event)
+			svc.serviceInfoActor.OnLockRequestEvent(event)
 		},
 		func(event internal.ServiceEvent) {
-			serviceInfoActor.OnServiceEvent(event)
+			err := svc.serviceInfoActor.OnServiceEvent(event)
+			if err != nil {
+				logger.Std.Warnf("%s, will reset service state", err.Error())
+				svc.cmdChan.Send(func() { svc.doResetState() })
+			}
+		},
+		func(err error) {
+			logger.Std.Warnf("%s, will reset service state", err.Error())
+			svc.cmdChan.Send(func() { svc.doResetState() })
 		},
 	)
 
 	for _, prov := range initProvs {
-		providersActor.AddProvider(prov.Provider, prov.Path...)
+		svc.providersActor.AddProvider(prov.Provider, prov.Path...)
 	}
 
-	return &Service{
-		cfg:              cfg,
-		etcdCli:          etcdCli,
-		acquireActor:     acquireActor,
-		releaseActor:     releaseActor,
-		providersActor:   providersActor,
-		watchEtcdActor:   watchEtcdActor,
-		leaseActor:       leaseActor,
-		serviceInfoActor: serviceInfoActor,
-	}, nil
+	return svc, nil
 }
 
 // Acquire 请求一批锁。成功后返回锁请求ID
@@ -158,39 +173,48 @@ func (svc *Service) Serve() error {
 	// 1. client退出时直接中断进程，此时AcquireActor可能正在进行重试，于是导致Etcd锁没有解除就退出了进程。
 	// 虽然由于租约的存在不会导致系统长期卡死，但会影响client的使用
 
-	go func() {
-		// TODO 处理错误
-		err := svc.watchEtcdActor.Serve()
-		if err != nil {
-			logger.Std.Warnf("serving watch etcd actor actor failed, err: %s", err.Error())
-		}
-	}()
+	go svc.watchEtcdActor.Serve()
 
-	go func() {
-		// TODO 处理错误
-		err := svc.leaseActor.Serve()
-		if err != nil {
-			logger.Std.Warnf("serving lease actor failed, err: %s", err.Error())
-		}
-	}()
+	go svc.leaseActor.Serve()
 
-	// TODO context
-	err := svc.resetState(context.Background())
-	if err != nil {
-		// TODO 关闭其他的Actor，或者更好的错误处理方式
-		return fmt.Errorf("init data failed, err: %w", err)
+	svc.cmdChan.Send(func() { svc.doResetState() })
+
+	cmdChan := svc.cmdChan.BeginChanReceive()
+	defer svc.cmdChan.CloseChanReceive()
+
+	for {
+		select {
+		case cmd := <-cmdChan:
+			cmd()
+		}
 	}
-
-	// TODO 防止退出的临时解决办法
-	ch := make(chan any)
-	<-ch
 
 	return nil
 }
 
+func (svc *Service) doResetState() {
+	logger.Std.Infof("start reset state")
+	// TODO context
+	err := svc.resetState(context.Background())
+	if err != nil {
+		logger.Std.Warnf("reseting state: %s, will try again after 3 seconds", err.Error())
+		<-time.After(time.Second * 3)
+		svc.cmdChan.Send(func() { svc.doResetState() })
+		return
+	}
+	logger.Std.Infof("reset state success")
+}
+
 // ResetState 重置内部状态。注：只要调用到了此函数，无论在哪一步出的错，
-// 都要将内部状态视为已被破坏，直到成功调用了此函数才能继续后面的步骤
+// 都要将内部状态视为已被破坏，直到成功调用了此函数才能继续后面的步骤。
+// 如果调用失败，服务将进入维护模式，届时可以接受请求，但不会处理请求，直到调用成功为止。
 func (svc *Service) resetState(ctx context.Context) error {
+	// 让服务都进入维护模式
+	svc.watchEtcdActor.Stop()
+	svc.leaseActor.Stop()
+	svc.acquireActor.EnterMaintenance()
+	svc.releaseActor.EnterMaintenance()
+
 	// 必须使用事务一次性获取所有数据
 	txResp, err := svc.etcdCli.Txn(ctx).
 		Then(
@@ -240,29 +264,31 @@ func (svc *Service) resetState(ctx context.Context) error {
 		svcInfo = append(svcInfo, info)
 	}
 
-	// 先停止监听等定时事件
-	svc.watchEtcdActor.Stop()
-	svc.leaseActor.Stop()
-
-	// 然后将新获取到的状态装填到Actor中。注：执行顺序需要考虑Actor会被谁调用，不会被调用的优先Reset。
+	// 然后将新获取到的状态装填到Actor中
 	releasingIDs, err := svc.serviceInfoActor.ResetState(ctx, svcInfo, reqData)
 	if err != nil {
 		return fmt.Errorf("reseting service info actor: %w", err)
 	}
 
-	svc.acquireActor.ResetState(svc.serviceInfoActor.GetSelfInfo().ID)
-
-	svc.leaseActor.ResetState()
-
+	// 要在acquireActor之前，因为acquireActor会调用它的WaitLocalIndexTo
 	err = svc.providersActor.ResetState(index, reqData)
 	if err != nil {
 		return fmt.Errorf("reseting providers actor: %w", err)
 	}
 
-	svc.releaseActor.ResetState(releasingIDs)
+	svc.acquireActor.ResetState(svc.serviceInfoActor.GetSelfInfo().ID)
 
-	// 重置完了之后再启动监听
+	// ReleaseActor没有什么需要Reset的状态
+	svc.releaseActor.Release(releasingIDs)
+
+	// 重置完了之后再退出维护模式
 	svc.watchEtcdActor.Start(txResp.Header.Revision)
 	svc.leaseActor.Start()
+	svc.acquireActor.LeaveMaintenance()
+	svc.releaseActor.LeaveMaintenance()
+
+	svc.acquireActor.TryAcquireNow()
+	svc.releaseActor.TryReleaseNow()
+
 	return nil
 }

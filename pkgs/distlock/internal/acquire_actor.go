@@ -29,15 +29,17 @@ type AcquireActor struct {
 	etcdCli        *clientv3.Client
 	providersActor *ProvidersActor
 
-	serviceID  string
-	acquirings []*acquireInfo
-	lock       sync.Mutex
+	isMaintenance bool
+	serviceID     string
+	acquirings    []*acquireInfo
+	lock          sync.Mutex
 }
 
 func NewAcquireActor(cfg *Config, etcdCli *clientv3.Client) *AcquireActor {
 	return &AcquireActor{
-		cfg:     cfg,
-		etcdCli: etcdCli,
+		cfg:           cfg,
+		etcdCli:       etcdCli,
+		isMaintenance: true,
 	}
 }
 
@@ -57,6 +59,12 @@ func (a *AcquireActor) Acquire(ctx context.Context, req LockRequest) (string, er
 		defer a.lock.Unlock()
 
 		a.acquirings = append(a.acquirings, info)
+
+		// 如果处于维护模式，那么只接受请求，不实际去处理
+		if a.isMaintenance {
+			return
+		}
+
 		// TODO 处理错误
 		err := a.doAcquiring()
 		if err != nil {
@@ -93,6 +101,11 @@ func (a *AcquireActor) TryAcquireNow() {
 		a.lock.Lock()
 		defer a.lock.Unlock()
 
+		// 处于维护模式中时，即使是主动触发Acqurire也不予理会
+		if a.isMaintenance {
+			return
+		}
+
 		err := a.doAcquiring()
 		if err != nil {
 			logger.Std.Debugf("doing acquiring: %s", err.Error())
@@ -100,19 +113,27 @@ func (a *AcquireActor) TryAcquireNow() {
 	}()
 }
 
+// 进入维护模式。维护模式期间只接受请求，不处理请求。
+func (a *AcquireActor) EnterMaintenance() {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	a.isMaintenance = true
+}
+
+// 退出维护模式。退出之后建议调用一下TryAcquireNow。
+func (a *AcquireActor) LeaveMaintenance() {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	a.isMaintenance = false
+}
+
 func (a *AcquireActor) ResetState(serviceID string) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
 	a.serviceID = serviceID
-	for _, info := range a.acquirings {
-		if info.LastErr != nil {
-			info.Callback.SetError(info.LastErr)
-		} else {
-			info.Callback.SetError(ErrAcquiringTimeout)
-		}
-	}
-	a.acquirings = nil
 }
 
 func (a *AcquireActor) doAcquiring() error {
@@ -136,7 +157,7 @@ func (a *AcquireActor) doAcquiring() error {
 
 	// 等待本地状态同步到最新
 	// TODO 配置等待时间
-	err = a.providersActor.WaitIndexUpdated(ctx, index)
+	err = a.providersActor.WaitLocalIndexTo(ctx, index)
 	if err != nil {
 		return err
 	}

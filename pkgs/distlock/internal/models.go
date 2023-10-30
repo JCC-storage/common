@@ -72,5 +72,6 @@ func MakeServiceInfoKey(svcID string) string {
 }
 
 type ServiceInfo struct {
-	ID string `json:"id"`
+	ID          string `json:"id"`
+	Description string `json:"description"`
 }

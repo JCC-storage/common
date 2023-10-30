@@ -22,16 +22,18 @@ type ReleaseActor struct {
 	cfg     *Config
 	etcdCli *clientv3.Client
 
+	lock                    sync.Mutex
+	isMaintenance           bool
 	releasingLockRequestIDs map[string]bool
 	timer                   *time.Timer
 	timerSetup              bool
-	lock                    sync.Mutex
 }
 
 func NewReleaseActor(cfg *Config, etcdCli *clientv3.Client) *ReleaseActor {
 	return &ReleaseActor{
 		cfg:                     cfg,
 		etcdCli:                 etcdCli,
+		isMaintenance:           true,
 		releasingLockRequestIDs: make(map[string]bool),
 	}
 }
@@ -43,6 +45,10 @@ func (a *ReleaseActor) Release(reqIDs []string) {
 
 	for _, id := range reqIDs {
 		a.releasingLockRequestIDs[id] = true
+	}
+
+	if a.isMaintenance {
+		return
 	}
 
 	// TODO 处理错误
@@ -63,19 +69,46 @@ func (a *ReleaseActor) DelayRelease(reqIDs []string) {
 		a.releasingLockRequestIDs[id] = true
 	}
 
-	a.setupTimer()
-}
-
-func (a *ReleaseActor) ResetState(reqIDs []string) {
-	a.lock.Lock()
-	defer a.lock.Unlock()
-
-	a.releasingLockRequestIDs = make(map[string]bool)
-	for _, id := range reqIDs {
-		a.releasingLockRequestIDs[id] = true
+	if a.isMaintenance {
+		return
 	}
 
 	a.setupTimer()
+}
+
+// 重试一下内部的解锁请求。不会阻塞调用者
+func (a *ReleaseActor) TryReleaseNow() {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	// 如果处于维护模式，那么即使主动进行释放操作，也不予理会
+	if a.isMaintenance {
+		return
+	}
+
+	// TODO 处理错误
+	err := a.doReleasing()
+	if err != nil {
+		logger.Std.Debugf("doing releasing: %s", err.Error())
+	}
+
+	a.setupTimer()
+}
+
+// 进入维护模式。在维护模式期间只接受请求，不处理请求，包括延迟释放请求。
+func (a *ReleaseActor) EnterMaintenance() {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	a.isMaintenance = true
+}
+
+// 退出维护模式。退出之后建议调用一下TryReleaseNow。
+func (a *ReleaseActor) LeaveMaintenance() {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	a.isMaintenance = false
 }
 
 func (a *ReleaseActor) OnLockRequestEvent(event LockRequestEvent) {
@@ -156,6 +189,11 @@ func (a *ReleaseActor) setupTimer() {
 		defer a.lock.Unlock()
 
 		a.timerSetup = false
+
+		// 如果处于维护模式，那么即使是定时器要求的释放操作，也不予理会
+		if a.isMaintenance {
+			return
+		}
 
 		// TODO 处理错误
 		err := a.doReleasing()

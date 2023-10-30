@@ -91,26 +91,14 @@ func (a *LeaseActor) Remove(reqID string) error {
 	})
 }
 
-func (a *LeaseActor) ResetState() {
-	actor.Wait(context.Background(), a.commandChan, func() error {
-		a.leases = make(map[string]*lockRequestLease)
-		return nil
-	})
-}
-
-func (a *LeaseActor) Serve() error {
+func (a *LeaseActor) Serve() {
 	cmdChan := a.commandChan.BeginChanReceive()
 	defer a.commandChan.CloseChanReceive()
 
 	for {
 		if a.ticker != nil {
 			select {
-			case cmd, ok := <-cmdChan:
-				if !ok {
-					a.ticker.Stop()
-					return fmt.Errorf("command chan closed")
-				}
-
+			case cmd := <-cmdChan:
 				cmd()
 
 			case now := <-a.ticker.C:
@@ -127,11 +115,7 @@ func (a *LeaseActor) Serve() error {
 			}
 		} else {
 			select {
-			case cmd, ok := <-cmdChan:
-				if !ok {
-					return fmt.Errorf("command chan closed")
-				}
-
+			case cmd := <-cmdChan:
 				cmd()
 			}
 		}
