@@ -56,30 +56,23 @@ func (a *ProvidersActor) WaitLocalIndexTo(ctx context.Context, index int64) erro
 }
 
 func (a *ProvidersActor) OnLockRequestEvent(evt LockRequestEvent) error {
-	err := func() error {
-		a.lock.Lock()
-		defer a.lock.Unlock()
+	a.lock.Lock()
+	defer a.lock.Unlock()
 
-		if evt.IsLocking {
-			err := a.lockLockRequest(evt.Data)
-			if err != nil {
-				return fmt.Errorf("applying locking event: %w", err)
-			}
-
-		} else {
-			err := a.unlockLockRequest(evt.Data)
-			if err != nil {
-				return fmt.Errorf("applying unlocking event: %w", err)
-			}
+	if evt.IsLocking {
+		err := a.lockLockRequest(evt.Data)
+		if err != nil {
+			return fmt.Errorf("applying locking event: %w", err)
 		}
 
-		a.localLockReqIndex++
-		return nil
-	}()
-	if err != nil {
-		return err
+	} else {
+		err := a.unlockLockRequest(evt.Data)
+		if err != nil {
+			return fmt.Errorf("applying unlocking event: %w", err)
+		}
 	}
 
+	a.localLockReqIndex++
 	// 检查是否有等待同步进度的需求
 	a.wakeUpIndexWaiter()
 	return nil

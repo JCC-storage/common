@@ -111,6 +111,7 @@ func NewService(cfg *internal.Config, initProvs []PathProvider) (*Service, error
 			svc.cmdChan.Send(func() { svc.doResetState() })
 		},
 	)
+	svc.serviceInfoActor.Init(svc.releaseActor)
 
 	for _, prov := range initProvs {
 		svc.providersActor.AddProvider(prov.Provider, prov.Path...)
@@ -177,6 +178,10 @@ func (svc *Service) Serve() error {
 
 	go svc.leaseActor.Serve()
 
+	go svc.acquireActor.Serve()
+
+	go svc.releaseActor.Serve()
+
 	svc.cmdChan.Send(func() { svc.doResetState() })
 
 	cmdChan := svc.cmdChan.BeginChanReceive()
@@ -202,7 +207,8 @@ func (svc *Service) doResetState() {
 		svc.cmdChan.Send(func() { svc.doResetState() })
 		return
 	}
-	logger.Std.Infof("reset state success")
+	logger.Std.WithField("ID", svc.serviceInfoActor.GetSelfInfo().ID).
+		Infof("reset state success")
 }
 
 // ResetState 重置内部状态。注：只要调用到了此函数，无论在哪一步出的错，
@@ -279,7 +285,7 @@ func (svc *Service) resetState(ctx context.Context) error {
 	svc.acquireActor.ResetState(svc.serviceInfoActor.GetSelfInfo().ID)
 
 	// ReleaseActor没有什么需要Reset的状态
-	svc.releaseActor.Release(releasingIDs)
+	svc.releaseActor.DelayRelease(releasingIDs)
 
 	// 重置完了之后再退出维护模式
 	svc.watchEtcdActor.Start(txResp.Header.Revision)

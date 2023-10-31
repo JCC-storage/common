@@ -27,6 +27,7 @@ type ReleaseActor struct {
 	releasingLockRequestIDs map[string]bool
 	timer                   *time.Timer
 	timerSetup              bool
+	doReleasingChan         chan any
 }
 
 func NewReleaseActor(cfg *Config, etcdCli *clientv3.Client) *ReleaseActor {
@@ -35,6 +36,7 @@ func NewReleaseActor(cfg *Config, etcdCli *clientv3.Client) *ReleaseActor {
 		etcdCli:                 etcdCli,
 		isMaintenance:           true,
 		releasingLockRequestIDs: make(map[string]bool),
+		doReleasingChan:         make(chan any),
 	}
 }
 
@@ -51,13 +53,10 @@ func (a *ReleaseActor) Release(reqIDs []string) {
 		return
 	}
 
-	// TODO 处理错误
-	err := a.doReleasing()
-	if err != nil {
-		logger.Std.Debugf("doing releasing: %s", err.Error())
+	select {
+	case a.doReleasingChan <- nil:
+	default:
 	}
-
-	a.setupTimer()
 }
 
 // 延迟释放锁。一般用于清理崩溃的锁服务遗留下来的锁
@@ -86,13 +85,10 @@ func (a *ReleaseActor) TryReleaseNow() {
 		return
 	}
 
-	// TODO 处理错误
-	err := a.doReleasing()
-	if err != nil {
-		logger.Std.Debugf("doing releasing: %s", err.Error())
+	select {
+	case a.doReleasingChan <- nil:
+	default:
 	}
-
-	a.setupTimer()
 }
 
 // 进入维护模式。在维护模式期间只接受请求，不处理请求，包括延迟释放请求。
@@ -112,21 +108,41 @@ func (a *ReleaseActor) LeaveMaintenance() {
 }
 
 func (a *ReleaseActor) OnLockRequestEvent(event LockRequestEvent) {
+	if event.IsLocking {
+		return
+	}
+
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
-	if !event.IsLocking {
-		delete(a.releasingLockRequestIDs, event.Data.ID)
+	delete(a.releasingLockRequestIDs, event.Data.ID)
+}
+
+func (a *ReleaseActor) Serve() {
+	for {
+		select {
+		case <-a.doReleasingChan:
+			err := a.doReleasing()
+			if err != nil {
+				logger.Std.Debugf("doing releasing: %s", err.Error())
+			}
+		}
 	}
 }
 
 func (a *ReleaseActor) doReleasing() error {
-	ctx := context.TODO()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
 
+	// 先看一眼，如果没有需要释放的锁，就不用走后面的流程了
+	a.lock.Lock()
 	if len(a.releasingLockRequestIDs) == 0 {
+		a.lock.Unlock()
 		return nil
 	}
+	a.lock.Unlock()
 
+	// 在获取全局锁的时候不用锁Actor，只有获取成功了，才加锁
 	// TODO 根据不同的错误设置不同的错误类型，方便上层进行后续处理
 	unlock, err := acquireEtcdRequestDataLock(ctx, a.etcdCli, a.cfg.EtcdLockLeaseTimeSec)
 	if err != nil {
@@ -138,6 +154,10 @@ func (a *ReleaseActor) doReleasing() error {
 	if err != nil {
 		return err
 	}
+
+	a.lock.Lock()
+	defer a.lock.Unlock()
+	defer a.setupTimer()
 
 	// TODO 可以考虑优化成一次性删除多个锁
 	for id := range a.releasingLockRequestIDs {
@@ -195,12 +215,9 @@ func (a *ReleaseActor) setupTimer() {
 			return
 		}
 
-		// TODO 处理错误
-		err := a.doReleasing()
-		if err != nil {
-			logger.Std.Debugf("doing releasing: %s", err.Error())
+		select {
+		case a.doReleasingChan <- nil:
+		default:
 		}
-
-		a.setupTimer()
 	}()
 }

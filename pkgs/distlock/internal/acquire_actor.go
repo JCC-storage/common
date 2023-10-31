@@ -29,17 +29,19 @@ type AcquireActor struct {
 	etcdCli        *clientv3.Client
 	providersActor *ProvidersActor
 
-	isMaintenance bool
-	serviceID     string
-	acquirings    []*acquireInfo
-	lock          sync.Mutex
+	isMaintenance   bool
+	serviceID       string
+	acquirings      []*acquireInfo
+	lock            sync.Mutex
+	doAcquiringChan chan any
 }
 
 func NewAcquireActor(cfg *Config, etcdCli *clientv3.Client) *AcquireActor {
 	return &AcquireActor{
-		cfg:           cfg,
-		etcdCli:       etcdCli,
-		isMaintenance: true,
+		cfg:             cfg,
+		etcdCli:         etcdCli,
+		isMaintenance:   true,
+		doAcquiringChan: make(chan any),
 	}
 }
 
@@ -65,10 +67,9 @@ func (a *AcquireActor) Acquire(ctx context.Context, req LockRequest) (string, er
 			return
 		}
 
-		// TODO 处理错误
-		err := a.doAcquiring()
-		if err != nil {
-			logger.Std.Debugf("doing acquiring: %s", err.Error())
+		select {
+		case a.doAcquiringChan <- nil:
+		default:
 		}
 	}()
 
@@ -106,9 +107,9 @@ func (a *AcquireActor) TryAcquireNow() {
 			return
 		}
 
-		err := a.doAcquiring()
-		if err != nil {
-			logger.Std.Debugf("doing acquiring: %s", err.Error())
+		select {
+		case a.doAcquiringChan <- nil:
+		default:
 		}
 	}()
 }
@@ -136,13 +137,30 @@ func (a *AcquireActor) ResetState(serviceID string) {
 	a.serviceID = serviceID
 }
 
+func (a *AcquireActor) Serve() {
+	for {
+		select {
+		case <-a.doAcquiringChan:
+			err := a.doAcquiring()
+			if err != nil {
+				logger.Std.Debugf("doing acquiring: %s", err.Error())
+			}
+		}
+	}
+}
+
 func (a *AcquireActor) doAcquiring() error {
 	ctx := context.Background()
 
+	// 先看一眼，如果没有需要请求的锁，就不用走后面的流程了
+	a.lock.Lock()
 	if len(a.acquirings) == 0 {
+		a.lock.Unlock()
 		return nil
 	}
+	a.lock.Unlock()
 
+	// 在获取全局锁的时候不用锁Actor，只有获取成功了，才加锁
 	// TODO 根据不同的错误设置不同的错误类型，方便上层进行后续处理
 	unlock, err := acquireEtcdRequestDataLock(ctx, a.etcdCli, a.cfg.EtcdLockLeaseTimeSec)
 	if err != nil {
@@ -155,6 +173,8 @@ func (a *AcquireActor) doAcquiring() error {
 		return err
 	}
 
+	logger.Std.Infof("wait to: %d", index)
+
 	// 等待本地状态同步到最新
 	// TODO 配置等待时间
 	err = a.providersActor.WaitLocalIndexTo(ctx, index)
@@ -162,12 +182,15 @@ func (a *AcquireActor) doAcquiring() error {
 		return err
 	}
 
+	a.lock.Lock()
+	defer a.lock.Unlock()
 	// TODO 可以考虑一次性获得多个锁
 	for i := 0; i < len(a.acquirings); i++ {
 		req := a.acquirings[i]
 
 		// 测试锁，并获得锁数据
 		reqData, err := a.providersActor.TestLockRequestAndMakeData(req.Request)
+		logger.Std.Infof("6")
 		if err != nil {
 			req.LastErr = err
 			continue
