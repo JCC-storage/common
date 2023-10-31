@@ -48,6 +48,8 @@ func (f *SetValueFuture[T]) IsComplete() bool {
 	return f.isCompleted
 }
 
+// 等待直到Complete或者ctx被取消。
+// 注：返回ErrContextCancelled不代表产生结果的过程没有执行过，甚至不代表Future没有Complete
 func (f *SetValueFuture[T]) Wait(ctx context.Context) error {
 	select {
 	case <-f.completeChan:
