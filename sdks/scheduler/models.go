@@ -23,6 +23,10 @@ type JobSetID string
 
 type ImageID string
 
+type SlwNodeID int64
+
+type SlwNodeImageID string
+
 type JobSetInfo struct {
 	Jobs []JobInfo `json:"jobs"`
 }
@@ -111,11 +115,11 @@ type ImageJobFileInfo struct {
 
 type JobRuntimeInfo struct {
 	Command string   `json:"command"`
-	Envs    []EnvVar `json:"envs"`
+	Envs    []KVPair `json:"envs"`
 }
 
-type EnvVar struct {
-	Var   string `json:"var"`
+type KVPair struct {
+	Key   string `json:"key"`
 	Value string `json:"value"`
 }
 

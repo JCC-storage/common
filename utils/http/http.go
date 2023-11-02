@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -9,6 +10,7 @@ import (
 	"strings"
 
 	"gitlink.org.cn/cloudream/common/pkgs/iterator"
+	"gitlink.org.cn/cloudream/common/utils/math"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -120,7 +122,13 @@ func ParseJSONResponse[TBody any](resp *http.Response) (TBody, error) {
 		return ret, nil
 	}
 
-	return ret, fmt.Errorf("unknow response content type: %s, status: %d", contType, resp.StatusCode)
+	cont, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return ret, fmt.Errorf("unknow response content type: %s, status: %d", contType, resp.StatusCode)
+	}
+	strCont := string(cont)
+
+	return ret, fmt.Errorf("unknow response content type: %s, status: %d, body(prefix): %s", contType, resp.StatusCode, strCont[:math.Min(len(strCont), 200)])
 }
 
 type MultiPartRequestParam struct {
@@ -273,7 +281,13 @@ func prepareJSONBody(req *http.Request, body any) error {
 		return nil
 	}
 
-	req.Body = serder.ObjectToJSONStream(body)
+	data, err := serder.ObjectToJSON(body)
+	if err != nil {
+		return err
+	}
+
+	req.ContentLength = int64(len(data))
+	req.Body = io.NopCloser(bytes.NewReader(data))
 	return nil
 }
 
@@ -297,7 +311,9 @@ func prepareFormBody(req *http.Request, body any) error {
 		values.Add(k, fmt.Sprintf("%v", v))
 	}
 
-	req.Body = io.NopCloser(strings.NewReader(values.Encode()))
+	data := values.Encode()
+	req.Body = io.NopCloser(strings.NewReader(data))
+	req.ContentLength = int64(len(data))
 	return nil
 }
 

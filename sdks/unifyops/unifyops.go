@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 
+	schsdk "gitlink.org.cn/cloudream/common/sdks/scheduler"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -43,7 +44,7 @@ func (c *Client) GetAllSlwNodeInfo() (*GetAllSlwNodeInfoResp, error) {
 }
 
 type GetOneResourceDataReq struct {
-	SlwNodeID SlwNodeID `json:"nodeId"`
+	SlwNodeID schsdk.SlwNodeID `json:"nodeId"`
 }
 
 func (c *Client) GetCPUData(node GetOneResourceDataReq) (*CPUResourceData, error) {
@@ -250,15 +251,10 @@ func (c *Client) GetIndicatorData(node GetOneResourceDataReq) (*[]ResourceData, 
 			return nil, codeResp.ToError()
 		}
 
-		mapToObjOpt := serder.MapToObjectOption{
-			UnionTypes: []serder.TaggedUnionType{
-				ResourceDataTaggedTypeUnion,
-			},
-		}
 		var ret []ResourceData
 		for _, mp := range codeResp.Data {
 			var data ResourceData
-			err := serder.MapToObject(mp, &data, mapToObjOpt)
+			err := serder.MapToObject(mp, &data)
 			if err != nil {
 				return nil, err
 			}
