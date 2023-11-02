@@ -12,11 +12,7 @@ import (
 
 const CORRECT_CODE int = 200
 
-type GetAllSlwNodeInfoResp struct {
-	Nodes []SlwNode `json:"nodes"`
-}
-
-func (c *Client) GetAllSlwNodeInfo() (*GetAllSlwNodeInfoResp, error) {
+func (c *Client) GetAllSlwNodeInfo() ([]SlwNode, error) {
 	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getSlwNodeInfo")
 	if err != nil {
 		return nil, err
@@ -28,13 +24,13 @@ func (c *Client) GetAllSlwNodeInfo() (*GetAllSlwNodeInfoResp, error) {
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[GetAllSlwNodeInfoResp]
+		var codeResp response[[]SlwNode]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
 
 		if codeResp.Code == CORRECT_CODE {
-			return &codeResp.Data, nil
+			return codeResp.Data, nil
 		}
 
 		return nil, codeResp.ToError()
