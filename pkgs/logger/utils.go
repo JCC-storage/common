@@ -11,24 +11,23 @@ type structFormatter struct {
 }
 
 func (f *structFormatter) String() string {
-	typ := reflect.TypeOf(f.val)
-	val := reflect.ValueOf(f.val)
+	realVal := reflect.ValueOf(f.val)
+	for {
+		kind := realVal.Type().Kind()
 
-	kind := typ.Kind()
+		if kind == reflect.Struct {
+			sb := strings.Builder{}
+			f.structString(realVal, &sb)
+			return sb.String()
+		}
 
-	if kind == reflect.Struct {
-		sb := strings.Builder{}
-		f.structString(val, &sb)
-		return sb.String()
+		if kind == reflect.Pointer {
+			realVal = realVal.Elem()
+			continue
+		}
+
+		return fmt.Sprintf("%v", f.val)
 	}
-
-	if kind == reflect.Pointer {
-		sb := strings.Builder{}
-		f.structString(val.Elem(), &sb)
-		return sb.String()
-	}
-
-	return fmt.Sprintf("%v", f.val)
 }
 
 func (f *structFormatter) structString(val reflect.Value, strBuilder *strings.Builder) {
@@ -94,8 +93,7 @@ func (f *structFormatter) structString(val reflect.Value, strBuilder *strings.Bu
 
 // FormatStruct 输出结构体的内容。
 // 1. 数组类型只会输出长度
-// 2. 内部的结构体的内容不会再输出
-// 3. 支持参数是一层的指针
+// 2. 内部的结构体的内容不会再输出，包括embeded字段
 func FormatStruct(val any) any {
 	return &structFormatter{
 		val: val,

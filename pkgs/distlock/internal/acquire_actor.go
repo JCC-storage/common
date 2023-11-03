@@ -173,8 +173,6 @@ func (a *AcquireActor) doAcquiring() error {
 		return err
 	}
 
-	logger.Std.Infof("wait to: %d", index)
-
 	// 等待本地状态同步到最新
 	// TODO 配置等待时间
 	err = a.providersActor.WaitLocalIndexTo(ctx, index)
@@ -190,7 +188,6 @@ func (a *AcquireActor) doAcquiring() error {
 
 		// 测试锁，并获得锁数据
 		reqData, err := a.providersActor.TestLockRequestAndMakeData(req.Request)
-		logger.Std.Infof("6")
 		if err != nil {
 			req.LastErr = err
 			continue

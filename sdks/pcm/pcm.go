@@ -217,7 +217,7 @@ type GetTaskReq struct {
 }
 
 type GetTaskResp struct {
-	TaskStatus  string
+	TaskStatus  TaskStatus
 	TaskName    string
 	StartedAt   time.Time
 	CompletedAt time.Time
@@ -228,7 +228,7 @@ func (c *Client) GetTask(req GetTaskReq) (*GetTaskResp, error) {
 		Success bool `json:"success"`
 		Task    struct {
 			TaskID      TaskID                 `json:"taskId"`
-			TaskStatus  string                 `json:"taskStatus"`
+			TaskStatus  TaskStatus             `json:"taskStatus"`
 			TaskName    string                 `json:"taskName"`
 			StartedAt   serder.TimestampSecond `json:"startedAt"`
 			CompletedAt serder.TimestampSecond `json:"completedAt"`

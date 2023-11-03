@@ -26,9 +26,11 @@ type Resource struct {
 
 type TaskID string
 
+type TaskStatus string
+
 const (
-	TaskStatusPending = "Pending"
-	TaskStatusRunning = "Running"
-	TaskStatusSuccess = "Success"
-	TaskStatuFailed   = "Failed"
+	TaskStatusPending TaskStatus = "Pending"
+	TaskStatusRunning TaskStatus = "Running"
+	TaskStatusSuccess TaskStatus = "Success"
+	TaskStatuFailed   TaskStatus = "Failed"
 )
