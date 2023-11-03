@@ -88,6 +88,7 @@ func (c *Client) StorageCreatePackage(req StorageCreatePackageReq) (*StorageCrea
 }
 
 type StorageGetInfoReq struct {
+	UserID    int64 `json:"userID"`
 	StorageID int64 `json:"storageID"`
 }
 type StorageGetInfoResp struct {
@@ -103,7 +104,7 @@ func (c *Client) StorageGetInfo(req StorageGetInfoReq) (*StorageGetInfoResp, err
 	}
 
 	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
-		Body: req,
+		Query: req,
 	})
 	if err != nil {
 		return nil, err

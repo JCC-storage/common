@@ -4,27 +4,29 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
+	"gitlink.org.cn/cloudream/common/sdks"
 	schsdk "gitlink.org.cn/cloudream/common/sdks/scheduler"
-	uopsdk "gitlink.org.cn/cloudream/common/sdks/unifyops"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
-const CORRECT_CODE int = 200
+const CodeOK int = 200
 
 type UploadImageReq struct {
-	SlwNodeID uopsdk.SlwNodeID `json:"slwNodeID"`
+	SlwNodeID schsdk.SlwNodeID `json:"slwNodeID"`
 	ImagePath string           `json:"imagePath"`
 }
 
 type UploadImageResp struct {
 	Result  string                `json:"result"`
-	ImageID uopsdk.SlwNodeImageID `json:"imageID"`
+	ImageID schsdk.SlwNodeImageID `json:"imageID"`
 }
 
+// TODO
 func (c *Client) UploadImage(req UploadImageReq) (*UploadImageResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/pcm/v1/core/uploadImage")
+	url, err := url.JoinPath(c.baseURL, "/pcm/v1/storelink/uploadImage")
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +45,7 @@ func (c *Client) UploadImage(req UploadImageReq) (*UploadImageResp, error) {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
 
-		if codeResp.Code == CORRECT_CODE {
+		if codeResp.Code == CodeOK {
 			return &codeResp.Data, nil
 		}
 
@@ -51,202 +53,287 @@ func (c *Client) UploadImage(req UploadImageReq) (*UploadImageResp, error) {
 	}
 
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
+}
+
+type GetParticipantsResp struct {
+	Participants []Participant
+}
+
+func (c *Client) GetParticipants() (*GetParticipantsResp, error) {
+	type Resp struct {
+		Code         int           `json:"code"`
+		Message      string        `json:"message"`
+		Participants []Participant `json:"participants"`
+	}
+
+	url, err := url.JoinPath(c.baseURL, "/pcm/v1/storelink/uploadImage")
+	if err != nil {
+		return nil, err
+	}
+	rawResp, err := myhttp.GetJSON(url, myhttp.RequestParam{})
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := myhttp.ParseJSONResponse[Resp](rawResp)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Code != CodeOK {
+		return nil, &sdks.CodeMessageError{
+			Code:    fmt.Sprintf("%d", resp.Code),
+			Message: resp.Message,
+		}
+	}
+
+	return &GetParticipantsResp{
+		Participants: resp.Participants,
+	}, nil
 }
 
 type GetImageListReq struct {
-	SlwNodeID int64 `json:"slwNodeID"`
+	PartID schsdk.SlwNodeID `json:"partId"`
 }
 
 type GetImageListResp struct {
-	ImageIDs []int64 `json:"imageIDs"`
+	Images []Image
 }
 
 func (c *Client) GetImageList(req GetImageListReq) (*GetImageListResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/pcm/v1/core/getImageList")
+	type Resp struct {
+		Success  bool    `json:"success"`
+		Images   []Image `json:"images"`
+		ErrorMsg string  `json:"errorMsg"`
+	}
+
+	url, err := url.JoinPath(c.baseURL, "/pcm/v1/storelink/getImageList")
 	if err != nil {
 		return nil, err
 	}
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	rawResp, err := myhttp.GetJSON(url, myhttp.RequestParam{
 		Body: req,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
-
-		var codeResp response[GetImageListResp]
-		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
-			return nil, fmt.Errorf("parsing response: %w", err)
-		}
-
-		if codeResp.Code == CORRECT_CODE {
-			return &codeResp.Data, nil
-		}
-
-		return nil, codeResp.ToError()
+	resp, err := myhttp.ParseJSONResponse[Resp](rawResp)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("unknow response content type: %s", contType)
+	if !resp.Success {
+		return nil, fmt.Errorf(resp.ErrorMsg)
+	}
+
+	return &GetImageListResp{
+		Images: resp.Images,
+	}, nil
 }
 
 type DeleteImageReq struct {
-	SlwNodeID int64 `json:"slwNodeID"`
-	PCMJobID  int64 `json:"pcmJobID"`
+	PartID  schsdk.SlwNodeID      `json:"partID"`
+	ImageID schsdk.SlwNodeImageID `json:"imageID"`
 }
 
-type DeleteImageResp struct {
-	Result string `json:"result"`
+func (c *Client) DeleteImage(req DeleteImageReq) error {
+	type Resp struct {
+		Success  bool   `json:"success"`
+		ErrorMsg string `json:"errorMsg"`
+	}
+
+	url, err := url.JoinPath(c.baseURL, "/pcm/v1/storelink/deleteImage")
+	if err != nil {
+		return err
+	}
+	rawResp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+		Body: req,
+	})
+	if err != nil {
+		return err
+	}
+
+	resp, err := myhttp.ParseJSONResponse[Resp](rawResp)
+	if err != nil {
+		return err
+	}
+
+	if !resp.Success {
+		return fmt.Errorf(resp.ErrorMsg)
+	}
+
+	return nil
 }
 
-func (c *Client) DeleteImage(req DeleteImageReq) (*DeleteImageResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/pcm/v1/core/deleteImage")
+type SubmitTaskReq struct {
+	PartID     schsdk.SlwNodeID      `json:"partId"`
+	ImageID    schsdk.SlwNodeImageID `json:"imageId"`
+	ResourceID ResourceID            `json:"resourceId"`
+	CMD        string                `json:"cmd"`
+	Params     []schsdk.KVPair       `json:"params"`
+	Envs       []schsdk.KVPair       `json:"envs"`
+}
+
+type SubmitTaskResp struct {
+	TaskID TaskID
+}
+
+func (c *Client) SubmitTask(req SubmitTaskReq) (*SubmitTaskResp, error) {
+	type Resp struct {
+		Success  bool   `json:"success"`
+		TaskID   TaskID `json:"taskId"`
+		ErrorMsg string `json:"errorMsg"`
+	}
+
+	url, err := url.JoinPath(c.baseURL, "/pcm/v1/storelink/submitTask")
 	if err != nil {
 		return nil, err
 	}
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	rawResp, err := myhttp.PostJSON(url, myhttp.RequestParam{
 		Body: req,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
-
-		var codeResp response[DeleteImageResp]
-		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
-			return nil, fmt.Errorf("parsing response: %w", err)
-		}
-
-		if codeResp.Code == CORRECT_CODE {
-			return &codeResp.Data, nil
-		}
-
-		return nil, codeResp.ToError()
-	}
-
-	return nil, fmt.Errorf("unknow response content type: %s", contType)
-}
-
-type ScheduleTaskReq struct {
-	SlwNodeID uopsdk.SlwNodeID      `json:"slwNodeID"`
-	Envs      []schsdk.EnvVar       `json:"envs"`
-	ImageID   uopsdk.SlwNodeImageID `json:"imageID"`
-	CMDLine   string                `json:"cmdLine"`
-}
-
-type ScheduleTaskResp struct {
-	Result   string `json:"result"`
-	PCMJobID int64  `json:"pcmJobID"`
-}
-
-func (c *Client) ScheduleTask(req ScheduleTaskReq) (*ScheduleTaskResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/pcm/v1/core/scheduleTask")
+	resp, err := myhttp.ParseJSONResponse[Resp](rawResp)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+
+	if !resp.Success {
+		return nil, fmt.Errorf(resp.ErrorMsg)
+	}
+
+	return &SubmitTaskResp{
+		TaskID: resp.TaskID,
+	}, nil
+}
+
+type GetTaskReq struct {
+	PartID schsdk.SlwNodeID `json:"partId"`
+	TaskID TaskID           `json:"taskId"`
+}
+
+type GetTaskResp struct {
+	TaskStatus  TaskStatus
+	TaskName    string
+	StartedAt   time.Time
+	CompletedAt time.Time
+}
+
+func (c *Client) GetTask(req GetTaskReq) (*GetTaskResp, error) {
+	type Resp struct {
+		Success bool `json:"success"`
+		Task    struct {
+			TaskID      TaskID                 `json:"taskId"`
+			TaskStatus  TaskStatus             `json:"taskStatus"`
+			TaskName    string                 `json:"taskName"`
+			StartedAt   serder.TimestampSecond `json:"startedAt"`
+			CompletedAt serder.TimestampSecond `json:"completedAt"`
+		} `json:"task"`
+		ErrorMsg string `json:"errorMsg"`
+	}
+
+	url, err := url.JoinPath(c.baseURL, "/pcm/v1/storelink/getTask")
+	if err != nil {
+		return nil, err
+	}
+	rawResp, err := myhttp.GetJSON(url, myhttp.RequestParam{
 		Body: req,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
-
-		var codeResp response[ScheduleTaskResp]
-		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
-			return nil, fmt.Errorf("parsing response: %w", err)
-		}
-
-		if codeResp.Code == CORRECT_CODE {
-			return &codeResp.Data, nil
-		}
-
-		return nil, codeResp.ToError()
-	}
-
-	return nil, fmt.Errorf("unknow response content type: %s", contType)
-}
-
-type GetTaskStatusReq struct {
-	SlwNodeID uopsdk.SlwNodeID `json:"slwNodeID"`
-	PCMJobID  int64            `json:"pcmJobID"`
-}
-
-type GetTaskStatusResp struct {
-	Result string `json:"result"`
-	Status string `json:"status"`
-}
-
-func (c *Client) GetTaskStatus(req GetTaskStatusReq) (*GetTaskStatusResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/pcm/v1/core/getTaskStatus")
-	if err != nil {
-		return nil, err
-	}
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
-		Body: req,
-	})
+	resp, err := myhttp.ParseJSONResponse[Resp](rawResp)
 	if err != nil {
 		return nil, err
 	}
 
-	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
-
-		var codeResp response[GetTaskStatusResp]
-		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
-			return nil, fmt.Errorf("parsing response: %w", err)
-		}
-
-		if codeResp.Code == CORRECT_CODE {
-			return &codeResp.Data, nil
-		}
-
-		return nil, codeResp.ToError()
+	if !resp.Success {
+		return nil, fmt.Errorf(resp.ErrorMsg)
 	}
 
-	return nil, fmt.Errorf("unknow response content type: %s", contType)
+	return &GetTaskResp{
+		TaskStatus:  resp.Task.TaskStatus,
+		TaskName:    resp.Task.TaskName,
+		StartedAt:   time.Time(resp.Task.StartedAt),
+		CompletedAt: time.Time(resp.Task.CompletedAt),
+	}, nil
 }
 
 type DeleteTaskReq struct {
-	SlwNodeID int64 `json:"slwNodeID"`
-	PCMJobID  int64 `json:"pcmJobID"`
+	PartID schsdk.SlwNodeID `json:"partId"`
+	TaskID TaskID           `json:"taskId"`
 }
 
-type DeleteTaskResp struct {
-	Result string `json:"result"`
+func (c *Client) DeleteTask(req DeleteTaskReq) error {
+	type Resp struct {
+		Success  bool   `json:"success"`
+		ErrorMsg string `json:"errorMsg"`
+	}
+
+	url, err := url.JoinPath(c.baseURL, "/pcm/v1/storelink/deleteTask")
+	if err != nil {
+		return err
+	}
+	rawResp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+		Body: req,
+	})
+	if err != nil {
+		return err
+	}
+
+	resp, err := myhttp.ParseJSONResponse[Resp](rawResp)
+	if err != nil {
+		return err
+	}
+
+	if !resp.Success {
+		return fmt.Errorf(resp.ErrorMsg)
+	}
+
+	return nil
 }
 
-func (c *Client) DeleteTask(req DeleteTaskReq) (*DeleteTaskResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/pcm/v1/core/deleteTask")
+type GetResourceSpecs struct {
+	PartID schsdk.SlwNodeID `json:"partId"`
+}
+
+type GetResourceSpecsResp struct {
+	Resources []Resource
+}
+
+func (c *Client) GetResourceSpecs(req GetImageListReq) (*GetResourceSpecsResp, error) {
+	type Resp struct {
+		Success       bool       `json:"success"`
+		ResourceSpecs []Resource `json:"resourceSpecs"`
+		ErrorMsg      string     `json:"errorMsg"`
+	}
+
+	url, err := url.JoinPath(c.baseURL, "/pcm/v1/storelink/getResourceSpecs")
 	if err != nil {
 		return nil, err
 	}
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	rawResp, err := myhttp.GetJSON(url, myhttp.RequestParam{
 		Body: req,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
-
-		var codeResp response[DeleteTaskResp]
-		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
-			return nil, fmt.Errorf("parsing response: %w", err)
-		}
-
-		if codeResp.Code == CORRECT_CODE {
-			return &codeResp.Data, nil
-		}
-
-		return nil, codeResp.ToError()
+	resp, err := myhttp.ParseJSONResponse[Resp](rawResp)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("unknow response content type: %s", contType)
+	if !resp.Success {
+		return nil, fmt.Errorf(resp.ErrorMsg)
+	}
+
+	return &GetResourceSpecsResp{
+		Resources: resp.ResourceSpecs,
+	}, nil
 }
