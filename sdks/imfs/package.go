@@ -4,7 +4,7 @@ import (
 	"net/url"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
-	stgsdk "gitlink.org.cn/cloudream/common/sdks/storage"
+	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 )
 
@@ -15,8 +15,8 @@ type PackageGetWithObjectCacheInfos struct {
 	PackageID int64 `json:"packageID"`
 }
 type PackageGetWithObjectCacheInfosResp struct {
-	Package          stgsdk.Package           `json:"package"`
-	ObjectCacheInfos []stgsdk.ObjectCacheInfo `json:"objectCacheInfos"`
+	Package          cdssdk.Package           `json:"package"`
+	ObjectCacheInfos []cdssdk.ObjectCacheInfo `json:"objectCacheInfos"`
 }
 
 func (c *Client) PackageGetWithObjectCacheInfos(req PackageGetWithObjectCacheInfos) (*PackageGetWithObjectCacheInfosResp, error) {

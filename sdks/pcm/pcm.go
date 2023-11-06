@@ -15,13 +15,14 @@ import (
 const CodeOK int = 200
 
 type UploadImageReq struct {
-	SlwNodeID schsdk.SlwNodeID `json:"slwNodeID"`
-	ImagePath string           `json:"imagePath"`
+	PartID    ParticipantID `json:"partID"`
+	ImagePath string        `json:"imagePath"`
 }
 
 type UploadImageResp struct {
-	Result  string                `json:"result"`
-	ImageID schsdk.SlwNodeImageID `json:"imageID"`
+	Result  string  `json:"result"`
+	ImageID ImageID `json:"imageID"`
+	Name    string  `json:"name"`
 }
 
 // TODO
@@ -93,7 +94,7 @@ func (c *Client) GetParticipants() (*GetParticipantsResp, error) {
 }
 
 type GetImageListReq struct {
-	PartID schsdk.SlwNodeID `json:"partId"`
+	PartID ParticipantID `json:"partId"`
 }
 
 type GetImageListResp struct {
@@ -133,8 +134,8 @@ func (c *Client) GetImageList(req GetImageListReq) (*GetImageListResp, error) {
 }
 
 type DeleteImageReq struct {
-	PartID  schsdk.SlwNodeID      `json:"partID"`
-	ImageID schsdk.SlwNodeImageID `json:"imageID"`
+	PartID  ParticipantID `json:"partID"`
+	ImageID ImageID       `json:"imageID"`
 }
 
 func (c *Client) DeleteImage(req DeleteImageReq) error {
@@ -167,12 +168,12 @@ func (c *Client) DeleteImage(req DeleteImageReq) error {
 }
 
 type SubmitTaskReq struct {
-	PartID     schsdk.SlwNodeID      `json:"partId"`
-	ImageID    schsdk.SlwNodeImageID `json:"imageId"`
-	ResourceID ResourceID            `json:"resourceId"`
-	CMD        string                `json:"cmd"`
-	Params     []schsdk.KVPair       `json:"params"`
-	Envs       []schsdk.KVPair       `json:"envs"`
+	PartID     ParticipantID   `json:"partId"`
+	ImageID    ImageID         `json:"imageId"`
+	ResourceID ResourceID      `json:"resourceId"`
+	CMD        string          `json:"cmd"`
+	Params     []schsdk.KVPair `json:"params"`
+	Envs       []schsdk.KVPair `json:"envs"`
 }
 
 type SubmitTaskResp struct {
@@ -212,8 +213,8 @@ func (c *Client) SubmitTask(req SubmitTaskReq) (*SubmitTaskResp, error) {
 }
 
 type GetTaskReq struct {
-	PartID schsdk.SlwNodeID `json:"partId"`
-	TaskID TaskID           `json:"taskId"`
+	PartID ParticipantID `json:"partId"`
+	TaskID TaskID        `json:"taskId"`
 }
 
 type GetTaskResp struct {
@@ -265,8 +266,8 @@ func (c *Client) GetTask(req GetTaskReq) (*GetTaskResp, error) {
 }
 
 type DeleteTaskReq struct {
-	PartID schsdk.SlwNodeID `json:"partId"`
-	TaskID TaskID           `json:"taskId"`
+	PartID ParticipantID `json:"partId"`
+	TaskID TaskID        `json:"taskId"`
 }
 
 func (c *Client) DeleteTask(req DeleteTaskReq) error {
@@ -299,7 +300,7 @@ func (c *Client) DeleteTask(req DeleteTaskReq) error {
 }
 
 type GetResourceSpecs struct {
-	PartID schsdk.SlwNodeID `json:"partId"`
+	PartID ParticipantID `json:"partId"`
 }
 
 type GetResourceSpecsResp struct {
