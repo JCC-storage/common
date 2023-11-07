@@ -21,10 +21,10 @@ type JobID string
 
 type JobSetID string
 
-type ImageID string
+type ImageID int64
 
 // 计算中心ID
-type CCID string
+type CCID int64
 
 type JobSetInfo struct {
 	Jobs []JobInfo `json:"jobs"`

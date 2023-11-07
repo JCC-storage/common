@@ -33,6 +33,6 @@ type TaskStatus string
 const (
 	TaskStatusPending TaskStatus = "Pending"
 	TaskStatusRunning TaskStatus = "Running"
-	TaskStatusSuccess TaskStatus = "Success"
-	TaskStatuFailed   TaskStatus = "Failed"
+	TaskStatusSuccess TaskStatus = "succeeded"
+	TaskStatuFailed   TaskStatus = "failed"
 )
