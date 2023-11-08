@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"strings"
 
-	schsdk "gitlink.org.cn/cloudream/common/sdks/scheduler"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -40,7 +39,7 @@ func (c *Client) GetAllSlwNodeInfo() ([]SlwNode, error) {
 }
 
 type GetOneResourceDataReq struct {
-	SlwNodeID schsdk.SlwNodeID `json:"nodeId"`
+	SlwNodeID SlwNodeID `json:"nodeId"`
 }
 
 func (c *Client) GetCPUData(node GetOneResourceDataReq) (*CPUResourceData, error) {

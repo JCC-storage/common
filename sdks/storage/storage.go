@@ -1,4 +1,4 @@
-package stgsdk
+package cdssdk
 
 import (
 	"fmt"

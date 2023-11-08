@@ -3,7 +3,6 @@ package uopsdk
 import (
 	"gitlink.org.cn/cloudream/common/pkgs/mq"
 	"gitlink.org.cn/cloudream/common/pkgs/types"
-	schsdk "gitlink.org.cn/cloudream/common/sdks/scheduler"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -18,12 +17,12 @@ const (
 	ResourceTypeMemory  ResourceType = "MEMORY"
 )
 
+type SlwNodeID int64
+
 type SlwNode struct {
-	ID          schsdk.SlwNodeID `json:"id"`
-	Name        string           `json:"name"`
-	SlwRegionID int64            `json:"slwRegionID"`
-	StgNodeID   int64            `json:"stgNodeID"`
-	StorageID   int64            `json:"StorageID"`
+	ID          SlwNodeID `json:"id"`
+	Name        string    `json:"name"`
+	SlwRegionID int64     `json:"slwRegionID"`
 }
 
 type ResourceData interface {

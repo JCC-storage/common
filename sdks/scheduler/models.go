@@ -3,7 +3,7 @@ package schsdk
 import (
 	"gitlink.org.cn/cloudream/common/pkgs/mq"
 	"gitlink.org.cn/cloudream/common/pkgs/types"
-	stgsdk "gitlink.org.cn/cloudream/common/sdks/storage"
+	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -21,11 +21,10 @@ type JobID string
 
 type JobSetID string
 
-type ImageID string
+type ImageID int64
 
-type SlwNodeID int64
-
-type SlwNodeImageID string
+// 计算中心ID
+type CCID int64
 
 type JobSetInfo struct {
 	Jobs []JobInfo `json:"jobs"`
@@ -62,7 +61,7 @@ type ResourceJobInfo struct {
 	JobInfoBase
 	Type             string                     `json:"type" union:"Resource"`
 	BucketID         int64                      `json:"bucketID"`
-	Redundancy       stgsdk.TypedRedundancyInfo `json:"redundancy"`
+	Redundancy       cdssdk.TypedRedundancyInfo `json:"redundancy"`
 	TargetLocalJobID string                     `json:"targetLocalJobID"`
 }
 
@@ -155,5 +154,5 @@ type JobSetFilesUploadScheme struct {
 
 type LocalFileUploadScheme struct {
 	LocalPath         string `json:"localPath"`
-	UploadToStgNodeID *int64 `json:"uploadToStgNodeID"`
+	UploadToCDSNodeID *int64 `json:"uploadToCDSNodeID"`
 }
