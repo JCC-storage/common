@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+type Metadata struct{}
+
 type TimestampSecond time.Time
 
 func (t *TimestampSecond) MarshalJSON() ([]byte, error) {

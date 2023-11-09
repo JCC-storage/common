@@ -1,7 +1,6 @@
 package schsdk
 
 import (
-	"gitlink.org.cn/cloudream/common/pkgs/mq"
 	"gitlink.org.cn/cloudream/common/pkgs/types"
 	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
 	"gitlink.org.cn/cloudream/common/utils/serder"
@@ -38,8 +37,7 @@ var JobInfoTypeUnion = types.NewTypeUnion[JobInfo](
 	(*NormalJobInfo)(nil),
 	(*ResourceJobInfo)(nil),
 )
-var _ = serder.RegisterNewTaggedTypeUnion(JobInfoTypeUnion, "Type", "type")
-var _ = mq.RegisterUnionType(JobInfoTypeUnion)
+var _ = serder.UseTypeUnionInternallyTagged(&JobInfoTypeUnion, "type")
 
 type JobInfoBase struct {
 	LocalJobID string `json:"localJobID"`
@@ -50,16 +48,18 @@ func (i *JobInfoBase) GetLocalJobID() string {
 }
 
 type NormalJobInfo struct {
+	serder.Metadata `union:"Normal"`
 	JobInfoBase
-	Type      string           `json:"type" union:"Normal"`
+	Type      string           `json:"type"`
 	Files     JobFilesInfo     `json:"files"`
 	Runtime   JobRuntimeInfo   `json:"runtime"`
 	Resources JobResourcesInfo `json:"resources"`
 }
 
 type ResourceJobInfo struct {
+	serder.Metadata `union:"Resource"`
 	JobInfoBase
-	Type             string                     `json:"type" union:"Resource"`
+	Type             string                     `json:"type"`
 	BucketID         int64                      `json:"bucketID"`
 	Redundancy       cdssdk.TypedRedundancyInfo `json:"redundancy"`
 	TargetLocalJobID string                     `json:"targetLocalJobID"`
@@ -81,34 +81,37 @@ var FileInfoTypeUnion = types.NewTypeUnion[JobFileInfo](
 	(*ResourceJobFileInfo)(nil),
 	(*ImageJobFileInfo)(nil),
 )
-var _ = serder.RegisterNewTaggedTypeUnion(FileInfoTypeUnion, "Type", "type")
-var _ = mq.RegisterUnionType(FileInfoTypeUnion)
+var _ = serder.UseTypeUnionInternallyTagged(&FileInfoTypeUnion, "type")
 
 type JobFileInfoBase struct{}
 
 func (i *JobFileInfoBase) Noop() {}
 
 type PackageJobFileInfo struct {
+	serder.Metadata `union:"Package"`
 	JobFileInfoBase
-	Type      string `json:"type" union:"Package"`
+	Type      string `json:"type"`
 	PackageID int64  `json:"packageID"`
 }
 
 type LocalJobFileInfo struct {
+	serder.Metadata `union:"LocalFile"`
 	JobFileInfoBase
-	Type      string `json:"type" union:"LocalFile"`
+	Type      string `json:"type"`
 	LocalPath string `json:"localPath"`
 }
 
 type ResourceJobFileInfo struct {
+	serder.Metadata `union:"Resource"`
 	JobFileInfoBase
-	Type               string `json:"type" union:"Resource"`
+	Type               string `json:"type"`
 	ResourceLocalJobID string `json:"resourceLocalJobID"`
 }
 
 type ImageJobFileInfo struct {
+	serder.Metadata `union:"Image"`
 	JobFileInfoBase
-	Type    string  `json:"type" union:"Image"`
+	Type    string  `json:"type"`
 	ImageID ImageID `json:"imageID"`
 }
 
@@ -131,21 +134,6 @@ type JobResourcesInfo struct {
 	MLU     float64 `json:"mlu"`
 	Storage int64   `json:"storage"`
 	Memory  int64   `json:"memory"`
-}
-
-func JobSetInfoFromJSON(data []byte) (*JobSetInfo, error) {
-	mp := make(map[string]any)
-	if err := serder.JSONToObject(data, &mp); err != nil {
-		return nil, err
-	}
-
-	var ret JobSetInfo
-	err := serder.MapToObject(mp, &ret)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ret, nil
 }
 
 type JobSetFilesUploadScheme struct {

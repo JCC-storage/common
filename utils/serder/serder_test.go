@@ -363,13 +363,15 @@ func Test_MapToObject(t *testing.T) {
 		type UnionType interface{}
 
 		type EleType1 struct {
-			Type   EleType `json:"type" union:"1"`
-			Value1 string  `json:"value1"`
+			Metadata `union:"1"`
+			Type     EleType `json:"type"`
+			Value1   string  `json:"value1"`
 		}
 
 		type EleType2 struct {
-			Type   EleType `json:"type" union:"2"`
-			Value2 int     `json:"value2"`
+			Metadata `union:"2"`
+			Type     EleType `json:"type"`
+			Value2   int     `json:"value2"`
 		}
 
 		type St struct {
@@ -390,17 +392,12 @@ func Test_MapToObject(t *testing.T) {
 		}
 
 		var ret St
-		err := MapToObject(mp, &ret, MapToObjectOption{
-			UnionTypes: []*TaggedUnionType{
-				NewTaggedTypeUnion(types.NewTypeUnion[UnionType](
-					(*EleType1)(nil),
-					(*EleType2)(nil),
-				),
-					"Type",
-					"type",
-				),
-			},
-		})
+		union := types.NewTypeUnion[UnionType](
+			(*EleType1)(nil),
+			(*EleType2)(nil),
+		)
+		UseTypeUnionInternallyTagged(&union, "type")
+		err := MapToObject(mp, &ret)
 
 		So(err, ShouldBeNil)
 
@@ -414,13 +411,15 @@ func Test_MapToObject(t *testing.T) {
 		type UnionType interface{}
 
 		type EleType1 struct {
-			Type   string `json:"type" union:"1"`
-			Value1 string `json:"value1"`
+			Metadata `union:"1"`
+			Type     string `json:"type"`
+			Value1   string `json:"value1"`
 		}
 
 		type EleType2 struct {
-			Type   string `json:"type" union:"2"`
-			Value2 int    `json:"value2"`
+			Metadata `union:"2"`
+			Type     string `json:"type"`
+			Value2   int    `json:"value2"`
 		}
 
 		mp := map[string]any{
@@ -429,17 +428,12 @@ func Test_MapToObject(t *testing.T) {
 		}
 
 		var ret UnionType
-		err := MapToObject(mp, &ret, MapToObjectOption{
-			UnionTypes: []*TaggedUnionType{
-				NewTaggedTypeUnion(types.NewTypeUnion[UnionType](
-					(*EleType1)(nil),
-					(*EleType2)(nil),
-				),
-					"Type",
-					"type",
-				),
-			},
-		})
+		union := types.NewTypeUnion[UnionType](
+			(*EleType1)(nil),
+			(*EleType2)(nil),
+		)
+		UseTypeUnionInternallyTagged(&union, "type")
+		err := MapToObject(mp, &ret)
 
 		So(err, ShouldBeNil)
 
@@ -464,7 +458,27 @@ func Test_MapToObject(t *testing.T) {
 		So(string(ret.Str), ShouldEqual, "1")
 	})
 }
-func Test_JSON(t *testing.T) {
+
+type Base interface {
+	Noop()
+}
+type St1 struct {
+	Metadata `union:"St1"`
+	Type     string
+	Val      string
+}
+
+func (*St1) Noop() {}
+
+type St2 struct {
+	Metadata `union:"St2"`
+	Type     string
+	Val      int
+}
+
+func (St2) Noop() {}
+
+func Test_ObjectToJSON2(t *testing.T) {
 	Convey("NewType", t, func() {
 		type Str string
 
@@ -483,5 +497,155 @@ func Test_JSON(t *testing.T) {
 		err = JSONToObject(data, &ret)
 		So(err, ShouldBeNil)
 		So(string(ret.Str), ShouldEqual, "1")
+	})
+
+	Convey("UnionType ExternallyTagged", t, func() {
+		type Base interface{}
+		type St1 struct {
+			Val string
+		}
+		type St2 struct {
+			Val int64
+		}
+		type Outter struct {
+			B []Base
+		}
+
+		union := types.NewTypeUnion[Base](St1{}, &St2{})
+		UseTypeUnionExternallyTagged(&union)
+
+		val := Outter{B: []Base{St1{Val: "asd"}, &St2{Val: 123}}}
+		data, err := ObjectToJSONEx(val)
+		So(err, ShouldBeNil)
+
+		ret, err := JSONToObjectEx[Outter](data)
+		So(err, ShouldBeNil)
+		So(ret, ShouldResemble, val)
+	})
+
+	Convey("UnionType InternallyTagged", t, func() {
+		type Base interface{}
+		type St1 struct {
+			Metadata `union:"St1"`
+			Type     string
+			Val      string
+		}
+		type St2 struct {
+			Metadata `union:"St2"`
+			Type     string
+			Val      int64
+		}
+		type Outter struct {
+			B []Base
+		}
+
+		union := types.NewTypeUnion[Base](St1{}, &St2{})
+		UseTypeUnionInternallyTagged(&union, "Type")
+
+		val := Outter{B: []Base{St1{Val: "asd", Type: "St1"}, &St2{Val: 123, Type: "St2"}}}
+		data, err := ObjectToJSONEx(val)
+		So(err, ShouldBeNil)
+
+		ret, err := JSONToObjectEx[Outter](data)
+		So(err, ShouldBeNil)
+		So(ret, ShouldResemble, val)
+	})
+
+	Convey("实参类型和目标类型本身就是UnionType ExternallyTagged", t, func() {
+		type Base interface{}
+		type St1 struct {
+			Val string
+		}
+		union := types.NewTypeUnion[Base](St1{})
+		UseTypeUnionExternallyTagged(&union)
+
+		var val Base = St1{Val: "asd"}
+		data, err := ObjectToJSONEx(val)
+		So(err, ShouldBeNil)
+
+		ret, err := JSONToObjectEx[Base](data)
+		So(err, ShouldBeNil)
+		So(ret, ShouldResemble, val)
+	})
+
+	Convey("实参类型和目标类型本身就是UnionType InternallyTagged", t, func() {
+		type Base interface{}
+		type St1 struct {
+			Metadata `union:"St1"`
+			Type     string
+			Val      string
+		}
+		union := types.NewTypeUnion[Base](St1{})
+		UseTypeUnionInternallyTagged(&union, "Type")
+
+		var val Base = St1{Val: "asd", Type: "St1"}
+		data, err := ObjectToJSONEx(val)
+		So(err, ShouldBeNil)
+
+		ret, err := JSONToObjectEx[Base](data)
+		So(err, ShouldBeNil)
+		So(ret, ShouldResemble, val)
+	})
+
+	Convey("UnionType带有函数 ExternallyTagged", t, func() {
+		union := types.NewTypeUnion[Base](&St1{}, St2{})
+		UseTypeUnionExternallyTagged(&union)
+
+		var val []Base = []Base{
+			&St1{Val: "asd", Type: "St1"},
+			St2{Val: 123, Type: "St2"},
+		}
+		data, err := ObjectToJSONEx(val)
+		So(err, ShouldBeNil)
+
+		ret, err := JSONToObjectEx[[]Base](data)
+		So(err, ShouldBeNil)
+		So(ret, ShouldResemble, val)
+	})
+
+	Convey("UnionType带有函数 InternallyTagged", t, func() {
+		union := types.NewTypeUnion[Base](&St1{}, St2{})
+		UseTypeUnionInternallyTagged(&union, "Type")
+
+		var val []Base = []Base{
+			&St1{Val: "asd", Type: "St1"},
+			St2{Val: 123, Type: "St2"},
+		}
+		data, err := ObjectToJSONEx(val)
+		So(err, ShouldBeNil)
+
+		ret, err := JSONToObjectEx[[]Base](data)
+		So(err, ShouldBeNil)
+		So(ret, ShouldResemble, val)
+	})
+
+	Convey("UnionType，但实际值为nil ExternallyTagged", t, func() {
+		union := types.NewTypeUnion[Base](&St1{}, St2{})
+		UseTypeUnionExternallyTagged(&union)
+
+		var val []Base = []Base{
+			nil,
+		}
+		data, err := ObjectToJSONEx(val)
+		So(err, ShouldBeNil)
+
+		ret, err := JSONToObjectEx[[]Base](data)
+		So(err, ShouldBeNil)
+		So(ret, ShouldResemble, val)
+	})
+
+	Convey("UnionType，但实际值为nil InternallyTagged", t, func() {
+		union := types.NewTypeUnion[Base](&St1{}, St2{})
+		UseTypeUnionInternallyTagged(&union, "Type")
+
+		var val []Base = []Base{
+			nil,
+		}
+		data, err := ObjectToJSONEx(val)
+		So(err, ShouldBeNil)
+
+		ret, err := JSONToObjectEx[[]Base](data)
+		So(err, ShouldBeNil)
+		So(ret, ShouldResemble, val)
 	})
 }

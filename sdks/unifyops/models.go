@@ -1,7 +1,6 @@
 package uopsdk
 
 import (
-	"gitlink.org.cn/cloudream/common/pkgs/mq"
 	"gitlink.org.cn/cloudream/common/pkgs/types"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -37,8 +36,7 @@ var ResourceDataTypeUnion = types.NewTypeUnion[ResourceData](
 	(*StorageResourceData)(nil),
 	(*MemoryResourceData)(nil),
 )
-var _ = serder.RegisterNewTaggedTypeUnion(ResourceDataTypeUnion, "Name", "name")
-var _ = mq.RegisterUnionType(ResourceDataTypeUnion)
+var _ = serder.UseTypeUnionInternallyTagged(&ResourceDataTypeUnion, "name")
 
 type ResourceDataBase struct{}
 
@@ -50,8 +48,9 @@ type UnitValue[T any] struct {
 }
 
 type CPUResourceData struct {
+	serder.Metadata `union:"CPU"`
 	ResourceDataBase
-	Name      ResourceType     `json:"name" union:"CPU"`
+	Name      ResourceType     `json:"name"`
 	Total     UnitValue[int64] `json:"total"`
 	Available UnitValue[int64] `json:"available"`
 }
@@ -65,8 +64,9 @@ func NewCPUResourceData(total UnitValue[int64], available UnitValue[int64]) *CPU
 }
 
 type NPUResourceData struct {
+	serder.Metadata `union:"NPU"`
 	ResourceDataBase
-	Name      ResourceType     `json:"name" union:"NPU"`
+	Name      ResourceType     `json:"name"`
 	Total     UnitValue[int64] `json:"total"`
 	Available UnitValue[int64] `json:"available"`
 }
@@ -80,8 +80,9 @@ func NewNPUResourceData(total UnitValue[int64], available UnitValue[int64]) *NPU
 }
 
 type GPUResourceData struct {
+	serder.Metadata `union:"GPU"`
 	ResourceDataBase
-	Name      ResourceType     `json:"name" union:"GPU"`
+	Name      ResourceType     `json:"name"`
 	Total     UnitValue[int64] `json:"total"`
 	Available UnitValue[int64] `json:"available"`
 }
@@ -95,8 +96,9 @@ func NewGPUResourceData(total UnitValue[int64], available UnitValue[int64]) *GPU
 }
 
 type MLUResourceData struct {
+	serder.Metadata `union:"MLU"`
 	ResourceDataBase
-	Name      ResourceType     `json:"name" union:"MLU"`
+	Name      ResourceType     `json:"name"`
 	Total     UnitValue[int64] `json:"total"`
 	Available UnitValue[int64] `json:"available"`
 }
@@ -110,8 +112,9 @@ func NewMLUResourceData(total UnitValue[int64], available UnitValue[int64]) *MLU
 }
 
 type StorageResourceData struct {
+	serder.Metadata `union:"STORAGE"`
 	ResourceDataBase
-	Name      ResourceType       `json:"name" union:"STORAGE"`
+	Name      ResourceType       `json:"name"`
 	Total     UnitValue[float64] `json:"total"`
 	Available UnitValue[float64] `json:"available"`
 }
@@ -125,8 +128,9 @@ func NewStorageResourceData(total UnitValue[float64], available UnitValue[float6
 }
 
 type MemoryResourceData struct {
+	serder.Metadata `union:"MEMORY"`
 	ResourceDataBase
-	Name      ResourceType       `json:"name" union:"MEMORY"`
+	Name      ResourceType       `json:"name"`
 	Total     UnitValue[float64] `json:"total"`
 	Available UnitValue[float64] `json:"available"`
 }
