@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"reflect"
 
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
@@ -37,6 +38,11 @@ func (u *TypeUnion) Include(typ myreflect.Type) bool {
 	return false
 }
 
-func (u *TypeUnion) Add(typ myreflect.Type) {
+func (u *TypeUnion) Add(typ myreflect.Type) error {
+	if !typ.AssignableTo(u.UnionType) {
+		return fmt.Errorf("type is not assignable to union type")
+	}
+
 	u.ElementTypes = append(u.ElementTypes, typ)
+	return nil
 }
