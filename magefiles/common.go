@@ -77,11 +77,11 @@ func makeGoBuildArgs() (goBuildArgs, error) {
 
 	if Global.OS == "win" {
 		args.OutputExt = ".exe"
-		args.Env["CGO_ENABLE"] = "0"
+		args.Env["CGO_ENABLED"] = "0"
 		args.Env["GOOS"] = "windows"
 	} else if Global.OS == "linux" {
 		args.OutputExt = ""
-		args.Env["CGO_ENABLE"] = "0"
+		args.Env["CGO_ENABLED"] = "0"
 		args.Env["GOOS"] = "linux"
 
 	} else if Global.OS != "" {
