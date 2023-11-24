@@ -36,7 +36,7 @@ func NewReleaseActor(cfg *Config, etcdCli *clientv3.Client) *ReleaseActor {
 		etcdCli:                 etcdCli,
 		isMaintenance:           true,
 		releasingLockRequestIDs: make(map[string]bool),
-		doReleasingChan:         make(chan any),
+		doReleasingChan:         make(chan any, 1),
 	}
 }
 
@@ -120,12 +120,23 @@ func (a *ReleaseActor) OnLockRequestEvent(event LockRequestEvent) {
 
 func (a *ReleaseActor) Serve() {
 	for {
+		// 与Acquire不同，解锁操作不需要进行互斥判断，而且能一次性解锁多个，
+		// 所以此处也能保证新提交的解锁请求都会被尝试后再进入等待。
 		select {
 		case <-a.doReleasingChan:
-			err := a.doReleasing()
-			if err != nil {
-				logger.Std.Debugf("doing releasing: %s", err.Error())
-			}
+		}
+
+		// 先看一眼，如果没有需要释放的锁，就重新进入等待状态
+		a.lock.Lock()
+		if len(a.releasingLockRequestIDs) == 0 {
+			a.lock.Unlock()
+			continue
+		}
+		a.lock.Unlock()
+
+		err := a.doReleasing()
+		if err != nil {
+			logger.Std.Debugf("doing releasing: %s", err.Error())
 		}
 	}
 }
@@ -133,14 +144,6 @@ func (a *ReleaseActor) Serve() {
 func (a *ReleaseActor) doReleasing() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-
-	// 先看一眼，如果没有需要释放的锁，就不用走后面的流程了
-	a.lock.Lock()
-	if len(a.releasingLockRequestIDs) == 0 {
-		a.lock.Unlock()
-		return nil
-	}
-	a.lock.Unlock()
 
 	// 在获取全局锁的时候不用锁Actor，只有获取成功了，才加锁
 	// TODO 根据不同的错误设置不同的错误类型，方便上层进行后续处理

@@ -41,7 +41,7 @@ func NewAcquireActor(cfg *Config, etcdCli *clientv3.Client) *AcquireActor {
 		cfg:             cfg,
 		etcdCli:         etcdCli,
 		isMaintenance:   true,
-		doAcquiringChan: make(chan any),
+		doAcquiringChan: make(chan any, 1),
 	}
 }
 
@@ -139,26 +139,33 @@ func (a *AcquireActor) ResetState(serviceID string) {
 
 func (a *AcquireActor) Serve() {
 	for {
+		// 离开了select块之后doAcquiringChan的buf就会空出来，
+		// 如果之后成功提交了一个锁请求，那么WatchEtcd会收到事件，然后调用此Actor的回调再次设置doAcquiringChan。
+		// 因此无论多少个锁请求同时提交，或者是在doAcquiring期间提交，都不会因为某一个成功了，其他的就连试都不试就开始等待。
+		// 如果没有一个锁请求提交成功，那自然是已经尝试过所有锁请求了，此时等待新事件到来后F再来尝试也是合理的。
 		select {
 		case <-a.doAcquiringChan:
-			err := a.doAcquiring()
-			if err != nil {
-				logger.Std.Debugf("doing acquiring: %s", err.Error())
-			}
+		}
+
+		// 如果没有锁请求，那么就不需要进行加锁操作
+		a.lock.Lock()
+		if len(a.acquirings) == 0 {
+			a.lock.Unlock()
+			continue
+		}
+		a.lock.Unlock()
+
+		err := a.doAcquiring()
+		if err != nil {
+			logger.Std.Debugf("doing acquiring: %s", err.Error())
 		}
 	}
 }
 
+// 返回true代表成功提交了一个锁
 func (a *AcquireActor) doAcquiring() error {
+	// TODO 配置等待时间
 	ctx := context.Background()
-
-	// 先看一眼，如果没有需要请求的锁，就不用走后面的流程了
-	a.lock.Lock()
-	if len(a.acquirings) == 0 {
-		a.lock.Unlock()
-		return nil
-	}
-	a.lock.Unlock()
 
 	// 在获取全局锁的时候不用锁Actor，只有获取成功了，才加锁
 	// TODO 根据不同的错误设置不同的错误类型，方便上层进行后续处理
@@ -174,7 +181,6 @@ func (a *AcquireActor) doAcquiring() error {
 	}
 
 	// 等待本地状态同步到最新
-	// TODO 配置等待时间
 	err = a.providersActor.WaitLocalIndexTo(ctx, index)
 	if err != nil {
 		return err
