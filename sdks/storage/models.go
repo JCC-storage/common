@@ -36,10 +36,10 @@ func NewRepRedundancyInfo(repCount int) RepRedundancyInfo {
 
 type ECRedundancyInfo struct {
 	ECName    string `json:"ecName"`
-	ChunkSize int64  `json:"chunkSize"`
+	ChunkSize int    `json:"chunkSize"`
 }
 
-func NewECRedundancyInfo(ecName string, chunkSize int64) ECRedundancyInfo {
+func NewECRedundancyInfo(ecName string, chunkSize int) ECRedundancyInfo {
 	return ECRedundancyInfo{
 		ECName:    ecName,
 		ChunkSize: chunkSize,
@@ -74,7 +74,7 @@ func NewTypedRepRedundancyInfo(repCount int) TypedRedundancyInfo {
 	}
 }
 
-func NewTypedECRedundancyInfo(ecName string, chunkSize int64) TypedRedundancyInfo {
+func NewTypedECRedundancyInfo(ecName string, chunkSize int) TypedRedundancyInfo {
 	return TypedRedundancyInfo{
 		Type: RedundancyRep,
 		Info: ECRedundancyInfo{

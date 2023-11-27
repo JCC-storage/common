@@ -12,8 +12,8 @@ import (
 )
 
 var unionHandler = UnionHandler{
-	internallyTagged: make(map[reflect.Type]*TypeUnionInternallyTagged),
-	externallyTagged: make(map[reflect.Type]*TypeUnionExternallyTagged),
+	internallyTagged: make(map[reflect.Type]*anyTypeUnionInternallyTagged),
+	externallyTagged: make(map[reflect.Type]*anyTypeUnionExternallyTagged),
 }
 
 var defaultAPI = func() jsoniter.API {
@@ -107,7 +107,7 @@ func MapToObject(m map[string]any, obj any, opt ...MapToObjectOption) error {
 		op = opt[0]
 	}
 
-	unionTypeMapping := make(map[reflect.Type]*TypeUnionInternallyTagged)
+	unionTypeMapping := make(map[reflect.Type]*anyTypeUnionInternallyTagged)
 
 	if !op.NoRegisteredUnionTypes {
 		for _, u := range unionHandler.internallyTagged {

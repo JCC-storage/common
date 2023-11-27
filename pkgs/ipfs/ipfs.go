@@ -19,12 +19,11 @@ type Client struct {
 }
 
 func NewClient(cfg *Config) (*Client, error) {
-	ipfsAddr := fmt.Sprintf("localhost:%d", cfg.Port)
-	sh := shell.NewShell(ipfsAddr)
+	sh := shell.NewShell(cfg.Address)
 
 	// 检测连通性
 	if !sh.IsUp() {
-		return nil, fmt.Errorf("cannot connect to %s", ipfsAddr)
+		return nil, fmt.Errorf("cannot connect to %s", cfg.Address)
 	}
 
 	return &Client{
