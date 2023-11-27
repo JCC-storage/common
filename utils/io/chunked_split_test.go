@@ -157,7 +157,7 @@ func Test_RoundRobin(t *testing.T) {
 		}
 
 		outputs := ChunkedSplit(bytes.NewReader(input), 3, 3, ChunkedSplitOption{
-			FillZeros: true,
+			PaddingZeros: true,
 		})
 
 		wg := sync.WaitGroup{}
@@ -206,7 +206,7 @@ func Test_RoundRobin(t *testing.T) {
 		}
 
 		outputs := ChunkedSplit(bytes.NewReader(input), 3, 3, ChunkedSplitOption{
-			FillZeros: true,
+			PaddingZeros: true,
 		})
 		wg := sync.WaitGroup{}
 		wg.Add(3)
@@ -254,7 +254,7 @@ func Test_RoundRobin(t *testing.T) {
 		}
 
 		outputs := ChunkedSplit(bytes.NewReader(input), 3, 3, ChunkedSplitOption{
-			FillZeros: true,
+			PaddingZeros: true,
 		})
 
 		wg := sync.WaitGroup{}

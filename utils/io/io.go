@@ -24,9 +24,16 @@ func WriteAll(writer io.Writer, data []byte) error {
 	return nil
 }
 
+const (
+	onceDisabled = 0
+	onceEnabled  = 1
+	onceDone     = 2
+)
+
 type readCloserHook struct {
 	readCloser io.ReadCloser
 	callback   func(closer io.ReadCloser)
+	once       int
 	isBefore   bool // callback调用时机，true则在closer的Close之前调用
 }
 
@@ -35,6 +42,10 @@ func (hook *readCloserHook) Read(buf []byte) (n int, err error) {
 }
 
 func (hook *readCloserHook) Close() error {
+	if hook.once == onceDone {
+		return hook.readCloser.Close()
+	}
+
 	if hook.isBefore {
 		hook.callback(hook.readCloser)
 	}
@@ -44,6 +55,11 @@ func (hook *readCloserHook) Close() error {
 	if !hook.isBefore {
 		hook.callback(hook.readCloser)
 	}
+
+	if hook.once == onceEnabled {
+		hook.once = onceDone
+	}
+
 	return err
 }
 
@@ -51,6 +67,7 @@ func BeforeReadClosing(closer io.ReadCloser, callback func(closer io.ReadCloser)
 	return &readCloserHook{
 		readCloser: closer,
 		callback:   callback,
+		once:       onceDisabled,
 		isBefore:   true,
 	}
 }
@@ -59,6 +76,16 @@ func AfterReadClosed(closer io.ReadCloser, callback func(closer io.ReadCloser)) 
 	return &readCloserHook{
 		readCloser: closer,
 		callback:   callback,
+		once:       onceDisabled,
+		isBefore:   false,
+	}
+}
+
+func AfterReadClosedOnce(closer io.ReadCloser, callback func(closer io.ReadCloser)) io.ReadCloser {
+	return &readCloserHook{
+		readCloser: closer,
+		callback:   callback,
+		once:       onceEnabled,
 		isBefore:   false,
 	}
 }

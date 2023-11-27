@@ -12,32 +12,40 @@ import (
 	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 )
 
-type TypeUnionExternallyTagged struct {
-	Union          *types.TypeUnion
+type anyTypeUnionExternallyTagged struct {
+	Union          *types.AnyTypeUnion
 	TypeNameToType map[string]reflect.Type
+}
+
+type TypeUnionExternallyTagged[T any] struct {
+	anyTypeUnionExternallyTagged
+	TUnion *types.TypeUnion[T]
 }
 
 // 遇到TypeUnion的基类（UnionType）的字段时，将其实际值的类型信息也编码到JSON中，反序列化时也会解析出类型信息，还原出真实的类型。
 // Externally Tagged的格式是：{ "类型名": {...对象内容...} }
 //
 // 可以通过内嵌Metadata结构体，并在它身上增加"union"Tag来指定类型名称，如果没有指定，则默认使用系统类型名（包括包路径）。
-func UseTypeUnionExternallyTagged(union *types.TypeUnion) *TypeUnionExternallyTagged {
-	eu := &TypeUnionExternallyTagged{
-		Union:          union,
-		TypeNameToType: make(map[string]reflect.Type),
+func UseTypeUnionExternallyTagged[T any](union *types.TypeUnion[T]) *TypeUnionExternallyTagged[T] {
+	eu := &TypeUnionExternallyTagged[T]{
+		anyTypeUnionExternallyTagged: anyTypeUnionExternallyTagged{
+			Union:          union.ToAny(),
+			TypeNameToType: make(map[string]reflect.Type),
+		},
+		TUnion: union,
 	}
 
 	for _, eleType := range union.ElementTypes {
 		eu.Add(eleType)
 	}
 
-	unionHandler.externallyTagged[union.UnionType] = eu
+	unionHandler.externallyTagged[union.UnionType] = &eu.anyTypeUnionExternallyTagged
 
 	return eu
 }
 
-func (u *TypeUnionExternallyTagged) Add(typ reflect.Type) error {
-	err := u.Union.Add(typ)
+func (u *TypeUnionExternallyTagged[T]) Add(typ reflect.Type) error {
+	err := u.TUnion.Add(typ)
 	if err != nil {
 		return nil
 	}
@@ -46,10 +54,20 @@ func (u *TypeUnionExternallyTagged) Add(typ reflect.Type) error {
 	return nil
 }
 
-type TypeUnionInternallyTagged struct {
-	Union     *types.TypeUnion
+func (u *TypeUnionExternallyTagged[T]) AddT(nilValue T) error {
+	u.Add(reflect.TypeOf(nilValue))
+	return nil
+}
+
+type anyTypeUnionInternallyTagged struct {
+	Union     *types.AnyTypeUnion
 	TagField  string
 	TagToType map[string]reflect.Type
+}
+
+type TypeUnionInternallyTagged[T any] struct {
+	anyTypeUnionInternallyTagged
+	TUnion *types.TypeUnion[T]
 }
 
 // 遇到TypeUnion的基类（UnionType）的字段时，将其实际值的类型信息也编码到JSON中，反序列化时也会解析出类型信息，还原出真实的类型。
@@ -57,22 +75,25 @@ type TypeUnionInternallyTagged struct {
 // 注：对象定义需要包含类型字段，而且在序列化之前需要手动赋值，目前不支持自动设置。
 //
 // 可以通过内嵌Metadata结构体，并在它身上增加"union"Tag来指定类型名称，如果没有指定，则默认使用系统类型名（包括包路径）。
-func UseTypeUnionInternallyTagged(union *types.TypeUnion, tagField string) *TypeUnionInternallyTagged {
-	iu := &TypeUnionInternallyTagged{
-		Union:     union,
-		TagField:  tagField,
-		TagToType: make(map[string]reflect.Type),
+func UseTypeUnionInternallyTagged[T any](union *types.TypeUnion[T], tagField string) *TypeUnionInternallyTagged[T] {
+	iu := &TypeUnionInternallyTagged[T]{
+		anyTypeUnionInternallyTagged: anyTypeUnionInternallyTagged{
+			Union:     union.ToAny(),
+			TagField:  tagField,
+			TagToType: make(map[string]reflect.Type),
+		},
+		TUnion: union,
 	}
 
 	for _, eleType := range union.ElementTypes {
 		iu.Add(eleType)
 	}
 
-	unionHandler.internallyTagged[union.UnionType] = iu
+	unionHandler.internallyTagged[union.UnionType] = &iu.anyTypeUnionInternallyTagged
 	return iu
 }
 
-func (u *TypeUnionInternallyTagged) Add(typ reflect.Type) error {
+func (u *TypeUnionInternallyTagged[T]) Add(typ reflect.Type) error {
 	err := u.Union.Add(typ)
 	if err != nil {
 		return nil
@@ -107,9 +128,14 @@ func (u *TypeUnionInternallyTagged) Add(typ reflect.Type) error {
 	return nil
 }
 
+func (u *TypeUnionInternallyTagged[T]) AddT(nilValue T) error {
+	u.Add(reflect.TypeOf(nilValue))
+	return nil
+}
+
 type UnionHandler struct {
-	internallyTagged map[reflect.Type]*TypeUnionInternallyTagged
-	externallyTagged map[reflect.Type]*TypeUnionExternallyTagged
+	internallyTagged map[reflect.Type]*anyTypeUnionInternallyTagged
+	externallyTagged map[reflect.Type]*anyTypeUnionExternallyTagged
 }
 
 func (h *UnionHandler) UpdateStructDescriptor(structDescriptor *jsoniter.StructDescriptor) {
@@ -167,7 +193,7 @@ func (h *UnionHandler) DecorateEncoder(typ reflect2.Type, encoder jsoniter.ValEn
 
 // 以下Encoder/Decoder都是在传入类型/目标类型是TypeUnion的基类（UnionType）时使用
 type InternallyTaggedEncoder struct {
-	union *TypeUnionInternallyTagged
+	union *anyTypeUnionInternallyTagged
 }
 
 func (e *InternallyTaggedEncoder) IsEmpty(ptr unsafe.Pointer) bool {
@@ -190,7 +216,7 @@ func (e *InternallyTaggedEncoder) Encode(ptr unsafe.Pointer, stream *jsoniter.St
 }
 
 type InternallyTaggedDecoder struct {
-	union *TypeUnionInternallyTagged
+	union *anyTypeUnionInternallyTagged
 }
 
 func (e *InternallyTaggedDecoder) Decode(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
@@ -243,7 +269,7 @@ func (e *InternallyTaggedDecoder) Decode(ptr unsafe.Pointer, iter *jsoniter.Iter
 }
 
 type ExternallyTaggedEncoder struct {
-	union *TypeUnionExternallyTagged
+	union *anyTypeUnionExternallyTagged
 }
 
 func (e *ExternallyTaggedEncoder) IsEmpty(ptr unsafe.Pointer) bool {
@@ -278,7 +304,7 @@ func (e *ExternallyTaggedEncoder) Encode(ptr unsafe.Pointer, stream *jsoniter.St
 }
 
 type ExternallyTaggedDecoder struct {
-	union *TypeUnionExternallyTagged
+	union *anyTypeUnionExternallyTagged
 }
 
 func (e *ExternallyTaggedDecoder) Decode(ptr unsafe.Pointer, iter *jsoniter.Iterator) {

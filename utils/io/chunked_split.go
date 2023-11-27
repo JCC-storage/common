@@ -7,11 +7,11 @@ import (
 
 type ChunkedSplitOption struct {
 	// 如果流的长度不是chunkSize * streamCount的整数倍，启用此参数后，会在输出流里填充0直到满足长度
-	FillZeros bool
+	PaddingZeros bool
 }
 
 // 每次读取一个chunkSize大小的数据，然后轮流写入到返回的流中。注：读取不同流的操作必须在不同的goroutine中进行，或者按顺序读取，每次精确读取一个chunkSize大小
-func ChunkedSplit(stream io.Reader, chunkSize int64, streamCount int, opts ...ChunkedSplitOption) []io.ReadCloser {
+func ChunkedSplit(stream io.Reader, chunkSize int, streamCount int, opts ...ChunkedSplitOption) []io.ReadCloser {
 	var opt ChunkedSplitOption
 	if len(opts) > 0 {
 		opt = opts[0]
@@ -49,7 +49,7 @@ func ChunkedSplit(stream io.Reader, chunkSize int64, streamCount int, opts ...Ch
 					break
 				}
 
-				if opt.FillZeros {
+				if opt.PaddingZeros {
 					Zero(buf[rd:])
 					err := WriteAll(pws[i], buf)
 					if err != nil {
