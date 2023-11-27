@@ -112,3 +112,16 @@ func Lazy(open func() (io.ReadCloser, error)) *LazyReadCloser {
 		open: open,
 	}
 }
+
+func ToReaders(strs []io.ReadCloser) ([]io.Reader, func()) {
+	var readers []io.Reader
+	for _, s := range strs {
+		readers = append(readers, s)
+	}
+
+	return readers, func() {
+		for _, s := range strs {
+			s.Close()
+		}
+	}
+}
