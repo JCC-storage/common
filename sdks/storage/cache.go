@@ -8,9 +8,9 @@ import (
 )
 
 type CacheMovePackageReq struct {
-	UserID    int64 `json:"userID"`
-	PackageID int64 `json:"packageID"`
-	NodeID    int64 `json:"nodeID"`
+	UserID    UserID    `json:"userID"`
+	PackageID PackageID `json:"packageID"`
+	NodeID    NodeID    `json:"nodeID"`
 }
 type CacheMovePackageResp struct {
 	CacheInfos []ObjectCacheInfo `json:"cacheInfos"`
@@ -42,8 +42,8 @@ func (c *Client) CacheMovePackage(req CacheMovePackageReq) (*CacheMovePackageRes
 }
 
 type CacheGetPackageObjectCacheInfosReq struct {
-	UserID    int64 `json:"userID"`
-	PackageID int64 `json:"packageID"`
+	UserID    UserID    `json:"userID"`
+	PackageID PackageID `json:"packageID"`
 }
 type CacheGetPackageObjectCacheInfosResp struct {
 	Infos []ObjectCacheInfo `json:"cacheInfos"`

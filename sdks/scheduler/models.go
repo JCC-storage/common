@@ -59,10 +59,9 @@ type NormalJobInfo struct {
 type ResourceJobInfo struct {
 	serder.Metadata `union:"Resource"`
 	JobInfoBase
-	Type             string                     `json:"type"`
-	BucketID         int64                      `json:"bucketID"`
-	Redundancy       cdssdk.TypedRedundancyInfo `json:"redundancy"`
-	TargetLocalJobID string                     `json:"targetLocalJobID"`
+	Type             string          `json:"type"`
+	BucketID         cdssdk.BucketID `json:"bucketID"`
+	TargetLocalJobID string          `json:"targetLocalJobID"`
 }
 
 type JobFilesInfo struct {
@@ -90,8 +89,8 @@ func (i *JobFileInfoBase) Noop() {}
 type PackageJobFileInfo struct {
 	serder.Metadata `union:"Package"`
 	JobFileInfoBase
-	Type      string `json:"type"`
-	PackageID int64  `json:"packageID"`
+	Type      string           `json:"type"`
+	PackageID cdssdk.PackageID `json:"packageID"`
 }
 
 type LocalJobFileInfo struct {
@@ -141,6 +140,6 @@ type JobSetFilesUploadScheme struct {
 }
 
 type LocalFileUploadScheme struct {
-	LocalPath         string `json:"localPath"`
-	UploadToCDSNodeID *int64 `json:"uploadToCDSNodeID"`
+	LocalPath         string         `json:"localPath"`
+	UploadToCDSNodeID *cdssdk.NodeID `json:"uploadToCDSNodeID"`
 }

@@ -22,7 +22,7 @@ type TypeUnionExternallyTagged[T any] struct {
 	TUnion *types.TypeUnion[T]
 }
 
-// 遇到TypeUnion的基类（UnionType）的字段时，将其实际值的类型信息也编码到JSON中，反序列化时也会解析出类型信息，还原出真实的类型。
+// 遇到TypeUnion的基类（UnionType）的字段时，将其实际值的类型信息也编码到JSON中，反序列化时也会根据解析出类型信息，还原出真实的类型。
 // Externally Tagged的格式是：{ "类型名": {...对象内容...} }
 //
 // 可以通过内嵌Metadata结构体，并在它身上增加"union"Tag来指定类型名称，如果没有指定，则默认使用系统类型名（包括包路径）。

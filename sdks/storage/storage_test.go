@@ -27,10 +27,6 @@ func Test_PackageGet(t *testing.T) {
 			UserID:   0,
 			BucketID: 1,
 			Name:     pkgName,
-			Redundancy: TypedRedundancyInfo{
-				Type: RedundancyRep,
-				Info: NewRepRedundancyInfo(1),
-			},
 			Files: iterator.Array(
 				&IterPackageUploadFile{
 					Path: "test",
@@ -72,15 +68,11 @@ func Test_Object(t *testing.T) {
 			fileData[i] = byte(i)
 		}
 
-		nodeAff := int64(2)
+		nodeAff := NodeID(2)
 		upResp, err := cli.PackageUpload(PackageUploadReq{
-			UserID:   0,
-			BucketID: 1,
-			Name:     uuid.NewString(),
-			Redundancy: TypedRedundancyInfo{
-				Type: RedundancyRep,
-				Info: NewRepRedundancyInfo(1),
-			},
+			UserID:       0,
+			BucketID:     1,
+			Name:         uuid.NewString(),
 			NodeAffinity: &nodeAff,
 			Files: iterator.Array(
 				&IterPackageUploadFile{
@@ -129,10 +121,6 @@ func Test_Storage(t *testing.T) {
 			UserID:   0,
 			BucketID: 1,
 			Name:     uuid.NewString(),
-			Redundancy: TypedRedundancyInfo{
-				Type: RedundancyRep,
-				Info: NewRepRedundancyInfo(1),
-			},
 			Files: iterator.Array(
 				&IterPackageUploadFile{
 					Path: "test",
@@ -176,10 +164,6 @@ func Test_Cache(t *testing.T) {
 			UserID:   0,
 			BucketID: 1,
 			Name:     uuid.NewString(),
-			Redundancy: TypedRedundancyInfo{
-				Type: RedundancyRep,
-				Info: NewRepRedundancyInfo(1),
-			},
 			Files: iterator.Array(
 				&IterPackageUploadFile{
 					Path: "test.txt",
