@@ -48,13 +48,11 @@ type RepRedundancy struct {
 	RedundancyBase
 	serder.Metadata `union:"rep"`
 	Type            string `json:"type"`
-	RepCount        int    `json:"repCount"`
 }
 
-func NewRepRedundancy(repCount int) RepRedundancy {
-	return RepRedundancy{
-		Type:     "rep",
-		RepCount: repCount,
+func NewRepRedundancy() *RepRedundancy {
+	return &RepRedundancy{
+		Type: "rep",
 	}
 }
 
@@ -67,14 +65,19 @@ type ECRedundancy struct {
 	ChunkSize       int    `json:"chunkSize"`
 }
 
-func NewECRedundancy(k int, n int, chunkSize int) ECRedundancy {
-	return ECRedundancy{
+func NewECRedundancy(k int, n int, chunkSize int) *ECRedundancy {
+	return &ECRedundancy{
 		Type:      "ec",
 		K:         k,
 		N:         n,
 		ChunkSize: chunkSize,
 	}
 }
+
+const (
+	PackageStateNormal  = "Normal"
+	PackageStateDeleted = "Deleted"
+)
 
 type Package struct {
 	PackageID PackageID `db:"PackageID" json:"packageID"`
