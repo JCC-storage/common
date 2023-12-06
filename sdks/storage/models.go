@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"gitlink.org.cn/cloudream/common/pkgs/types"
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -33,19 +32,12 @@ type Redundancy interface {
 	driver.Valuer
 }
 
-type RedundancyBase struct{}
-
-func (b *RedundancyBase) Value() (driver.Value, error) {
-	return serder.ObjectToJSONEx[Redundancy](b)
-}
-
 var RedundancyUnion = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[Redundancy](
 	(*RepRedundancy)(nil),
 	(*ECRedundancy)(nil),
 )), "type")
 
 type RepRedundancy struct {
-	RedundancyBase
 	serder.Metadata `union:"rep"`
 	Type            string `json:"type"`
 }
@@ -55,9 +47,11 @@ func NewRepRedundancy() *RepRedundancy {
 		Type: "rep",
 	}
 }
+func (b *RepRedundancy) Value() (driver.Value, error) {
+	return serder.ObjectToJSONEx[Redundancy](b)
+}
 
 type ECRedundancy struct {
-	RedundancyBase
 	serder.Metadata `union:"ec"`
 	Type            string `json:"type"`
 	K               int    `json:"k"`
@@ -72,6 +66,9 @@ func NewECRedundancy(k int, n int, chunkSize int) *ECRedundancy {
 		N:         n,
 		ChunkSize: chunkSize,
 	}
+}
+func (b *ECRedundancy) Value() (driver.Value, error) {
+	return serder.ObjectToJSONEx[Redundancy](b)
 }
 
 const (
@@ -93,21 +90,6 @@ type Object struct {
 	Size       int64      `db:"Size" json:"size,string"`
 	FileHash   string     `db:"FileHash" json:"fileHash"`
 	Redundancy Redundancy `db:"Redundancy" json:"redundancy"`
-}
-
-func (i *Object) Scan(src interface{}) error {
-	data, ok := src.([]uint8)
-	if !ok {
-		return fmt.Errorf("unknow src type: %v", myreflect.TypeOfValue(data))
-	}
-
-	obj, err := serder.JSONToObjectEx[*Object](data)
-	if err != nil {
-		return err
-	}
-
-	*i = *obj
-	return nil
 }
 
 type NodePackageCachingInfo struct {
