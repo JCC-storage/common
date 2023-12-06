@@ -13,8 +13,8 @@ import (
 )
 
 type PackageGetReq struct {
-	UserID    int64 `json:"userID"`
-	PackageID int64 `json:"packageID"`
+	UserID    UserID    `json:"userID"`
+	PackageID PackageID `json:"packageID"`
 }
 type PackageGetResp struct {
 	Package
@@ -46,11 +46,10 @@ func (c *Client) PackageGet(req PackageGetReq) (*PackageGetResp, error) {
 }
 
 type PackageUploadReq struct {
-	UserID       int64                     `json:"userID"`
-	BucketID     int64                     `json:"bucketID"`
+	UserID       UserID                    `json:"userID"`
+	BucketID     BucketID                  `json:"bucketID"`
 	Name         string                    `json:"name"`
-	Redundancy   TypedRedundancyInfo       `json:"redundancy"`
-	NodeAffinity *int64                    `json:"nodeAffinity"`
+	NodeAffinity *NodeID                   `json:"nodeAffinity"`
 	Files        PackageUploadFileIterator `json:"-"`
 }
 
@@ -62,7 +61,7 @@ type IterPackageUploadFile struct {
 type PackageUploadFileIterator = iterator.Iterator[*IterPackageUploadFile]
 
 type PackageUploadResp struct {
-	PackageID int64 `json:"packageID,string"`
+	PackageID PackageID `json:"packageID,string"`
 }
 
 func (c *Client) PackageUpload(req PackageUploadReq) (*PackageUploadResp, error) {
@@ -109,8 +108,8 @@ func (c *Client) PackageUpload(req PackageUploadReq) (*PackageUploadResp, error)
 }
 
 type PackageDeleteReq struct {
-	UserID    int64 `json:"userID"`
-	PackageID int64 `json:"packageID"`
+	UserID    UserID    `json:"userID"`
+	PackageID PackageID `json:"packageID"`
 }
 
 func (c *Client) PackageDelete(req PackageDeleteReq) error {
@@ -145,8 +144,8 @@ func (c *Client) PackageDelete(req PackageDeleteReq) error {
 }
 
 type PackageGetCachedNodesReq struct {
-	PackageID int64 `json:"packageID"`
-	UserID    int64 `json:"userID"`
+	PackageID PackageID `json:"packageID"`
+	UserID    UserID    `json:"userID"`
 }
 
 type PackageGetCachedNodesResp struct {
@@ -183,12 +182,12 @@ func (c *Client) PackageGetCachedNodes(req PackageGetCachedNodesReq) (*PackageGe
 }
 
 type PackageGetLoadedNodesReq struct {
-	PackageID int64 `json:"packageID"`
-	UserID    int64 `json:"userID"`
+	PackageID PackageID `json:"packageID"`
+	UserID    UserID    `json:"userID"`
 }
 
 type PackageGetLoadedNodesResp struct {
-	NodeIDs []int64 `json:"nodeIDs"`
+	NodeIDs []NodeID `json:"nodeIDs"`
 }
 
 func (c *Client) PackageGetLoadedNodes(req PackageGetLoadedNodesReq) (*PackageGetLoadedNodesResp, error) {

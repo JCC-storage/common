@@ -3,6 +3,7 @@ package io
 import (
 	"bytes"
 	"io"
+	"sync"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -113,5 +114,70 @@ func Test_Length(t *testing.T) {
 			_, err = io.ReadFull(str, buf)
 		}
 		So(err, ShouldEqual, io.ErrUnexpectedEOF)
+	})
+}
+
+func Test_Clone(t *testing.T) {
+	Convey("所有输出流都会被读取完", t, func() {
+		data := []byte{1, 2, 3, 4, 5}
+		str := bytes.NewReader(data)
+
+		cloneds := Clone(str, 3)
+		reads := make([][]byte, 3)
+		errs := make([]error, 3)
+
+		wg := sync.WaitGroup{}
+		wg.Add(3)
+
+		go func() {
+			reads[0], errs[0] = io.ReadAll(cloneds[0])
+			wg.Done()
+		}()
+		go func() {
+			reads[1], errs[1] = io.ReadAll(cloneds[1])
+			wg.Done()
+		}()
+		go func() {
+			reads[2], errs[2] = io.ReadAll(cloneds[2])
+			wg.Done()
+		}()
+
+		wg.Wait()
+
+		So(reads, ShouldResemble, [][]byte{data, data, data})
+		So(errs, ShouldResemble, []error{nil, nil, nil})
+	})
+
+	Convey("其中一个流读到一半就停止读取", t, func() {
+		data := []byte{1, 2, 3, 4, 5}
+		str := bytes.NewReader(data)
+
+		cloneds := Clone(str, 3)
+		reads := make([][]byte, 3)
+		errs := make([]error, 3)
+
+		wg := sync.WaitGroup{}
+		wg.Add(3)
+
+		go func() {
+			reads[0], errs[0] = io.ReadAll(cloneds[0])
+			wg.Done()
+		}()
+		go func() {
+			buf := make([]byte, 3)
+			_, errs[1] = io.ReadFull(cloneds[1], buf)
+			reads[1] = buf
+			cloneds[1].Close()
+			wg.Done()
+		}()
+		go func() {
+			reads[2], errs[2] = io.ReadAll(cloneds[2])
+			wg.Done()
+		}()
+
+		wg.Wait()
+
+		So(reads, ShouldResemble, [][]byte{data, {1, 2, 3}, data})
+		So(errs, ShouldResemble, []error{nil, nil, nil})
 	})
 }

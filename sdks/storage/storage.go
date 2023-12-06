@@ -11,9 +11,9 @@ import (
 )
 
 type StorageLoadPackageReq struct {
-	UserID    int64 `json:"userID"`
-	PackageID int64 `json:"packageID"`
-	StorageID int64 `json:"storageID"`
+	UserID    UserID    `json:"userID"`
+	PackageID PackageID `json:"packageID"`
+	StorageID StorageID `json:"storageID"`
 }
 type StorageLoadPackageResp struct {
 	FullPath string `json:"fullPath"`
@@ -45,16 +45,15 @@ func (c *Client) StorageLoadPackage(req StorageLoadPackageReq) (*StorageLoadPack
 }
 
 type StorageCreatePackageReq struct {
-	UserID     int64               `json:"userID"`
-	StorageID  int64               `json:"storageID"`
-	Path       string              `json:"path"`
-	BucketID   int64               `json:"bucketID"`
-	Name       string              `json:"name"`
-	Redundancy TypedRedundancyInfo `json:"redundancy"`
+	UserID    UserID    `json:"userID"`
+	StorageID StorageID `json:"storageID"`
+	Path      string    `json:"path"`
+	BucketID  BucketID  `json:"bucketID"`
+	Name      string    `json:"name"`
 }
 
 type StorageCreatePackageResp struct {
-	PackageID int64 `json:"packageID"`
+	PackageID PackageID `json:"packageID"`
 }
 
 func (c *Client) StorageCreatePackage(req StorageCreatePackageReq) (*StorageCreatePackageResp, error) {
@@ -88,12 +87,12 @@ func (c *Client) StorageCreatePackage(req StorageCreatePackageReq) (*StorageCrea
 }
 
 type StorageGetInfoReq struct {
-	UserID    int64 `json:"userID"`
-	StorageID int64 `json:"storageID"`
+	UserID    UserID    `json:"userID"`
+	StorageID StorageID `json:"storageID"`
 }
 type StorageGetInfoResp struct {
 	Name      string `json:"name"`
-	NodeID    int64  `json:"nodeID"`
+	NodeID    NodeID `json:"nodeID"`
 	Directory string `json:"directory"`
 }
 

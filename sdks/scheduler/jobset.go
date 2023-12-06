@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
+	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -50,10 +51,10 @@ func (c *Client) JobSetSumbit(req JobSetSumbitReq) (*JobSetSumbitResp, error) {
 }
 
 type JobSetLocalFileUploadedReq struct {
-	JobSetID  string `json:"jobSetID"`
-	LocalPath string `json:"localPath"`
-	Error     string `json:"error"`
-	PackageID int64  `json:"packageID"`
+	JobSetID  string           `json:"jobSetID"`
+	LocalPath string           `json:"localPath"`
+	Error     string           `json:"error"`
+	PackageID cdssdk.PackageID `json:"packageID"`
 }
 
 func (c *Client) JobSetLocalFileUploaded(req JobSetLocalFileUploadedReq) error {

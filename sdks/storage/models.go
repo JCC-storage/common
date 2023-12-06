@@ -1,9 +1,10 @@
 package cdssdk
 
 import (
+	"database/sql/driver"
 	"fmt"
 
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/pkgs/types"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -11,152 +12,101 @@ const (
 	ObjectPathSeperator = "/"
 )
 
+type NodeID int64
+
+type PackageID int64
+
+type ObjectID int64
+
+type UserID int64
+
+type BucketID int64
+
+type StorageID int64
+
+type LocationID int64
+
 /// TODO 将分散在各处的公共结构体定义集中到这里来
 
-const (
-	RedundancyRep = "rep"
-	RedundancyEC  = "ec"
-)
-
-// 冗余模式的描述信息。
-// 注：如果在mq中的消息结构体使用了此类型，记得使用RegisterTypeSet注册相关的类型。
-type RedundancyInfo interface{}
-type RedundancyInfoConst interface {
-	RepRedundancyInfo | ECRedundancyInfo
-}
-type RepRedundancyInfo struct {
-	RepCount int `json:"repCount"`
+type Redundancy interface {
+	driver.Valuer
 }
 
-func NewRepRedundancyInfo(repCount int) RepRedundancyInfo {
-	return RepRedundancyInfo{
-		RepCount: repCount,
+var RedundancyUnion = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[Redundancy](
+	(*RepRedundancy)(nil),
+	(*ECRedundancy)(nil),
+)), "type")
+
+type RepRedundancy struct {
+	serder.Metadata `union:"rep"`
+	Type            string `json:"type"`
+}
+
+func NewRepRedundancy() *RepRedundancy {
+	return &RepRedundancy{
+		Type: "rep",
 	}
 }
-
-type ECRedundancyInfo struct {
-	ECName    string `json:"ecName"`
-	ChunkSize int    `json:"chunkSize"`
+func (b *RepRedundancy) Value() (driver.Value, error) {
+	return serder.ObjectToJSONEx[Redundancy](b)
 }
 
-func NewECRedundancyInfo(ecName string, chunkSize int) ECRedundancyInfo {
-	return ECRedundancyInfo{
-		ECName:    ecName,
+type ECRedundancy struct {
+	serder.Metadata `union:"ec"`
+	Type            string `json:"type"`
+	K               int    `json:"k"`
+	N               int    `json:"n"`
+	ChunkSize       int    `json:"chunkSize"`
+}
+
+func NewECRedundancy(k int, n int, chunkSize int) *ECRedundancy {
+	return &ECRedundancy{
+		Type:      "ec",
+		K:         k,
+		N:         n,
 		ChunkSize: chunkSize,
 	}
 }
-
-type TypedRedundancyInfo struct {
-	Type string         `json:"type"`
-	Info RedundancyInfo `json:"info"`
+func (b *ECRedundancy) Value() (driver.Value, error) {
+	return serder.ObjectToJSONEx[Redundancy](b)
 }
 
-func NewTypedRedundancyInfo[T RedundancyInfoConst](info T) TypedRedundancyInfo {
-	var typ string
+const (
+	PackageStateNormal  = "Normal"
+	PackageStateDeleted = "Deleted"
+)
 
-	if myreflect.TypeOf[T]() == myreflect.TypeOf[RepRedundancyInfo]() {
-		typ = RedundancyRep
-	} else if myreflect.TypeOf[T]() == myreflect.TypeOf[ECRedundancyInfo]() {
-		typ = RedundancyEC
-	}
-
-	return TypedRedundancyInfo{
-		Type: typ,
-		Info: info,
-	}
-}
-func NewTypedRepRedundancyInfo(repCount int) TypedRedundancyInfo {
-	return TypedRedundancyInfo{
-		Type: RedundancyRep,
-		Info: RepRedundancyInfo{
-			RepCount: repCount,
-		},
-	}
-}
-
-func NewTypedECRedundancyInfo(ecName string, chunkSize int) TypedRedundancyInfo {
-	return TypedRedundancyInfo{
-		Type: RedundancyRep,
-		Info: ECRedundancyInfo{
-			ECName:    ecName,
-			ChunkSize: chunkSize,
-		},
-	}
-}
-
-func (i *TypedRedundancyInfo) IsRepInfo() bool {
-	return i.Type == RedundancyRep
-}
-
-func (i *TypedRedundancyInfo) IsECInfo() bool {
-	return i.Type == RedundancyEC
-}
-
-func (i *TypedRedundancyInfo) ToRepInfo() (RepRedundancyInfo, error) {
-	var info RepRedundancyInfo
-	err := serder.AnyToAny(i.Info, &info)
-	return info, err
-}
-
-func (i *TypedRedundancyInfo) ToECInfo() (ECRedundancyInfo, error) {
-	var info ECRedundancyInfo
-	err := serder.AnyToAny(i.Info, &info)
-	return info, err
-}
-
-func (i *TypedRedundancyInfo) Scan(src interface{}) error {
-	data, ok := src.([]uint8)
-	if !ok {
-		return fmt.Errorf("unknow src type: %v", myreflect.TypeOfValue(data))
-	}
-
-	return serder.JSONToObject(data, i)
-}
-
-type NodePackageCachingInfo struct {
-	NodeID      int64 `json:"nodeID"`
-	FileSize    int64 `json:"fileSize"`
-	ObjectCount int64 `json:"objectCount"`
-}
-
-type PackageCachingInfo struct {
-	NodeInfos     []NodePackageCachingInfo `json:"nodeInfos"`
-	PackageSize   int64                    `json:"packageSize"`
-	RedunancyType string                   `json:"redunancyType"`
-}
-
-func NewPackageCachingInfo(nodeInfos []NodePackageCachingInfo, packageSize int64, redunancyType string) PackageCachingInfo {
-	return PackageCachingInfo{
-		NodeInfos:     nodeInfos,
-		PackageSize:   packageSize,
-		RedunancyType: redunancyType,
-	}
+type Package struct {
+	PackageID PackageID `db:"PackageID" json:"packageID"`
+	Name      string    `db:"Name" json:"name"`
+	BucketID  BucketID  `db:"BucketID" json:"bucketID"`
+	State     string    `db:"State" json:"state"`
 }
 
 type Object struct {
-	ObjectID  int64  `db:"ObjectID" json:"objectID"`
-	PackageID int64  `db:"PackageID" json:"packageID"`
-	Path      string `db:"Path" json:"path"`
-	Size      int64  `db:"Size" json:"size,string"`
+	ObjectID   ObjectID   `db:"ObjectID" json:"objectID"`
+	PackageID  PackageID  `db:"PackageID" json:"packageID"`
+	Path       string     `db:"Path" json:"path"`
+	Size       int64      `db:"Size" json:"size,string"`
+	FileHash   string     `db:"FileHash" json:"fileHash"`
+	Redundancy Redundancy `db:"Redundancy" json:"redundancy"`
 }
 
-type Package struct {
-	PackageID  int64               `db:"PackageID" json:"packageID"`
-	Name       string              `db:"Name" json:"name"`
-	BucketID   int64               `db:"BucketID" json:"bucketID"`
-	State      string              `db:"State" json:"state"`
-	Redundancy TypedRedundancyInfo `db:"Redundancy" json:"redundancy"`
+type NodePackageCachingInfo struct {
+	NodeID      NodeID `json:"nodeID"`
+	FileSize    int64  `json:"fileSize"`
+	ObjectCount int64  `json:"objectCount"`
 }
 
-type ObjectCacheInfo struct {
-	Object   Object `json:"object"`
-	FileHash string `json:"fileHash"`
+type PackageCachingInfo struct {
+	NodeInfos   []NodePackageCachingInfo `json:"nodeInfos"`
+	PackageSize int64                    `json:"packageSize"`
 }
 
-func NewObjectCacheInfo(object Object, fileHash string) ObjectCacheInfo {
-	return ObjectCacheInfo{
-		Object:   object,
-		FileHash: fileHash,
+func NewPackageCachingInfo(nodeInfos []NodePackageCachingInfo, packageSize int64) PackageCachingInfo {
+	return PackageCachingInfo{
+		NodeInfos:   nodeInfos,
+		PackageSize: packageSize,
 	}
 }
 
