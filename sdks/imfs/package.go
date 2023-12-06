@@ -8,19 +8,19 @@ import (
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 )
 
-const PackageGetWithObjectCacheInfosPath = "/package/getWithObjectCacheInfos"
+const PackageGetWithObjectsPath = "/package/getWithObjects"
 
-type PackageGetWithObjectCacheInfos struct {
+type PackageGetWithObjectsInfos struct {
 	UserID    int64 `json:"userID"`
 	PackageID int64 `json:"packageID"`
 }
-type PackageGetWithObjectCacheInfosResp struct {
-	Package          cdssdk.Package           `json:"package"`
-	ObjectCacheInfos []cdssdk.ObjectCacheInfo `json:"objectCacheInfos"`
+type PackageGetWithObjectsResp struct {
+	Package cdssdk.Package  `json:"package"`
+	Objects []cdssdk.Object `json:"objects"`
 }
 
-func (c *Client) PackageGetWithObjectCacheInfos(req PackageGetWithObjectCacheInfos) (*PackageGetWithObjectCacheInfosResp, error) {
-	url, err := url.JoinPath(c.baseURL, PackageGetWithObjectCacheInfosPath)
+func (c *Client) PackageGetWithObjects(req PackageGetWithObjectsInfos) (*PackageGetWithObjectsResp, error) {
+	url, err := url.JoinPath(c.baseURL, PackageGetWithObjectsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (c *Client) PackageGetWithObjectCacheInfos(req PackageGetWithObjectCacheInf
 		return nil, err
 	}
 
-	jsonResp, err := myhttp.ParseJSONResponse[response[PackageGetWithObjectCacheInfosResp]](resp)
+	jsonResp, err := myhttp.ParseJSONResponse[response[PackageGetWithObjectsResp]](resp)
 	if err != nil {
 		return nil, err
 	}

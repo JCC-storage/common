@@ -32,7 +32,7 @@ func Test_Package(t *testing.T) {
 			URL: "http://localhost:7893",
 		})
 
-		_, err := cli.PackageGetWithObjectCacheInfos(PackageGetWithObjectCacheInfos{UserID: 0, PackageID: 13})
+		_, err := cli.PackageGetWithObjects(PackageGetWithObjectsInfos{UserID: 0, PackageID: 13})
 		So(err, ShouldBeNil)
 	})
 }

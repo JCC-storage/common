@@ -7,17 +7,17 @@ import (
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 )
 
+var CacheMovePackagePath = "/cache/movePackage"
+
 type CacheMovePackageReq struct {
 	UserID    UserID    `json:"userID"`
 	PackageID PackageID `json:"packageID"`
 	NodeID    NodeID    `json:"nodeID"`
 }
-type CacheMovePackageResp struct {
-	CacheInfos []ObjectCacheInfo `json:"cacheInfos"`
-}
+type CacheMovePackageResp struct{}
 
 func (c *Client) CacheMovePackage(req CacheMovePackageReq) (*CacheMovePackageResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/cache/movePackage")
+	url, err := url.JoinPath(c.baseURL, CacheMovePackagePath)
 	if err != nil {
 		return nil, err
 	}
@@ -30,39 +30,6 @@ func (c *Client) CacheMovePackage(req CacheMovePackageReq) (*CacheMovePackageRes
 	}
 
 	jsonResp, err := myhttp.ParseJSONResponse[response[CacheMovePackageResp]](resp)
-	if err != nil {
-		return nil, err
-	}
-
-	if jsonResp.Code == errorcode.OK {
-		return &jsonResp.Data, nil
-	}
-
-	return nil, jsonResp.ToError()
-}
-
-type CacheGetPackageObjectCacheInfosReq struct {
-	UserID    UserID    `json:"userID"`
-	PackageID PackageID `json:"packageID"`
-}
-type CacheGetPackageObjectCacheInfosResp struct {
-	Infos []ObjectCacheInfo `json:"cacheInfos"`
-}
-
-func (c *Client) CacheGetPackageObjectCacheInfos(req CacheGetPackageObjectCacheInfosReq) (*CacheGetPackageObjectCacheInfosResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/cache/getPackageObjectCacheInfos")
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
-		Query: req,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	jsonResp, err := myhttp.ParseJSONResponse[response[CacheGetPackageObjectCacheInfosResp]](resp)
 	if err != nil {
 		return nil, err
 	}

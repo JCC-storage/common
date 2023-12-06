@@ -91,6 +91,7 @@ type Object struct {
 	PackageID  PackageID  `db:"PackageID" json:"packageID"`
 	Path       string     `db:"Path" json:"path"`
 	Size       int64      `db:"Size" json:"size,string"`
+	FileHash   string     `db:"FileHash" json:"fileHash"`
 	Redundancy Redundancy `db:"Redundancy" json:"redundancy"`
 }
 
@@ -109,18 +110,6 @@ func (i *Object) Scan(src interface{}) error {
 	return nil
 }
 
-type ObjectCacheInfo struct {
-	Object   Object `json:"object"`
-	FileHash string `json:"fileHash"`
-}
-
-func NewObjectCacheInfo(object Object, fileHash string) ObjectCacheInfo {
-	return ObjectCacheInfo{
-		Object:   object,
-		FileHash: fileHash,
-	}
-}
-
 type NodePackageCachingInfo struct {
 	NodeID      NodeID `json:"nodeID"`
 	FileSize    int64  `json:"fileSize"`
@@ -128,16 +117,14 @@ type NodePackageCachingInfo struct {
 }
 
 type PackageCachingInfo struct {
-	NodeInfos     []NodePackageCachingInfo `json:"nodeInfos"`
-	PackageSize   int64                    `json:"packageSize"`
-	RedunancyType string                   `json:"redunancyType"`
+	NodeInfos   []NodePackageCachingInfo `json:"nodeInfos"`
+	PackageSize int64                    `json:"packageSize"`
 }
 
-func NewPackageCachingInfo(nodeInfos []NodePackageCachingInfo, packageSize int64, redunancyType string) PackageCachingInfo {
+func NewPackageCachingInfo(nodeInfos []NodePackageCachingInfo, packageSize int64) PackageCachingInfo {
 	return PackageCachingInfo{
-		NodeInfos:     nodeInfos,
-		PackageSize:   packageSize,
-		RedunancyType: redunancyType,
+		NodeInfos:   nodeInfos,
+		PackageSize: packageSize,
 	}
 }
 
