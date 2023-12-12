@@ -26,15 +26,17 @@ func (s sorter[T]) Swap(i int, j int) {
 	s.arr[i], s.arr[j] = s.arr[j], s.arr[i]
 }
 
-func Sort[T any](arr []T, cmp Comparer[T]) {
+func Sort[T any](arr []T, cmp Comparer[T]) []T {
 	st := sorter[T]{
 		arr: arr,
 		cmp: cmp,
 	}
 
 	sort.Sort(st)
+	return arr
 }
 
+// false < true
 func CmpBool(left, right bool) int {
 	leftVal := 0
 	if left {

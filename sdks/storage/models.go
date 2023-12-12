@@ -33,23 +33,44 @@ type Redundancy interface {
 }
 
 var RedundancyUnion = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[Redundancy](
+	(*NoneRedundancy)(nil),
 	(*RepRedundancy)(nil),
 	(*ECRedundancy)(nil),
 )), "type")
 
-type RepRedundancy struct {
-	serder.Metadata `union:"rep"`
+type NoneRedundancy struct {
+	serder.Metadata `union:"none"`
 	Type            string `json:"type"`
 }
 
-func NewRepRedundancy() *RepRedundancy {
+func NewNoneRedundancy() *NoneRedundancy {
+	return &NoneRedundancy{
+		Type: "none",
+	}
+}
+func (b *NoneRedundancy) Value() (driver.Value, error) {
+	return serder.ObjectToJSONEx[Redundancy](b)
+}
+
+var DefaultRepRedundancy = *NewRepRedundancy(2)
+
+type RepRedundancy struct {
+	serder.Metadata `union:"rep"`
+	Type            string `json:"type"`
+	RepCount        int    `json:"repCount"`
+}
+
+func NewRepRedundancy(repCount int) *RepRedundancy {
 	return &RepRedundancy{
-		Type: "rep",
+		Type:     "rep",
+		RepCount: repCount,
 	}
 }
 func (b *RepRedundancy) Value() (driver.Value, error) {
 	return serder.ObjectToJSONEx[Redundancy](b)
 }
+
+var DefaultECRedundancy = *NewECRedundancy(2, 3, 1024*1024*5)
 
 type ECRedundancy struct {
 	serder.Metadata `union:"ec"`
