@@ -3,6 +3,7 @@ package cdssdk
 import (
 	"database/sql/driver"
 	"fmt"
+	"time"
 
 	"gitlink.org.cn/cloudream/common/pkgs/types"
 	"gitlink.org.cn/cloudream/common/utils/serder"
@@ -111,6 +112,12 @@ type Object struct {
 	Size       int64      `db:"Size" json:"size,string"`
 	FileHash   string     `db:"FileHash" json:"fileHash"`
 	Redundancy Redundancy `db:"Redundancy" json:"redundancy"`
+}
+
+type PinnedObject struct {
+	ObjectID   ObjectID  `db:"ObjectID" json:"objectID"`
+	NodeID     NodeID    `db:"NodeID" json:"nodeID"`
+	CreateTime time.Time `db:"CreateTime" json:"createTime"`
 }
 
 type NodePackageCachingInfo struct {
