@@ -54,6 +54,7 @@ type NormalJobInfo struct {
 	Files     JobFilesInfo     `json:"files"`
 	Runtime   JobRuntimeInfo   `json:"runtime"`
 	Resources JobResourcesInfo `json:"resources"`
+	Services  JobServicesInfo  `json:"services"`
 }
 
 type ResourceJobInfo struct {
@@ -142,4 +143,20 @@ type JobSetFilesUploadScheme struct {
 type LocalFileUploadScheme struct {
 	LocalPath         string         `json:"localPath"`
 	UploadToCDSNodeID *cdssdk.NodeID `json:"uploadToCDSNodeID"`
+}
+
+type JobServicesInfo struct {
+	ServicePortInfos []ServicePortInfo `json:"servicePortInfos"`
+}
+
+type ServicePortInfo struct {
+	Name string `json:"name"`
+	Port int64  `json:"port"`
+}
+
+type JobSetServiceInfo struct {
+	Name       string         `json:"name"`
+	Port       int64          `json:"port"`
+	CDSNodeID  *cdssdk.NodeID `json:"cdsNodeID"`
+	LocalJobID string         `json:"localJobID"`
 }
