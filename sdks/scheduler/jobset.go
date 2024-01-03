@@ -88,7 +88,7 @@ func (c *Client) JobSetLocalFileUploaded(req JobSetLocalFileUploadedReq) error {
 }
 
 type JobSetGetServiceListReq struct {
-	JobSetID
+	JobSetID string `json:"jobSetID"`
 }
 
 type JobSetGetServiceListResp struct {
