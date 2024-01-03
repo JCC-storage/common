@@ -16,7 +16,7 @@ type JobSetSumbitReq struct {
 }
 
 type JobSetSumbitResp struct {
-	JobSetID          string                  `json:"jobSetID"`
+	JobSetID          JobSetID                `json:"jobSetID"`
 	FilesUploadScheme JobSetFilesUploadScheme `json:"filesUploadScheme"`
 }
 
@@ -51,7 +51,7 @@ func (c *Client) JobSetSumbit(req JobSetSumbitReq) (*JobSetSumbitResp, error) {
 }
 
 type JobSetLocalFileUploadedReq struct {
-	JobSetID  string           `json:"jobSetID"`
+	JobSetID  JobSetID         `json:"jobSetID"`
 	LocalPath string           `json:"localPath"`
 	Error     string           `json:"error"`
 	PackageID cdssdk.PackageID `json:"packageID"`
@@ -88,7 +88,7 @@ func (c *Client) JobSetLocalFileUploaded(req JobSetLocalFileUploadedReq) error {
 }
 
 type JobSetGetServiceListReq struct {
-	JobSetID string `json:"jobSetID"`
+	JobSetID JobSetID `json:"jobSetID"`
 }
 
 type JobSetGetServiceListResp struct {
