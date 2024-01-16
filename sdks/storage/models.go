@@ -114,6 +114,18 @@ type Object struct {
 	Redundancy Redundancy `db:"Redundancy" json:"redundancy"`
 }
 
+type Node struct {
+	NodeID           NodeID     `db:"NodeID" json:"nodeID"`
+	Name             string     `db:"Name" json:"name"`
+	LocalIP          string     `db:"LocalIP" json:"localIP"`
+	ExternalIP       string     `db:"ExternalIP" json:"externalIP"`
+	LocalGRPCPort    int        `db:"LocalGRPCPort" json:"localGRPCPort"`
+	ExternalGRPCPort int        `db:"ExternalGRPCPort" json:"externalGRPCPort"`
+	LocationID       LocationID `db:"LocationID" json:"locationID"`
+	State            string     `db:"State" json:"state"`
+	LastReportTime   *time.Time `db:"LastReportTime" json:"lastReportTime"`
+}
+
 type PinnedObject struct {
 	ObjectID   ObjectID  `db:"ObjectID" json:"objectID"`
 	NodeID     NodeID    `db:"NodeID" json:"nodeID"`
