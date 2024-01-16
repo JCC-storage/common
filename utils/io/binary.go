@@ -23,9 +23,9 @@ func ReadUint8Field(reader *bufio.Reader) (uint8, error) {
 
 func WriteUint16Field(writer *bufio.Writer, data uint16) error {
 	dataBytes := make([]byte, 2)
-	binary.BigEndian.PutUint16(dataBytes, data)
+	binary.LittleEndian.PutUint16(dataBytes, data)
 
-	_, err := writer.Write(dataBytes)
+	err := WriteAll(writer, dataBytes)
 	if err != nil {
 		return err
 	}
@@ -38,14 +38,14 @@ func ReadUint16Field(reader *bufio.Reader) (uint16, error) {
 	if err != nil {
 		return 0, err
 	}
-	return binary.BigEndian.Uint16(dataBytes), nil
+	return binary.LittleEndian.Uint16(dataBytes), nil
 }
 
 func WriteUint32Field(writer *bufio.Writer, data uint32) error {
 	dataBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(dataBytes, data)
+	binary.LittleEndian.PutUint32(dataBytes, data)
 
-	_, err := writer.Write(dataBytes)
+	err := WriteAll(writer, dataBytes)
 	if err != nil {
 		return err
 	}
@@ -58,14 +58,16 @@ func ReadUint32Field(reader *bufio.Reader) (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-	return binary.BigEndian.Uint32(dataBytes), nil
+	return binary.LittleEndian.Uint32(dataBytes), nil
 }
 
 func WriteStringField(writer *bufio.Writer, data string) error {
-	if err := writer.WriteByte(byte(len(data))); err != nil {
+	dataBytes := []byte(data)
+	if err := writer.WriteByte(byte(len(dataBytes))); err != nil {
 		return err
 	}
-	_, err := writer.WriteString(data)
+
+	err := WriteAll(writer, dataBytes)
 	if err != nil {
 		return err
 	}
