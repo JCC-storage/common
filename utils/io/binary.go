@@ -61,6 +61,26 @@ func ReadUint32Field(reader *bufio.Reader) (uint32, error) {
 	return binary.LittleEndian.Uint32(dataBytes), nil
 }
 
+func WriteUint64Field(writer *bufio.Writer, data uint64) error {
+	dataBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(dataBytes, data)
+
+	err := WriteAll(writer, dataBytes)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ReadUint64Field(reader *bufio.Reader) (uint64, error) {
+	dataBytes := make([]byte, 8)
+	_, err := io.ReadFull(reader, dataBytes)
+	if err != nil {
+		return 0, err
+	}
+	return binary.LittleEndian.Uint64(dataBytes), nil
+}
+
 func WriteStringField(writer *bufio.Writer, data string) error {
 	dataBytes := []byte(data)
 	if err := writer.WriteByte(byte(len(dataBytes))); err != nil {

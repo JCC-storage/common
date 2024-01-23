@@ -8,19 +8,19 @@ import (
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 )
 
-const ProxyGetServiceInfoPath = "/proxy/getServiceInfo"
+const ProxyGetJobIDPath = "/proxy/getJobID"
 
-type ProxyGetServiceInfo struct {
+type ProxyGetJobID struct {
 	ServiceName string          `json:"serviceName"`
 	JobSetID    schsdk.JobSetID `json:"jobSetID"`
 }
 
-type ProxyGetServiceInfoResp struct {
+type ProxyGetJobIDResp struct {
 	LocalJobID string `json:"localJobID"`
 }
 
-func (c *Client) ProxyGetJobID(req ProxyGetServiceInfo) (*ProxyGetServiceInfoResp, error) {
-	url, err := url.JoinPath(c.baseURL, ProxyGetServiceInfoPath)
+func (c *Client) ProxyGetJobID(req ProxyGetJobID) (*ProxyGetJobIDResp, error) {
+	url, err := url.JoinPath(c.baseURL, ProxyGetJobIDPath)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (c *Client) ProxyGetJobID(req ProxyGetServiceInfo) (*ProxyGetServiceInfoRes
 		return nil, err
 	}
 
-	jsonResp, err := myhttp.ParseJSONResponse[response[ProxyGetServiceInfoResp]](resp)
+	jsonResp, err := myhttp.ParseJSONResponse[response[ProxyGetJobIDResp]](resp)
 	if err != nil {
 		return nil, err
 	}
