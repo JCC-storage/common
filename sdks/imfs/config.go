@@ -4,7 +4,8 @@ type Config struct {
 	URL string `json:"url"`
 }
 
-type ClientConfig struct {
-	IP   string `json:"ip"`
-	Port string `json:"port"`
+type ProxyConfig struct {
+	IP         string `json:"ip"`
+	ClientPort string `json:"clientPort"`
+	NodePort   string `json:"nodePort"`
 }
