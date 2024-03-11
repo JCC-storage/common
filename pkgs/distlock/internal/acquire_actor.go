@@ -10,7 +10,7 @@ import (
 
 	"gitlink.org.cn/cloudream/common/pkgs/future"
 	"gitlink.org.cn/cloudream/common/pkgs/logger"
-	mylo "gitlink.org.cn/cloudream/common/utils/lo"
+	"gitlink.org.cn/cloudream/common/utils/lo2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
@@ -84,7 +84,7 @@ func (a *AcquireActor) Acquire(ctx context.Context, req LockRequest) (string, er
 			return
 		}
 
-		a.acquirings = mylo.Remove(a.acquirings, info)
+		a.acquirings = lo2.Remove(a.acquirings, info)
 		if info.LastErr != nil {
 			info.Callback.SetError(info.LastErr)
 		} else {
@@ -213,7 +213,7 @@ func (a *AcquireActor) doAcquiring() error {
 		}
 
 		req.Callback.SetValue(reqData.ID)
-		a.acquirings = mylo.RemoveAt(a.acquirings, i)
+		a.acquirings = lo2.RemoveAt(a.acquirings, i)
 		break
 	}
 

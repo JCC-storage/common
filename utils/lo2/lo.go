@@ -1,4 +1,4 @@
-package lo
+package lo2
 
 import "github.com/samber/lo"
 
