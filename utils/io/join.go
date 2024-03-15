@@ -3,7 +3,7 @@ package io
 import (
 	"io"
 
-	"gitlink.org.cn/cloudream/common/utils/lo"
+	"gitlink.org.cn/cloudream/common/utils/lo2"
 	"gitlink.org.cn/cloudream/common/utils/math"
 )
 
@@ -81,7 +81,7 @@ func (s *chunkedJoin) Read(buf []byte) (int, error) {
 	}
 
 	if err == io.EOF {
-		s.inputs = lo.RemoveAt(s.inputs, s.currentInput)
+		s.inputs = lo2.RemoveAt(s.inputs, s.currentInput)
 		// 此处不需要+1
 		if len(s.inputs) > 0 {
 			s.currentInput = s.currentInput % len(s.inputs)

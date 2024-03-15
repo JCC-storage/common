@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	mylo "gitlink.org.cn/cloudream/common/utils/lo"
+	"gitlink.org.cn/cloudream/common/utils/lo2"
 )
 
 type Manager[TCtx any] struct {
@@ -108,12 +108,12 @@ func (m *Manager[TCtx]) executeTask(task *Task[TCtx]) {
 
 			// 立刻删除任务，或者延迟一段时间再删除
 			if opt.RemovingDelay == 0 {
-				m.tasks = mylo.Remove(m.tasks, task)
+				m.tasks = lo2.Remove(m.tasks, task)
 			} else {
 				go func() {
 					<-time.After(opt.RemovingDelay)
 					m.lock.Lock()
-					m.tasks = mylo.Remove(m.tasks, task)
+					m.tasks = lo2.Remove(m.tasks, task)
 					m.lock.Unlock()
 				}()
 			}

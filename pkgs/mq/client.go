@@ -300,7 +300,7 @@ func (c *RabbitMQTransport) Close() error {
 
 // 发送消息并等待回应。因为无法自动推断出TResp的类型，所以将其放在第一个手工填写，之后的TBody可以自动推断出来
 func Request[TSvc any, TReq MessageBody, TResp MessageBody](_ func(svc TSvc, msg TReq) (TResp, *CodeMessage), cli RoundTripper, req TReq, opts ...RequestOption) (TResp, error) {
-	opt := RequestOption{Timeout: time.Second * 15}
+	opt := RequestOption{Timeout: time.Second * 15, KeepAlive: true}
 	if len(opts) > 0 {
 		opt = opts[0]
 	}

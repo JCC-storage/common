@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	mylo "gitlink.org.cn/cloudream/common/utils/lo"
+	"gitlink.org.cn/cloudream/common/utils/lo2"
 )
 
 type CompleteOption struct {
@@ -82,7 +82,7 @@ func (t *Task[TCtx]) WaitTimeout(timeout time.Duration) bool {
 	select {
 	case <-time.After(timeout):
 		t.waiterLock.Lock()
-		t.waiters = mylo.Remove(t.waiters, waiter)
+		t.waiters = lo2.Remove(t.waiters, waiter)
 		t.waiterLock.Unlock()
 
 		return false

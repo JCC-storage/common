@@ -1,4 +1,4 @@
-package sort
+package sort2
 
 import (
 	"sort"
