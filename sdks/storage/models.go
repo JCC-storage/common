@@ -112,6 +112,8 @@ type Object struct {
 	Size       int64      `db:"Size" json:"size,string"`
 	FileHash   string     `db:"FileHash" json:"fileHash"`
 	Redundancy Redundancy `db:"Redundancy" json:"redundancy"`
+	CreateTime time.Time  `db:"CreateTime" json:"createTime"`
+	UpdateTime time.Time  `db:"UpdateTime" json:"updateTime"`
 }
 
 type Node struct {
@@ -130,6 +132,12 @@ type PinnedObject struct {
 	ObjectID   ObjectID  `db:"ObjectID" json:"objectID"`
 	NodeID     NodeID    `db:"NodeID" json:"nodeID"`
 	CreateTime time.Time `db:"CreateTime" json:"createTime"`
+}
+
+type Bucket struct {
+	BucketID  BucketID `db:"BucketID" json:"bucketID"`
+	Name      string   `db:"Name" json:"name"`
+	CreatorID UserID   `db:"CreatorID" json:"creatorID"`
 }
 
 type NodePackageCachingInfo struct {

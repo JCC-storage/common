@@ -23,16 +23,24 @@ func Test_PackageGet(t *testing.T) {
 		}
 
 		pkgName := uuid.NewString()
-		upResp, err := cli.PackageUpload(PackageUploadReq{
+		createResp, err := cli.Package().Create(PackageCreateReq{
 			UserID:   1,
 			BucketID: 1,
 			Name:     pkgName,
+		})
+		So(err, ShouldBeNil)
+
+		_, err = cli.Object().Upload(ObjectUploadReq{
+			ObjectUploadInfo: ObjectUploadInfo{
+				UserID:    1,
+				PackageID: createResp.PackageID,
+			},
 			Files: iterator.Array(
-				&IterPackageUploadFile{
+				&IterObjectUpload{
 					Path: "test",
 					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
-				&IterPackageUploadFile{
+				&IterObjectUpload{
 					Path: "test2",
 					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
@@ -40,18 +48,18 @@ func Test_PackageGet(t *testing.T) {
 		})
 		So(err, ShouldBeNil)
 
-		getResp, err := cli.PackageGet(PackageGetReq{
+		getResp, err := cli.Package().Get(PackageGetReq{
 			UserID:    1,
-			PackageID: upResp.PackageID,
+			PackageID: createResp.PackageID,
 		})
 		So(err, ShouldBeNil)
 
-		So(getResp.PackageID, ShouldEqual, upResp.PackageID)
+		So(getResp.PackageID, ShouldEqual, createResp.PackageID)
 		So(getResp.Package.Name, ShouldEqual, pkgName)
 
-		err = cli.PackageDelete(PackageDeleteReq{
+		err = cli.Package().Delete(PackageDeleteReq{
 			UserID:    1,
-			PackageID: upResp.PackageID,
+			PackageID: createResp.PackageID,
 		})
 		So(err, ShouldBeNil)
 	})
@@ -69,17 +77,27 @@ func Test_Object(t *testing.T) {
 		}
 
 		nodeAff := NodeID(2)
-		upResp, err := cli.PackageUpload(PackageUploadReq{
-			UserID:       1,
-			BucketID:     1,
-			Name:         uuid.NewString(),
-			NodeAffinity: &nodeAff,
+
+		pkgName := uuid.NewString()
+		createResp, err := cli.Package().Create(PackageCreateReq{
+			UserID:   1,
+			BucketID: 1,
+			Name:     pkgName,
+		})
+		So(err, ShouldBeNil)
+
+		_, err = cli.Object().Upload(ObjectUploadReq{
+			ObjectUploadInfo: ObjectUploadInfo{
+				UserID:       1,
+				PackageID:    createResp.PackageID,
+				NodeAffinity: &nodeAff,
+			},
 			Files: iterator.Array(
-				&IterPackageUploadFile{
+				&IterObjectUpload{
 					Path: "test",
 					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
-				&IterPackageUploadFile{
+				&IterObjectUpload{
 					Path: "test2",
 					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
@@ -98,9 +116,9 @@ func Test_Object(t *testing.T) {
 		// So(downFileData, ShouldResemble, fileData)
 		// downFs.Close()
 
-		err = cli.PackageDelete(PackageDeleteReq{
+		err = cli.Package().Delete(PackageDeleteReq{
 			UserID:    1,
-			PackageID: upResp.PackageID,
+			PackageID: createResp.PackageID,
 		})
 		So(err, ShouldBeNil)
 	})
@@ -117,16 +135,25 @@ func Test_Storage(t *testing.T) {
 			fileData[i] = byte(i)
 		}
 
-		upResp, err := cli.PackageUpload(PackageUploadReq{
+		pkgName := uuid.NewString()
+		createResp, err := cli.Package().Create(PackageCreateReq{
 			UserID:   1,
 			BucketID: 1,
-			Name:     uuid.NewString(),
+			Name:     pkgName,
+		})
+		So(err, ShouldBeNil)
+
+		_, err = cli.Object().Upload(ObjectUploadReq{
+			ObjectUploadInfo: ObjectUploadInfo{
+				UserID:    1,
+				PackageID: createResp.PackageID,
+			},
 			Files: iterator.Array(
-				&IterPackageUploadFile{
+				&IterObjectUpload{
 					Path: "test",
 					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
-				&IterPackageUploadFile{
+				&IterObjectUpload{
 					Path: "test2",
 					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
@@ -136,14 +163,14 @@ func Test_Storage(t *testing.T) {
 
 		_, err = cli.StorageLoadPackage(StorageLoadPackageReq{
 			UserID:    1,
-			PackageID: upResp.PackageID,
+			PackageID: createResp.PackageID,
 			StorageID: 1,
 		})
 		So(err, ShouldBeNil)
 
-		err = cli.PackageDelete(PackageDeleteReq{
+		err = cli.Package().Delete(PackageDeleteReq{
 			UserID:    1,
-			PackageID: upResp.PackageID,
+			PackageID: createResp.PackageID,
 		})
 		So(err, ShouldBeNil)
 	})
@@ -160,16 +187,25 @@ func Test_Cache(t *testing.T) {
 			fileData[i] = byte(i)
 		}
 
-		upResp, err := cli.PackageUpload(PackageUploadReq{
+		pkgName := uuid.NewString()
+		createResp, err := cli.Package().Create(PackageCreateReq{
 			UserID:   1,
 			BucketID: 1,
-			Name:     uuid.NewString(),
+			Name:     pkgName,
+		})
+		So(err, ShouldBeNil)
+
+		_, err = cli.Object().Upload(ObjectUploadReq{
+			ObjectUploadInfo: ObjectUploadInfo{
+				UserID:    1,
+				PackageID: createResp.PackageID,
+			},
 			Files: iterator.Array(
-				&IterPackageUploadFile{
+				&IterObjectUpload{
 					Path: "test.txt",
 					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
-				&IterPackageUploadFile{
+				&IterObjectUpload{
 					Path: "test2.txt",
 					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
@@ -179,14 +215,14 @@ func Test_Cache(t *testing.T) {
 
 		_, err = cli.CacheMovePackage(CacheMovePackageReq{
 			UserID:    1,
-			PackageID: upResp.PackageID,
+			PackageID: createResp.PackageID,
 			NodeID:    1,
 		})
 		So(err, ShouldBeNil)
 
-		err = cli.PackageDelete(PackageDeleteReq{
+		err = cli.Package().Delete(PackageDeleteReq{
 			UserID:    1,
-			PackageID: upResp.PackageID,
+			PackageID: createResp.PackageID,
 		})
 		So(err, ShouldBeNil)
 	})
@@ -197,14 +233,14 @@ func Test_GetNodeInfos(t *testing.T) {
 		cli := NewClient(&Config{
 			URL: "http://localhost:7890",
 		})
-		resp1, err := cli.PackageGetCachedNodes(PackageGetCachedNodesReq{
+		resp1, err := cli.Package().GetCachedNodes(PackageGetCachedNodesReq{
 			PackageID: 11,
 			UserID:    1,
 		})
 		So(err, ShouldBeNil)
 		fmt.Printf("resp1: %v\n", resp1)
 
-		resp2, err := cli.PackageGetLoadedNodes(PackageGetLoadedNodesReq{
+		resp2, err := cli.Package().GetLoadedNodes(PackageGetLoadedNodesReq{
 			PackageID: 11,
 			UserID:    1,
 		})

@@ -7,7 +7,7 @@ import (
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 )
 
-var CacheMovePackagePath = "/cache/movePackage"
+const CacheMovePackagePath = "/cache/movePackage"
 
 type CacheMovePackageReq struct {
 	UserID    UserID    `json:"userID"`
