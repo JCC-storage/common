@@ -140,6 +140,13 @@ type Bucket struct {
 	CreatorID UserID   `db:"CreatorID" json:"creatorID"`
 }
 
+type NodeConnectivity struct {
+	FromNodeID NodeID    `db:"FromNodeID" json:"fromNodeID"`
+	ToNodeID   NodeID    `db:"ToNodeID" json:"ToNodeID"`
+	Delay      *float32  `db:"Delay" json:"delay"`
+	TestTime   time.Time `db:"TestTime" json:"testTime"`
+}
+
 type NodePackageCachingInfo struct {
 	NodeID      NodeID `json:"nodeID"`
 	FileSize    int64  `json:"fileSize"`

@@ -36,6 +36,14 @@ func Sort[T any](arr []T, cmp Comparer[T]) []T {
 	return arr
 }
 
+func SortAsc[T constraints.Ordered](arr []T) []T {
+	return Sort(arr, Cmp[T])
+}
+
+func SortDesc[T constraints.Ordered](arr []T) []T {
+	return Sort(arr, func(left, right T) int { return Cmp(right, left) })
+}
+
 // false < true
 func CmpBool(left, right bool) int {
 	leftVal := 0
