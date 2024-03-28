@@ -84,3 +84,38 @@ func (c *BucketService) Delete(req BucketDeleteReq) (*BucketDeleteResp, error) {
 
 	return nil, codeResp.ToError()
 }
+
+const BucketListUserBucketsPath = "/bucket/listUserBuckets"
+
+type BucketListUserBucketsReq struct {
+	UserID UserID `form:"userID" json:"userID" binding:"required"`
+}
+
+type BucketListUserBucketsResp struct {
+	Buckets []Bucket `json:"buckets"`
+}
+
+func (c *BucketService) ListUserBuckets(req BucketListUserBucketsReq) (*BucketListUserBucketsResp, error) {
+	url, err := url.JoinPath(c.baseURL, BucketListUserBucketsPath)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+		Query: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	codeResp, err := myhttp.ParseJSONResponse[response[BucketListUserBucketsResp]](resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if codeResp.Code == errorcode.OK {
+		return &codeResp.Data, nil
+	}
+
+	return nil, codeResp.ToError()
+}

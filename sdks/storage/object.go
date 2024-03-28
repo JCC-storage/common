@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/url"
 	"strings"
+	"time"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
 	"gitlink.org.cn/cloudream/common/pkgs/iterator"
@@ -90,8 +91,8 @@ func (c *ObjectService) Upload(req ObjectUploadReq) (*ObjectUploadResp, error) {
 const ObjectDownloadPath = "/object/download"
 
 type ObjectDownloadReq struct {
-	UserID   int64 `json:"userID"`
-	ObjectID int64 `json:"objectID"`
+	UserID   UserID   `form:"userID" json:"userID" binding:"required"`
+	ObjectID ObjectID `form:"objectID" json:"objectID" binding:"required"`
 }
 
 func (c *ObjectService) Download(req ObjectDownloadReq) (io.ReadCloser, error) {
@@ -125,11 +126,88 @@ func (c *ObjectService) Download(req ObjectDownloadReq) (io.ReadCloser, error) {
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
+const ObjectUpdateInfoPath = "/object/updateInfo"
+
+type UpdatingObject struct {
+	ObjectID   ObjectID  `json:"objectID" binding:"required"`
+	UpdateTime time.Time `json:"updateTime" binding:"required"`
+}
+
+func (u *UpdatingObject) ApplyTo(obj *Object) {
+	obj.UpdateTime = u.UpdateTime
+}
+
+type ObjectUpdateInfoReq struct {
+	UserID    UserID           `json:"userID" binding:"required"`
+	Updatings []UpdatingObject `json:"updatings" binding:"required"`
+}
+
+type ObjectUpdateInfoResp struct{}
+
+func (c *ObjectService) Update(req ObjectUpdateInfoReq) (*ObjectUpdateInfoResp, error) {
+	url, err := url.JoinPath(c.baseURL, ObjectUpdateInfoPath)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+		Body: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	jsonResp, err := myhttp.ParseJSONResponse[response[ObjectUpdateInfoResp]](resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if jsonResp.Code == errorcode.OK {
+		return &jsonResp.Data, nil
+	}
+
+	return nil, jsonResp.ToError()
+}
+
+const ObjectDeletePath = "/object/delete"
+
+type ObjectDeleteReq struct {
+	UserID    UserID     `json:"userID" binding:"required"`
+	ObjectIDs []ObjectID `json:"objectIDs" binding:"required"`
+}
+
+type ObjectDeleteResp struct{}
+
+func (c *ObjectService) Delete(req ObjectDeleteReq) (*ObjectDeleteResp, error) {
+	url, err := url.JoinPath(c.baseURL, ObjectDeletePath)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+		Body: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	jsonResp, err := myhttp.ParseJSONResponse[response[ObjectDeleteResp]](resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if jsonResp.Code == errorcode.OK {
+		return &jsonResp.Data, nil
+	}
+
+	return nil, jsonResp.ToError()
+}
+
 const ObjectGetPackageObjectsPath = "/object/getPackageObjects"
 
 type ObjectGetPackageObjectsReq struct {
-	UserID    UserID    `json:"userID"`
-	PackageID PackageID `json:"packageID"`
+	UserID    UserID    `form:"userID" json:"userID" binding:"required"`
+	PackageID PackageID `form:"packageID" json:"packageID" binding:"required"`
 }
 type ObjectGetPackageObjectsResp struct {
 	Objects []Object `json:"objects"`

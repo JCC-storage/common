@@ -21,8 +21,8 @@ func (c *Client) Package() *PackageService {
 const PackageGetPath = "/package/get"
 
 type PackageGetReq struct {
-	UserID    UserID    `json:"userID"`
-	PackageID PackageID `json:"packageID"`
+	UserID    UserID    `form:"userID" json:"userID" binding:"required"`
+	PackageID PackageID `form:"packageID" json:"packageID" binding:"required"`
 }
 type PackageGetResp struct {
 	Package
@@ -90,13 +90,15 @@ func (s *PackageService) Create(req PackageCreateReq) (*PackageCreateResp, error
 	return nil, codeResp.ToError()
 }
 
+const PackageDeletePath = "/package/delete"
+
 type PackageDeleteReq struct {
-	UserID    UserID    `json:"userID"`
-	PackageID PackageID `json:"packageID"`
+	UserID    UserID    `json:"userID" binding:"required"`
+	PackageID PackageID `json:"packageID" binding:"required"`
 }
 
 func (c *PackageService) Delete(req PackageDeleteReq) error {
-	url, err := url.JoinPath(c.baseURL, "/package/delete")
+	url, err := url.JoinPath(c.baseURL, PackageDeletePath)
 	if err != nil {
 		return err
 	}
@@ -126,9 +128,47 @@ func (c *PackageService) Delete(req PackageDeleteReq) error {
 	return fmt.Errorf("unknow response content type: %s", contType)
 }
 
+const PackageListBucketPackagesPath = "/package/listBucketPackages"
+
+type PackageListBucketPackagesReq struct {
+	UserID   UserID   `form:"userID" json:"userID" binding:"required"`
+	BucketID BucketID `form:"bucketID" json:"bucketID" binding:"required"`
+}
+
+type PackageListBucketPackagesResp struct {
+	Packages []Package `json:"packages"`
+}
+
+func (c *PackageService) ListBucketPackages(req PackageListBucketPackagesReq) (*PackageListBucketPackagesResp, error) {
+	url, err := url.JoinPath(c.baseURL, PackageListBucketPackagesPath)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+		Query: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	codeResp, err := myhttp.ParseJSONResponse[response[PackageListBucketPackagesResp]](resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if codeResp.Code == errorcode.OK {
+		return &codeResp.Data, nil
+	}
+
+	return nil, codeResp.ToError()
+}
+
+const PackageGetCachedNodesPath = "/package/getCachedNodes"
+
 type PackageGetCachedNodesReq struct {
-	PackageID PackageID `json:"packageID"`
-	UserID    UserID    `json:"userID"`
+	PackageID PackageID `form:"packageID" json:"packageID" binding:"required"`
+	UserID    UserID    `form:"userID" json:"userID" binding:"required"`
 }
 
 type PackageGetCachedNodesResp struct {
@@ -136,7 +176,7 @@ type PackageGetCachedNodesResp struct {
 }
 
 func (c *PackageService) GetCachedNodes(req PackageGetCachedNodesReq) (*PackageGetCachedNodesResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/package/getCachedNodes")
+	url, err := url.JoinPath(c.baseURL, PackageGetCachedNodesPath)
 	if err != nil {
 		return nil, err
 	}
@@ -146,27 +186,24 @@ func (c *PackageService) GetCachedNodes(req PackageGetCachedNodesReq) (*PackageG
 	if err != nil {
 		return nil, err
 	}
-	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 
-		var codeResp response[PackageGetCachedNodesResp]
-		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
-			return nil, fmt.Errorf("parsing response: %w", err)
-		}
-
-		if codeResp.Code == errorcode.OK {
-			return &codeResp.Data, nil
-		}
-
-		return nil, codeResp.ToError()
+	codeResp, err := myhttp.ParseJSONResponse[response[PackageGetCachedNodesResp]](resp)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("unknow response content type: %s", contType)
+	if codeResp.Code == errorcode.OK {
+		return &codeResp.Data, nil
+	}
+
+	return nil, codeResp.ToError()
 }
 
+const PackageGetLoadedNodesPath = "/package/getLoadedNodes"
+
 type PackageGetLoadedNodesReq struct {
-	PackageID PackageID `json:"packageID"`
-	UserID    UserID    `json:"userID"`
+	PackageID PackageID `form:"packageID" json:"packageID" binding:"required"`
+	UserID    UserID    `form:"userID" json:"userID" binding:"required"`
 }
 
 type PackageGetLoadedNodesResp struct {
@@ -174,7 +211,7 @@ type PackageGetLoadedNodesResp struct {
 }
 
 func (c *PackageService) GetLoadedNodes(req PackageGetLoadedNodesReq) (*PackageGetLoadedNodesResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/package/getLoadedNodes")
+	url, err := url.JoinPath(c.baseURL, PackageGetLoadedNodesPath)
 	if err != nil {
 		return nil, err
 	}
@@ -185,20 +222,14 @@ func (c *PackageService) GetLoadedNodes(req PackageGetLoadedNodesReq) (*PackageG
 		return nil, err
 	}
 
-	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
-
-		var codeResp response[PackageGetLoadedNodesResp]
-		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
-			return nil, fmt.Errorf("parsing response: %w", err)
-		}
-
-		if codeResp.Code == errorcode.OK {
-			return &codeResp.Data, nil
-		}
-
-		return nil, codeResp.ToError()
+	codeResp, err := myhttp.ParseJSONResponse[response[PackageGetLoadedNodesResp]](resp)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("unknow response content type: %s", contType)
+	if codeResp.Code == errorcode.OK {
+		return &codeResp.Data, nil
+	}
+
+	return nil, codeResp.ToError()
 }
