@@ -36,12 +36,12 @@ type ObjectUploadInfo struct {
 	NodeAffinity *NodeID   `json:"nodeAffinity"`
 }
 
-type IterObjectUpload struct {
+type UploadingObject struct {
 	Path string
 	File io.ReadCloser
 }
 
-type UploadObjectIterator = iterator.Iterator[*IterObjectUpload]
+type UploadObjectIterator = iterator.Iterator[*UploadingObject]
 
 type ObjectUploadResp struct{}
 
@@ -58,7 +58,7 @@ func (c *ObjectService) Upload(req ObjectUploadReq) (*ObjectUploadResp, error) {
 
 	resp, err := myhttp.PostMultiPart(url, myhttp.MultiPartRequestParam{
 		Form: map[string]string{"info": string(infoJSON)},
-		Files: iterator.Map(req.Files, func(src *IterObjectUpload) (*myhttp.IterMultiPartFile, error) {
+		Files: iterator.Map(req.Files, func(src *UploadingObject) (*myhttp.IterMultiPartFile, error) {
 			return &myhttp.IterMultiPartFile{
 				FieldName: "files",
 				FileName:  src.Path,
@@ -94,8 +94,12 @@ type ObjectDownloadReq struct {
 	UserID   UserID   `form:"userID" json:"userID" binding:"required"`
 	ObjectID ObjectID `form:"objectID" json:"objectID" binding:"required"`
 }
+type DownloadingObject struct {
+	Path string
+	File io.ReadCloser
+}
 
-func (c *ObjectService) Download(req ObjectDownloadReq) (io.ReadCloser, error) {
+func (c *ObjectService) Download(req ObjectDownloadReq) (*DownloadingObject, error) {
 	url, err := url.JoinPath(c.baseURL, ObjectDownloadPath)
 	if err != nil {
 		return nil, err
@@ -119,11 +123,27 @@ func (c *ObjectService) Download(req ObjectDownloadReq) (io.ReadCloser, error) {
 		return nil, codeResp.ToError()
 	}
 
-	if strings.Contains(contType, myhttp.ContentTypeOctetStream) {
-		return resp.Body, nil
+	if !strings.Contains(contType, myhttp.ContentTypeMultiPart) {
+		return nil, fmt.Errorf("unknow response content type: %s", contType)
 	}
 
-	return nil, fmt.Errorf("unknow response content type: %s", contType)
+	_, files, err := myhttp.ParseMultiPartResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := files.MoveNext()
+	if err == iterator.ErrNoMoreItem {
+		return nil, fmt.Errorf("no file found in response")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &DownloadingObject{
+		Path: file.FileName,
+		File: file.File,
+	}, nil
 }
 
 const ObjectUpdateInfoPath = "/object/updateInfo"

@@ -36,11 +36,11 @@ func Test_PackageGet(t *testing.T) {
 				PackageID: createResp.PackageID,
 			},
 			Files: iterator.Array(
-				&IterObjectUpload{
+				&UploadingObject{
 					Path: "test",
 					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
-				&IterObjectUpload{
+				&UploadingObject{
 					Path: "test2",
 					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
@@ -93,11 +93,11 @@ func Test_Object(t *testing.T) {
 				NodeAffinity: &nodeAff,
 			},
 			Files: iterator.Array(
-				&IterObjectUpload{
+				&UploadingObject{
 					Path: "test",
 					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
-				&IterObjectUpload{
+				&UploadingObject{
 					Path: "test2",
 					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
@@ -149,11 +149,11 @@ func Test_Storage(t *testing.T) {
 				PackageID: createResp.PackageID,
 			},
 			Files: iterator.Array(
-				&IterObjectUpload{
+				&UploadingObject{
 					Path: "test",
 					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
-				&IterObjectUpload{
+				&UploadingObject{
 					Path: "test2",
 					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
@@ -201,11 +201,11 @@ func Test_Cache(t *testing.T) {
 				PackageID: createResp.PackageID,
 			},
 			Files: iterator.Array(
-				&IterObjectUpload{
+				&UploadingObject{
 					Path: "test.txt",
 					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
-				&IterObjectUpload{
+				&UploadingObject{
 					Path: "test2.txt",
 					File: io.NopCloser(bytes.NewBuffer(fileData)),
 				},
