@@ -18,8 +18,8 @@ func (c *Client) Bucket() *BucketService {
 const BucketCreatePath = "/bucket/create"
 
 type BucketCreateReq struct {
-	UserID     UserID `json:"userID" binding:"required"`
-	BucketName string `json:"bucketName" binding:"required"`
+	UserID UserID `json:"userID" binding:"required"`
+	Name   string `json:"name" binding:"required"`
 }
 
 type BucketCreateResp struct {
