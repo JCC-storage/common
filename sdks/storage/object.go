@@ -162,7 +162,9 @@ type ObjectUpdateInfoReq struct {
 	Updatings []UpdatingObject `json:"updatings" binding:"required"`
 }
 
-type ObjectUpdateInfoResp struct{}
+type ObjectUpdateInfoResp struct {
+	Successes []ObjectID `json:"successes"`
+}
 
 func (c *ObjectService) Update(req ObjectUpdateInfoReq) (*ObjectUpdateInfoResp, error) {
 	url, err := url.JoinPath(c.baseURL, ObjectUpdateInfoPath)
@@ -178,6 +180,53 @@ func (c *ObjectService) Update(req ObjectUpdateInfoReq) (*ObjectUpdateInfoResp, 
 	}
 
 	jsonResp, err := myhttp.ParseJSONResponse[response[ObjectUpdateInfoResp]](resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if jsonResp.Code == errorcode.OK {
+		return &jsonResp.Data, nil
+	}
+
+	return nil, jsonResp.ToError()
+}
+
+const ObjectMovePath = "/object/move"
+
+type MovingObject struct {
+	ObjectID  ObjectID  `json:"objectID" binding:"required"`
+	PackageID PackageID `json:"packageID" binding:"required"`
+	Path      string    `json:"path" binding:"required"`
+}
+
+func (m *MovingObject) ApplyTo(obj *Object) {
+	obj.PackageID = m.PackageID
+	obj.Path = m.Path
+}
+
+type ObjectMoveReq struct {
+	UserID  UserID         `json:"userID" binding:"required"`
+	Movings []MovingObject `json:"movings" binding:"required"`
+}
+
+type ObjectMoveResp struct {
+	Successes []ObjectID `json:"successes"`
+}
+
+func (c *ObjectService) Move(req ObjectMoveReq) (*ObjectMoveResp, error) {
+	url, err := url.JoinPath(c.baseURL, ObjectMovePath)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+		Body: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	jsonResp, err := myhttp.ParseJSONResponse[response[ObjectMoveResp]](resp)
 	if err != nil {
 		return nil, err
 	}
