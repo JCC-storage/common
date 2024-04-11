@@ -53,6 +53,18 @@ func JSONToObjectEx[T any](data []byte) (T, error) {
 	return ret, nil
 }
 
+// 将JSON字符串转为对象。支持TypeUnion。
+func JSONToObjectStreamEx[T any](stream io.Reader) (T, error) {
+	var ret T
+	dec := defaultAPI.NewDecoder(stream)
+	err := dec.Decode(&ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
 // 将对象转为JSON字符串。如果需要支持解析TypeUnion类型，则使用"Ex"结尾的同名函数。
 func ObjectToJSON(obj any) ([]byte, error) {
 	return json.Marshal(obj)

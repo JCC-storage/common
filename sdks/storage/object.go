@@ -25,7 +25,7 @@ func (c *Client) Object() *ObjectService {
 
 const ObjectUploadPath = "/object/upload"
 
-type ObjectUploadReq struct {
+type ObjectUpload struct {
 	ObjectUploadInfo
 	Files UploadObjectIterator `json:"-"`
 }
@@ -43,9 +43,15 @@ type UploadingObject struct {
 
 type UploadObjectIterator = iterator.Iterator[*UploadingObject]
 
-type ObjectUploadResp struct{}
+type ObjectUploadResp struct {
+	Uploadeds []UploadedObject `json:"uploadeds"`
+}
+type UploadedObject struct {
+	Object *Object `json:"object"`
+	Error  string  `json:"error"`
+}
 
-func (c *ObjectService) Upload(req ObjectUploadReq) (*ObjectUploadResp, error) {
+func (c *ObjectService) Upload(req ObjectUpload) (*ObjectUploadResp, error) {
 	url, err := url.JoinPath(c.baseURL, ObjectUploadPath)
 	if err != nil {
 		return nil, err
@@ -72,8 +78,9 @@ func (c *ObjectService) Upload(req ObjectUploadReq) (*ObjectUploadResp, error) {
 
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+		var err error
 		var codeResp response[ObjectUploadResp]
-		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
+		if codeResp, err = serder.JSONToObjectStreamEx[response[ObjectUploadResp]](resp.Body); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
 
@@ -90,7 +97,7 @@ func (c *ObjectService) Upload(req ObjectUploadReq) (*ObjectUploadResp, error) {
 
 const ObjectDownloadPath = "/object/download"
 
-type ObjectDownloadReq struct {
+type ObjectDownload struct {
 	UserID   UserID   `form:"userID" json:"userID" binding:"required"`
 	ObjectID ObjectID `form:"objectID" json:"objectID" binding:"required"`
 }
@@ -99,7 +106,7 @@ type DownloadingObject struct {
 	File io.ReadCloser
 }
 
-func (c *ObjectService) Download(req ObjectDownloadReq) (*DownloadingObject, error) {
+func (c *ObjectService) Download(req ObjectDownload) (*DownloadingObject, error) {
 	url, err := url.JoinPath(c.baseURL, ObjectDownloadPath)
 	if err != nil {
 		return nil, err
@@ -121,10 +128,6 @@ func (c *ObjectService) Download(req ObjectDownloadReq) (*DownloadingObject, err
 		}
 
 		return nil, codeResp.ToError()
-	}
-
-	if !strings.Contains(contType, myhttp.ContentTypeMultiPart) {
-		return nil, fmt.Errorf("unknow response content type: %s", contType)
 	}
 
 	_, files, err := myhttp.ParseMultiPartResponse(resp)
@@ -157,7 +160,7 @@ func (u *UpdatingObject) ApplyTo(obj *Object) {
 	obj.UpdateTime = u.UpdateTime
 }
 
-type ObjectUpdateInfoReq struct {
+type ObjectUpdateInfo struct {
 	UserID    UserID           `json:"userID" binding:"required"`
 	Updatings []UpdatingObject `json:"updatings" binding:"required"`
 }
@@ -166,7 +169,7 @@ type ObjectUpdateInfoResp struct {
 	Successes []ObjectID `json:"successes"`
 }
 
-func (c *ObjectService) Update(req ObjectUpdateInfoReq) (*ObjectUpdateInfoResp, error) {
+func (c *ObjectService) UpdateInfo(req ObjectUpdateInfo) (*ObjectUpdateInfoResp, error) {
 	url, err := url.JoinPath(c.baseURL, ObjectUpdateInfoPath)
 	if err != nil {
 		return nil, err
@@ -179,7 +182,7 @@ func (c *ObjectService) Update(req ObjectUpdateInfoReq) (*ObjectUpdateInfoResp, 
 		return nil, err
 	}
 
-	jsonResp, err := myhttp.ParseJSONResponse[response[ObjectUpdateInfoResp]](resp)
+	jsonResp, err := ParseJSONResponse[response[ObjectUpdateInfoResp]](resp)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +207,7 @@ func (m *MovingObject) ApplyTo(obj *Object) {
 	obj.Path = m.Path
 }
 
-type ObjectMoveReq struct {
+type ObjectMove struct {
 	UserID  UserID         `json:"userID" binding:"required"`
 	Movings []MovingObject `json:"movings" binding:"required"`
 }
@@ -213,7 +216,7 @@ type ObjectMoveResp struct {
 	Successes []ObjectID `json:"successes"`
 }
 
-func (c *ObjectService) Move(req ObjectMoveReq) (*ObjectMoveResp, error) {
+func (c *ObjectService) Move(req ObjectMove) (*ObjectMoveResp, error) {
 	url, err := url.JoinPath(c.baseURL, ObjectMovePath)
 	if err != nil {
 		return nil, err
@@ -226,7 +229,7 @@ func (c *ObjectService) Move(req ObjectMoveReq) (*ObjectMoveResp, error) {
 		return nil, err
 	}
 
-	jsonResp, err := myhttp.ParseJSONResponse[response[ObjectMoveResp]](resp)
+	jsonResp, err := ParseJSONResponse[response[ObjectMoveResp]](resp)
 	if err != nil {
 		return nil, err
 	}
@@ -240,41 +243,41 @@ func (c *ObjectService) Move(req ObjectMoveReq) (*ObjectMoveResp, error) {
 
 const ObjectDeletePath = "/object/delete"
 
-type ObjectDeleteReq struct {
+type ObjectDelete struct {
 	UserID    UserID     `json:"userID" binding:"required"`
 	ObjectIDs []ObjectID `json:"objectIDs" binding:"required"`
 }
 
 type ObjectDeleteResp struct{}
 
-func (c *ObjectService) Delete(req ObjectDeleteReq) (*ObjectDeleteResp, error) {
+func (c *ObjectService) Delete(req ObjectDelete) error {
 	url, err := url.JoinPath(c.baseURL, ObjectDeletePath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
 		Body: req,
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	jsonResp, err := myhttp.ParseJSONResponse[response[ObjectDeleteResp]](resp)
+	jsonResp, err := ParseJSONResponse[response[ObjectDeleteResp]](resp)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if jsonResp.Code == errorcode.OK {
-		return &jsonResp.Data, nil
+		return nil
 	}
 
-	return nil, jsonResp.ToError()
+	return jsonResp.ToError()
 }
 
 const ObjectGetPackageObjectsPath = "/object/getPackageObjects"
 
-type ObjectGetPackageObjectsReq struct {
+type ObjectGetPackageObjects struct {
 	UserID    UserID    `form:"userID" json:"userID" binding:"required"`
 	PackageID PackageID `form:"packageID" json:"packageID" binding:"required"`
 }
@@ -282,7 +285,7 @@ type ObjectGetPackageObjectsResp struct {
 	Objects []Object `json:"objects"`
 }
 
-func (c *ObjectService) GetPackageObjects(req ObjectGetPackageObjectsReq) (*ObjectGetPackageObjectsResp, error) {
+func (c *ObjectService) GetPackageObjects(req ObjectGetPackageObjects) (*ObjectGetPackageObjectsResp, error) {
 	url, err := url.JoinPath(c.baseURL, ObjectGetPackageObjectsPath)
 	if err != nil {
 		return nil, err
@@ -295,7 +298,7 @@ func (c *ObjectService) GetPackageObjects(req ObjectGetPackageObjectsReq) (*Obje
 		return nil, err
 	}
 
-	jsonResp, err := myhttp.ParseJSONResponse[response[ObjectGetPackageObjectsResp]](resp)
+	jsonResp, err := ParseJSONResponse[response[ObjectGetPackageObjectsResp]](resp)
 	if err != nil {
 		return nil, err
 	}

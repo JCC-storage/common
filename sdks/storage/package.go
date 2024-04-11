@@ -41,7 +41,43 @@ func (c *PackageService) Get(req PackageGetReq) (*PackageGetResp, error) {
 		return nil, err
 	}
 
-	codeResp, err := myhttp.ParseJSONResponse[response[PackageGetResp]](resp)
+	codeResp, err := ParseJSONResponse[response[PackageGetResp]](resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if codeResp.Code == errorcode.OK {
+		return &codeResp.Data, nil
+	}
+
+	return nil, codeResp.ToError()
+}
+
+const PackageGetByNamePath = "/package/getByName"
+
+type PackageGetByName struct {
+	UserID      UserID `form:"userID" json:"userID" binding:"required"`
+	BucketName  string `form:"bucketName" json:"bucketName" binding:"required"`
+	PackageName string `form:"packageName" json:"packageName" binding:"required"`
+}
+type PackageGetByNameResp struct {
+	Package Package `json:"package"`
+}
+
+func (c *PackageService) GetByName(req PackageGetByName) (*PackageGetByNameResp, error) {
+	url, err := url.JoinPath(c.baseURL, PackageGetByNamePath)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+		Query: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	codeResp, err := ParseJSONResponse[response[PackageGetByNameResp]](resp)
 	if err != nil {
 		return nil, err
 	}
@@ -55,17 +91,17 @@ func (c *PackageService) Get(req PackageGetReq) (*PackageGetResp, error) {
 
 const PackageCreatePath = "/package/create"
 
-type PackageCreateReq struct {
+type PackageCreate struct {
 	UserID   UserID   `json:"userID"`
 	BucketID BucketID `json:"bucketID"`
 	Name     string   `json:"name"`
 }
 
 type PackageCreateResp struct {
-	PackageID PackageID `json:"packageID,string"`
+	Package Package `json:"package"`
 }
 
-func (s *PackageService) Create(req PackageCreateReq) (*PackageCreateResp, error) {
+func (s *PackageService) Create(req PackageCreate) (*PackageCreateResp, error) {
 	url, err := url.JoinPath(s.baseURL, PackageCreatePath)
 	if err != nil {
 		return nil, err
@@ -78,7 +114,7 @@ func (s *PackageService) Create(req PackageCreateReq) (*PackageCreateResp, error
 		return nil, err
 	}
 
-	codeResp, err := myhttp.ParseJSONResponse[response[PackageCreateResp]](resp)
+	codeResp, err := ParseJSONResponse[response[PackageCreateResp]](resp)
 	if err != nil {
 		return nil, err
 	}
@@ -92,12 +128,12 @@ func (s *PackageService) Create(req PackageCreateReq) (*PackageCreateResp, error
 
 const PackageDeletePath = "/package/delete"
 
-type PackageDeleteReq struct {
+type PackageDelete struct {
 	UserID    UserID    `json:"userID" binding:"required"`
 	PackageID PackageID `json:"packageID" binding:"required"`
 }
 
-func (c *PackageService) Delete(req PackageDeleteReq) error {
+func (c *PackageService) Delete(req PackageDelete) error {
 	url, err := url.JoinPath(c.baseURL, PackageDeletePath)
 	if err != nil {
 		return err
@@ -130,7 +166,7 @@ func (c *PackageService) Delete(req PackageDeleteReq) error {
 
 const PackageListBucketPackagesPath = "/package/listBucketPackages"
 
-type PackageListBucketPackagesReq struct {
+type PackageListBucketPackages struct {
 	UserID   UserID   `form:"userID" json:"userID" binding:"required"`
 	BucketID BucketID `form:"bucketID" json:"bucketID" binding:"required"`
 }
@@ -139,7 +175,7 @@ type PackageListBucketPackagesResp struct {
 	Packages []Package `json:"packages"`
 }
 
-func (c *PackageService) ListBucketPackages(req PackageListBucketPackagesReq) (*PackageListBucketPackagesResp, error) {
+func (c *PackageService) ListBucketPackages(req PackageListBucketPackages) (*PackageListBucketPackagesResp, error) {
 	url, err := url.JoinPath(c.baseURL, PackageListBucketPackagesPath)
 	if err != nil {
 		return nil, err
@@ -152,7 +188,7 @@ func (c *PackageService) ListBucketPackages(req PackageListBucketPackagesReq) (*
 		return nil, err
 	}
 
-	codeResp, err := myhttp.ParseJSONResponse[response[PackageListBucketPackagesResp]](resp)
+	codeResp, err := ParseJSONResponse[response[PackageListBucketPackagesResp]](resp)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +223,7 @@ func (c *PackageService) GetCachedNodes(req PackageGetCachedNodesReq) (*PackageG
 		return nil, err
 	}
 
-	codeResp, err := myhttp.ParseJSONResponse[response[PackageGetCachedNodesResp]](resp)
+	codeResp, err := ParseJSONResponse[response[PackageGetCachedNodesResp]](resp)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +258,7 @@ func (c *PackageService) GetLoadedNodes(req PackageGetLoadedNodesReq) (*PackageG
 		return nil, err
 	}
 
-	codeResp, err := myhttp.ParseJSONResponse[response[PackageGetLoadedNodesResp]](resp)
+	codeResp, err := ParseJSONResponse[response[PackageGetLoadedNodesResp]](resp)
 	if err != nil {
 		return nil, err
 	}

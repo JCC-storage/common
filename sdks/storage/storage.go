@@ -32,7 +32,7 @@ func (c *Client) StorageLoadPackage(req StorageLoadPackageReq) (*StorageLoadPack
 		return nil, err
 	}
 
-	codeResp, err := myhttp.ParseJSONResponse[response[StorageLoadPackageResp]](resp)
+	codeResp, err := ParseJSONResponse[response[StorageLoadPackageResp]](resp)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (c *Client) StorageGetInfo(req StorageGetInfoReq) (*StorageGetInfoResp, err
 		return nil, err
 	}
 
-	codeResp, err := myhttp.ParseJSONResponse[response[StorageGetInfoResp]](resp)
+	codeResp, err := ParseJSONResponse[response[StorageGetInfoResp]](resp)
 	if err != nil {
 		return nil, err
 	}

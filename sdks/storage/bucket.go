@@ -15,18 +15,53 @@ func (c *Client) Bucket() *BucketService {
 	return &BucketService{c}
 }
 
+const BucketGetByNamePath = "/bucket/getByName"
+
+type BucketGetByName struct {
+	UserID UserID `json:"userID" form:"userID" binding:"required"`
+	Name   string `json:"name" form:"name" binding:"required"`
+}
+type BucketGetByNameResp struct {
+	Bucket Bucket `json:"bucket"`
+}
+
+func (c *BucketService) GetByName(req BucketGetByName) (*BucketGetByNameResp, error) {
+	url, err := url.JoinPath(c.baseURL, BucketGetByNamePath)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+		Query: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	codeResp, err := ParseJSONResponse[response[BucketGetByNameResp]](resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if codeResp.Code == errorcode.OK {
+		return &codeResp.Data, nil
+	}
+
+	return nil, codeResp.ToError()
+}
+
 const BucketCreatePath = "/bucket/create"
 
-type BucketCreateReq struct {
+type BucketCreate struct {
 	UserID UserID `json:"userID" binding:"required"`
 	Name   string `json:"name" binding:"required"`
 }
 
 type BucketCreateResp struct {
-	BucketID BucketID `json:"bucketID"`
+	Bucket Bucket `json:"bucket"`
 }
 
-func (c *BucketService) Create(req BucketCreateReq) (*BucketCreateResp, error) {
+func (c *BucketService) Create(req BucketCreate) (*BucketCreateResp, error) {
 	url, err := url.JoinPath(c.baseURL, BucketCreatePath)
 	if err != nil {
 		return nil, err
@@ -39,7 +74,7 @@ func (c *BucketService) Create(req BucketCreateReq) (*BucketCreateResp, error) {
 		return nil, err
 	}
 
-	codeResp, err := myhttp.ParseJSONResponse[response[BucketCreateResp]](resp)
+	codeResp, err := ParseJSONResponse[response[BucketCreateResp]](resp)
 	if err != nil {
 		return nil, err
 	}
@@ -53,36 +88,36 @@ func (c *BucketService) Create(req BucketCreateReq) (*BucketCreateResp, error) {
 
 const BucketDeletePath = "/bucket/delete"
 
-type BucketDeleteReq struct {
+type BucketDelete struct {
 	UserID   UserID   `json:"userID" binding:"required"`
 	BucketID BucketID `json:"bucketID" binding:"required"`
 }
 
 type BucketDeleteResp struct{}
 
-func (c *BucketService) Delete(req BucketDeleteReq) (*BucketDeleteResp, error) {
+func (c *BucketService) Delete(req BucketDelete) error {
 	url, err := url.JoinPath(c.baseURL, BucketDeletePath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
 		Body: req,
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	codeResp, err := myhttp.ParseJSONResponse[response[BucketDeleteResp]](resp)
+	codeResp, err := ParseJSONResponse[response[BucketDeleteResp]](resp)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if codeResp.Code == errorcode.OK {
-		return &codeResp.Data, nil
+		return nil
 	}
 
-	return nil, codeResp.ToError()
+	return codeResp.ToError()
 }
 
 const BucketListUserBucketsPath = "/bucket/listUserBuckets"
@@ -108,7 +143,7 @@ func (c *BucketService) ListUserBuckets(req BucketListUserBucketsReq) (*BucketLi
 		return nil, err
 	}
 
-	codeResp, err := myhttp.ParseJSONResponse[response[BucketListUserBucketsResp]](resp)
+	codeResp, err := ParseJSONResponse[response[BucketListUserBucketsResp]](resp)
 	if err != nil {
 		return nil, err
 	}

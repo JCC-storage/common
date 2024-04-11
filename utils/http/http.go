@@ -133,8 +133,9 @@ func ParseJSONResponse[TBody any](resp *http.Response) (TBody, error) {
 }
 
 type MultiPartFile struct {
-	FileName string
-	File     io.ReadCloser
+	FieldName string
+	FileName  string
+	File      io.ReadCloser
 }
 
 type multiPartFileIterator struct {
@@ -146,9 +147,16 @@ func (m *multiPartFileIterator) MoveNext() (*MultiPartFile, error) {
 	if m.firstFile != nil {
 		f := m.firstFile
 		m.firstFile = nil
+
+		fileName, err := ul.PathUnescape(f.FileName())
+		if err != nil {
+			return nil, fmt.Errorf("unescape file name: %w", err)
+		}
+
 		return &MultiPartFile{
-			FileName: f.FileName(),
-			File:     f,
+			FieldName: f.FormName(),
+			FileName:  fileName,
+			File:      f,
 		}, nil
 	}
 
@@ -161,10 +169,16 @@ func (m *multiPartFileIterator) MoveNext() (*MultiPartFile, error) {
 			return nil, err
 		}
 
+		fileName, err := ul.PathUnescape(part.FileName())
+		if err != nil {
+			return nil, fmt.Errorf("unescape file name: %w", err)
+		}
+
 		if part.FileName() != "" {
 			return &MultiPartFile{
-				FileName: part.FileName(),
-				File:     part,
+				FieldName: part.FormName(),
+				FileName:  fileName,
+				File:      part,
 			}, nil
 		}
 	}
@@ -292,7 +306,7 @@ func PostMultiPart(url string, param MultiPartRequestParam) (*http.Response, err
 				err = func() error {
 					defer file.File.Close()
 
-					w, err := muWriter.CreateFormFile(file.FieldName, file.FileName)
+					w, err := muWriter.CreateFormFile(file.FieldName, ul.PathEscape(file.FileName))
 					if err != nil {
 						return fmt.Errorf("create form file failed, err: %w", err)
 					}

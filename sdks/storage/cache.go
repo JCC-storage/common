@@ -29,7 +29,7 @@ func (c *Client) CacheMovePackage(req CacheMovePackageReq) (*CacheMovePackageRes
 		return nil, err
 	}
 
-	jsonResp, err := myhttp.ParseJSONResponse[response[CacheMovePackageResp]](resp)
+	jsonResp, err := ParseJSONResponse[response[CacheMovePackageResp]](resp)
 	if err != nil {
 		return nil, err
 	}
