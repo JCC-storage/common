@@ -300,10 +300,17 @@ func NewCommandTrie[TCtx any, TRet any]() CommandTrie[TCtx, TRet] {
 	}
 }
 
+// Add 将一个命令函数和其前缀词添加到命令树中。
+// fn: 要添加的命令函数。
+// prefixWords: 命令的前缀词，可以有多个。
+// 返回值: 添加成功返回nil，失败返回error。
 func (t *CommandTrie[TCtx, TRet]) Add(fn any, prefixWords ...string) error {
 	return t.anyTrie.Add(fn, prefixWords...)
 }
 
+// MustAdd 与Add类似，但如果不成功则会触发panic。
+// fn: 要添加的命令函数。
+// prefixWords: 命令的前缀词，可以有多个。
 func (t *CommandTrie[TCtx, TRet]) MustAdd(fn any, prefixWords ...string) {
 	err := t.anyTrie.Add(fn, prefixWords...)
 	if err != nil {
@@ -311,6 +318,11 @@ func (t *CommandTrie[TCtx, TRet]) MustAdd(fn any, prefixWords ...string) {
 	}
 }
 
+// Execute 执行与给定命令词匹配的命令函数。
+// ctx: 命令执行的上下文。
+// cmdWords: 用户输入的命令词，分解后的单词列表。
+// opts: 执行选项，可选。
+// 返回值: 命令执行的结果和可能的错误。
 func (t *CommandTrie[TCtx, TRet]) Execute(ctx TCtx, cmdWords []string, opts ...ExecuteOption) (TRet, error) {
 	opt := ExecuteOption{}
 	if len(opts) > 0 {
@@ -323,11 +335,13 @@ func (t *CommandTrie[TCtx, TRet]) Execute(ctx TCtx, cmdWords []string, opts ...E
 		return defRet, err
 	}
 
+	// 检查返回值是否为nil接口
 	if retValues[0].Kind() == reflect.Interface && retValues[0].IsNil() {
 		var ret TRet
 		return ret, nil
 	}
 
+	// 返回命令执行的结果
 	return retValues[0].Interface().(TRet), nil
 }
 
