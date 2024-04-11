@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	ObjectPathSeperator = "/"
+	ObjectPathSeparator = "/"
 )
 
 type NodeID int64

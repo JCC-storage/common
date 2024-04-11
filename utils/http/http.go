@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	ul "net/url"
@@ -131,6 +132,115 @@ func ParseJSONResponse[TBody any](resp *http.Response) (TBody, error) {
 	return ret, fmt.Errorf("unknow response content type: %s, status: %d, body(prefix): %s", contType, resp.StatusCode, strCont[:math.Min(len(strCont), 200)])
 }
 
+type MultiPartFile struct {
+	FieldName string
+	FileName  string
+	File      io.ReadCloser
+}
+
+type multiPartFileIterator struct {
+	mr        *multipart.Reader
+	firstFile *multipart.Part
+}
+
+func (m *multiPartFileIterator) MoveNext() (*MultiPartFile, error) {
+	if m.firstFile != nil {
+		f := m.firstFile
+		m.firstFile = nil
+
+		fileName, err := ul.PathUnescape(f.FileName())
+		if err != nil {
+			return nil, fmt.Errorf("unescape file name: %w", err)
+		}
+
+		return &MultiPartFile{
+			FieldName: f.FormName(),
+			FileName:  fileName,
+			File:      f,
+		}, nil
+	}
+
+	for {
+		part, err := m.mr.NextPart()
+		if err == io.EOF {
+			return nil, iterator.ErrNoMoreItem
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		fileName, err := ul.PathUnescape(part.FileName())
+		if err != nil {
+			return nil, fmt.Errorf("unescape file name: %w", err)
+		}
+
+		if part.FileName() != "" {
+			return &MultiPartFile{
+				FieldName: part.FormName(),
+				FileName:  fileName,
+				File:      part,
+			}, nil
+		}
+	}
+}
+
+func (m *multiPartFileIterator) Close() {}
+
+// 解析multipart/form-data响应，只支持form参数在头部的情况
+func ParseMultiPartResponse(resp *http.Response) (map[string]string, iterator.Iterator[*MultiPartFile], error) {
+	mtype, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	if err != nil {
+		return nil, nil, fmt.Errorf("parse content type: %w", err)
+	}
+
+	if mtype != ContentTypeMultiPart {
+		return nil, nil, fmt.Errorf("unknow content type: %s", mtype)
+	}
+
+	boundary := params["boundary"]
+	if boundary == "" {
+		return nil, nil, fmt.Errorf("no boundary in content type: %s", mtype)
+	}
+
+	formValues := make(map[string]string)
+	rd := multipart.NewReader(resp.Body, boundary)
+
+	var firstFile *multipart.Part
+	for {
+		part, err := rd.NextPart()
+		if err == io.EOF {
+			return formValues, iterator.Empty[*MultiPartFile](), nil
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+
+		formName := part.FormName()
+		fileName := part.FileName()
+
+		if formName == "" {
+			continue
+		}
+
+		if fileName != "" {
+			firstFile = part
+			break
+		}
+
+		data, err := io.ReadAll(part)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		formValues[formName] = string(data)
+	}
+
+	return formValues, &multiPartFileIterator{
+		mr:        rd,
+		firstFile: firstFile,
+	}, nil
+}
+
 type MultiPartRequestParam struct {
 	Header any
 	Query  any
@@ -196,7 +306,7 @@ func PostMultiPart(url string, param MultiPartRequestParam) (*http.Response, err
 				err = func() error {
 					defer file.File.Close()
 
-					w, err := muWriter.CreateFormFile(file.FieldName, file.FileName)
+					w, err := muWriter.CreateFormFile(file.FieldName, ul.PathEscape(file.FileName))
 					if err != nil {
 						return fmt.Errorf("create form file failed, err: %w", err)
 					}
