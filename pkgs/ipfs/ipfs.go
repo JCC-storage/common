@@ -6,12 +6,12 @@ import (
 	"io"
 
 	shell "github.com/ipfs/go-ipfs-api"
-	myio "gitlink.org.cn/cloudream/common/utils/io"
+	"gitlink.org.cn/cloudream/common/utils/io2"
 )
 
 type ReadOption struct {
-	Offset int64 // 从指定位置开始读取，为-1时代表不设置，从头开始读
-	Length int64 // 读取长度，为-1时代表不设置，读取Offset之后的所有内容
+	Offset int64 `json:"offset,string"` // 从指定位置开始读取，为-1时代表不设置，从头开始读
+	Length int64 `json:"length,string"` // 读取长度，为-1时代表不设置，读取Offset之后的所有内容
 }
 
 type Client struct {
@@ -35,7 +35,7 @@ func (fs *Client) IsUp() bool {
 	return fs.shell.IsUp()
 }
 
-func (fs *Client) CreateFileStream() (myio.PromiseWriteCloser[string], error) {
+func (fs *Client) CreateFileStream() (io2.PromiseWriteCloser[string], error) {
 	pr, pw := io.Pipe()
 
 	ipfsWriter := ipfsWriter{

@@ -11,6 +11,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/magefile/mage v1.15.0
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/modern-go/reflect2 v1.0.2
 	github.com/otiai10/copy v1.12.0
 	github.com/samber/lo v1.36.0
 	github.com/sirupsen/logrus v1.9.2
@@ -41,7 +42,6 @@ require (
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
-	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
