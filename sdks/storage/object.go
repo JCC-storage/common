@@ -100,6 +100,8 @@ const ObjectDownloadPath = "/object/download"
 type ObjectDownload struct {
 	UserID   UserID   `form:"userID" json:"userID" binding:"required"`
 	ObjectID ObjectID `form:"objectID" json:"objectID" binding:"required"`
+	Offset   int64    `form:"offset" json:"offset"`
+	Length   *int64   `form:"length" json:"length"`
 }
 type DownloadingObject struct {
 	Path string

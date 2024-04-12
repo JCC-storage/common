@@ -8,7 +8,7 @@ import (
 	"github.com/zyedidia/generic/list"
 
 	"gitlink.org.cn/cloudream/common/pkgs/future"
-	mysync "gitlink.org.cn/cloudream/common/utils/sync"
+	"gitlink.org.cn/cloudream/common/utils/sync2"
 )
 
 type CommandFn func()
@@ -16,7 +16,7 @@ type CommandFn func()
 type CommandChannel struct {
 	cmds        *list.List[CommandFn]
 	cmdsLock    sync.Mutex
-	cmdsCounter *mysync.CounterCond
+	cmdsCounter *sync2.CounterCond
 
 	chanReceive     chan CommandFn
 	chanReceiveDone atomic.Bool
@@ -28,7 +28,7 @@ type CommandChannel struct {
 func NewCommandChannel() *CommandChannel {
 	return &CommandChannel{
 		cmds:        list.New[CommandFn](),
-		cmdsCounter: mysync.NewCounterCond(0),
+		cmdsCounter: sync2.NewCounterCond(0),
 		cmdChan:     make(chan CommandFn),
 	}
 }
