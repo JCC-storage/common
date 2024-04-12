@@ -1,9 +1,9 @@
-package io
+package io2
 
 import (
 	"io"
 
-	"gitlink.org.cn/cloudream/common/utils/math"
+	"gitlink.org.cn/cloudream/common/utils/math2"
 )
 
 type lengthStream struct {
@@ -19,7 +19,7 @@ func (s *lengthStream) Read(buf []byte) (int, error) {
 		return 0, s.err
 	}
 
-	bufLen := math.Min(s.length-s.readLength, int64(len(buf)))
+	bufLen := math2.Min(s.length-s.readLength, int64(len(buf)))
 	rd, err := s.src.Read(buf[:bufLen])
 	if err == nil {
 		s.readLength += int64(rd)

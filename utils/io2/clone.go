@@ -1,4 +1,4 @@
-package io
+package io2
 
 import (
 	"io"

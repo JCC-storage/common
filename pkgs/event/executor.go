@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/zyedidia/generic/list"
-	mysync "gitlink.org.cn/cloudream/common/utils/sync"
+	"gitlink.org.cn/cloudream/common/utils/sync2"
 )
 
 type ExecuteOption struct {
@@ -26,7 +26,7 @@ type postedEvent[TArgs any] struct {
 type Executor[TArgs any] struct {
 	events    *list.List[postedEvent[TArgs]]
 	locker    sync.Mutex
-	eventCond *mysync.CounterCond
+	eventCond *sync2.CounterCond
 	execArgs  TArgs
 }
 
@@ -34,7 +34,7 @@ func NewExecutor[TArgs any](args TArgs) Executor[TArgs] {
 	return Executor[TArgs]{
 		events:    list.New[postedEvent[TArgs]](),
 		locker:    sync.Mutex{},
-		eventCond: mysync.NewCounterCond(0),
+		eventCond: sync2.NewCounterCond(0),
 		execArgs:  args,
 	}
 

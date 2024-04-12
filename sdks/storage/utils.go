@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
-	"gitlink.org.cn/cloudream/common/utils/math"
+	"gitlink.org.cn/cloudream/common/utils/math2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -34,5 +34,5 @@ func ParseJSONResponse[TBody any](resp *http.Response) (TBody, error) {
 	}
 	strCont := string(cont)
 
-	return ret, fmt.Errorf("unknow response content type: %s, status: %d, body(prefix): %s", contType, resp.StatusCode, strCont[:math.Min(len(strCont), 200)])
+	return ret, fmt.Errorf("unknow response content type: %s, status: %d, body(prefix): %s", contType, resp.StatusCode, strCont[:math2.Min(len(strCont), 200)])
 }
