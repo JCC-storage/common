@@ -9,8 +9,10 @@ import (
 	"net/http"
 	"net/textproto"
 	ul "net/url"
+	"reflect"
 	"strings"
 
+	"github.com/mitchellh/mapstructure"
 	"gitlink.org.cn/cloudream/common/pkgs/iterator"
 	"gitlink.org.cn/cloudream/common/utils/math2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
@@ -285,13 +287,13 @@ func PostMultiPart(url string, param MultiPartRequestParam) (*http.Response, err
 			defer muWriter.Close()
 
 			if param.Form != nil {
-				mp, err := serder.ObjectToMap(param.Form)
+				mp, err := objectToStringMap(param.Form)
 				if err != nil {
 					return fmt.Errorf("formValues object to map failed, err: %w", err)
 				}
 
 				for k, v := range mp {
-					err := muWriter.WriteField(k, fmt.Sprintf("%v", v))
+					err := muWriter.WriteField(k, v)
 					if err != nil {
 						return fmt.Errorf("write form field failed, err: %w", err)
 					}
@@ -351,17 +353,17 @@ func prepareQuery(req *http.Request, query any) error {
 		return nil
 	}
 
-	mp, ok := query.(map[string]any)
+	mp, ok := query.(map[string]string)
 	if !ok {
 		var err error
-		if mp, err = serder.ObjectToMap(query); err != nil {
+		if mp, err = objectToStringMap(query); err != nil {
 			return fmt.Errorf("query object to map: %w", err)
 		}
 	}
 
 	values := make(ul.Values)
 	for k, v := range mp {
-		values.Add(k, fmt.Sprintf("%v", v))
+		values.Add(k, v)
 	}
 
 	req.URL.RawQuery = values.Encode()
@@ -373,17 +375,17 @@ func prepareHeader(req *http.Request, header any) error {
 		return nil
 	}
 
-	mp, ok := header.(map[string]any)
+	mp, ok := header.(map[string]string)
 	if !ok {
 		var err error
-		if mp, err = serder.ObjectToMap(header); err != nil {
+		if mp, err = objectToStringMap(header); err != nil {
 			return fmt.Errorf("header object to map: %w", err)
 		}
 	}
 
 	req.Header = make(http.Header)
 	for k, v := range mp {
-		req.Header.Set(k, fmt.Sprintf("%v", v))
+		req.Header.Set(k, v)
 	}
 	return nil
 }
@@ -412,17 +414,17 @@ func prepareFormBody(req *http.Request, body any) error {
 		return nil
 	}
 
-	mp, ok := body.(map[string]any)
+	mp, ok := body.(map[string]string)
 	if !ok {
 		var err error
-		if mp, err = serder.ObjectToMap(body); err != nil {
+		if mp, err = objectToStringMap(body); err != nil {
 			return fmt.Errorf("body object to map: %w", err)
 		}
 	}
 
 	values := make(ul.Values)
 	for k, v := range mp {
-		values.Add(k, fmt.Sprintf("%v", v))
+		values.Add(k, v)
 	}
 
 	data := values.Encode()
@@ -447,4 +449,41 @@ func setValue(values ul.Values, key, value string) ul.Values {
 
 	values.Add(key, value)
 	return values
+}
+
+func objectToStringMap(obj any) (map[string]string, error) {
+	anyMap := make(map[string]any)
+	dec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		TagName:          "json",
+		Result:           &anyMap,
+		WeaklyTypedInput: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = dec.Decode(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make(map[string]string)
+	for k, v := range anyMap {
+		val := reflect.ValueOf(v)
+		for val.Kind() == reflect.Ptr {
+			if val.IsNil() {
+				break
+			} else {
+				val = val.Elem()
+			}
+		}
+
+		if val.Kind() == reflect.Pointer {
+			ret[k] = ""
+		} else {
+			ret[k] = fmt.Sprintf("%v", val)
+		}
+	}
+
+	return ret, nil
 }
