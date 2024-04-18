@@ -10,17 +10,19 @@ import (
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
+const StorageLoadPackagePath = "/storage/loadPackage"
+
 type StorageLoadPackageReq struct {
-	UserID    UserID    `json:"userID"`
-	PackageID PackageID `json:"packageID"`
-	StorageID StorageID `json:"storageID"`
+	UserID    UserID    `json:"userID" binding:"required"`
+	PackageID PackageID `json:"packageID" binding:"required"`
+	StorageID StorageID `json:"storageID" binding:"required"`
 }
 type StorageLoadPackageResp struct {
 	FullPath string `json:"fullPath"`
 }
 
 func (c *Client) StorageLoadPackage(req StorageLoadPackageReq) (*StorageLoadPackageResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/storage/loadPackage")
+	url, err := url.JoinPath(c.baseURL, StorageLoadPackagePath)
 	if err != nil {
 		return nil, err
 	}
@@ -44,12 +46,15 @@ func (c *Client) StorageLoadPackage(req StorageLoadPackageReq) (*StorageLoadPack
 	return nil, codeResp.ToError()
 }
 
+const StorageCreatePackagePath = "/storage/createPackage"
+
 type StorageCreatePackageReq struct {
-	UserID    UserID    `json:"userID"`
-	StorageID StorageID `json:"storageID"`
-	Path      string    `json:"path"`
-	BucketID  BucketID  `json:"bucketID"`
-	Name      string    `json:"name"`
+	UserID       UserID    `json:"userID" binding:"required"`
+	StorageID    StorageID `json:"storageID" binding:"required"`
+	Path         string    `json:"path" binding:"required"`
+	BucketID     BucketID  `json:"bucketID" binding:"required"`
+	Name         string    `json:"name" binding:"required"`
+	NodeAffinity *NodeID   `json:"nodeAffinity"`
 }
 
 type StorageCreatePackageResp struct {
@@ -57,7 +62,7 @@ type StorageCreatePackageResp struct {
 }
 
 func (c *Client) StorageCreatePackage(req StorageCreatePackageReq) (*StorageCreatePackageResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/storage/createPackage")
+	url, err := url.JoinPath(c.baseURL, StorageCreatePackagePath)
 	if err != nil {
 		return nil, err
 	}
@@ -86,9 +91,11 @@ func (c *Client) StorageCreatePackage(req StorageCreatePackageReq) (*StorageCrea
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
+const StorageGetInfoPath = "/storage/getInfo"
+
 type StorageGetInfoReq struct {
-	UserID    UserID    `json:"userID"`
-	StorageID StorageID `json:"storageID"`
+	UserID    UserID    `json:"userID" binding:"required"`
+	StorageID StorageID `json:"storageID" binding:"required"`
 }
 type StorageGetInfoResp struct {
 	Name      string `json:"name"`
@@ -97,7 +104,7 @@ type StorageGetInfoResp struct {
 }
 
 func (c *Client) StorageGetInfo(req StorageGetInfoReq) (*StorageGetInfoResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/storage/getInfo")
+	url, err := url.JoinPath(c.baseURL, StorageGetInfoPath)
 	if err != nil {
 		return nil, err
 	}
