@@ -9,7 +9,7 @@ import (
 	"github.com/modern-go/reflect2"
 	"gitlink.org.cn/cloudream/common/pkgs/types"
 
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	ref2 "gitlink.org.cn/cloudream/common/utils/reflect2"
 )
 
 type anyTypeUnionExternallyTagged struct {
@@ -106,14 +106,14 @@ func (u *TypeUnionInternallyTagged[T]) Add(typ reflect.Type) error {
 	}
 
 	// 要求内嵌Metadata结构体，那么结构体中的字段名就会是Metadata，
-	field, ok := structType.FieldByName(myreflect.TypeNameOf[Metadata]())
+	field, ok := structType.FieldByName(ref2.TypeNameOf[Metadata]())
 	if !ok {
 		u.TagToType[makeDerefFullTypeName(structType)] = typ
 		return nil
 	}
 
 	// 为防同名，检查类型是不是也是Metadata
-	if field.Type != myreflect.TypeOf[Metadata]() {
+	if field.Type != ref2.TypeOf[Metadata]() {
 		u.TagToType[makeDerefFullTypeName(structType)] = typ
 		return nil
 	}
@@ -293,7 +293,7 @@ func (e *ExternallyTaggedEncoder) Encode(ptr unsafe.Pointer, stream *jsoniter.St
 	}
 
 	stream.WriteObjectStart()
-	valType := myreflect.TypeOfValue(val)
+	valType := ref2.TypeOfValue(val)
 	if !e.union.Union.Include(valType) {
 		stream.Error = fmt.Errorf("type %v is not in union %v", valType, e.union.Union.UnionType)
 		return

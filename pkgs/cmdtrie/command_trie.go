@@ -7,7 +7,7 @@ import (
 
 	"github.com/samber/lo"
 	"gitlink.org.cn/cloudream/common/pkgs/trie"
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/utils/reflect2"
 )
 
 type ExecuteOption struct {
@@ -296,7 +296,7 @@ type CommandTrie[TCtx any, TRet any] struct {
 
 func NewCommandTrie[TCtx any, TRet any]() CommandTrie[TCtx, TRet] {
 	return CommandTrie[TCtx, TRet]{
-		anyTrie: newAnyCommandTrie(myreflect.TypeOf[TCtx](), myreflect.TypeOf[TRet]()),
+		anyTrie: newAnyCommandTrie(reflect2.TypeOf[TCtx](), reflect2.TypeOf[TRet]()),
 	}
 }
 
@@ -337,7 +337,7 @@ type VoidCommandTrie[TCtx any] struct {
 
 func NewVoidCommandTrie[TCtx any]() VoidCommandTrie[TCtx] {
 	return VoidCommandTrie[TCtx]{
-		anyTrie: newAnyCommandTrie(myreflect.TypeOf[TCtx](), nil),
+		anyTrie: newAnyCommandTrie(reflect2.TypeOf[TCtx](), nil),
 	}
 }
 
@@ -368,7 +368,7 @@ type StaticCommandTrie[TRet any] struct {
 
 func NewStaticCommandTrie[TRet any]() StaticCommandTrie[TRet] {
 	return StaticCommandTrie[TRet]{
-		anyTrie: newAnyCommandTrie(nil, myreflect.TypeOf[TRet]()),
+		anyTrie: newAnyCommandTrie(nil, reflect2.TypeOf[TRet]()),
 	}
 }
 

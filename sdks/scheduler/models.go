@@ -35,7 +35,7 @@ type JobInfo interface {
 
 var JobInfoTypeUnion = types.NewTypeUnion[JobInfo](
 	(*NormalJobInfo)(nil),
-	(*ResourceJobInfo)(nil),
+	(*DataReturnJobInfo)(nil),
 )
 var _ = serder.UseTypeUnionInternallyTagged(&JobInfoTypeUnion, "type")
 
@@ -57,8 +57,8 @@ type NormalJobInfo struct {
 	Services  JobServicesInfo  `json:"services"`
 }
 
-type ResourceJobInfo struct {
-	serder.Metadata `union:"Resource"`
+type DataReturnJobInfo struct {
+	serder.Metadata `union:"DataReturn"`
 	JobInfoBase
 	Type             string          `json:"type"`
 	BucketID         cdssdk.BucketID `json:"bucketID"`

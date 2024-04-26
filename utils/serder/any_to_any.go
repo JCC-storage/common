@@ -4,7 +4,7 @@ import (
 	"reflect"
 
 	mp "github.com/mitchellh/mapstructure"
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/utils/reflect2"
 )
 
 type Converter func(from reflect.Value, to reflect.Value) (interface{}, error)
@@ -68,11 +68,11 @@ func AnyToAny(src any, dst any, opts ...AnyToAnyOption) error {
 
 // fromAny 如果目的字段实现的FromAny接口，那么通过此接口实现字段类型转换
 func fromAny(srcType reflect.Type, targetType reflect.Type, data interface{}) (interface{}, error) {
-	if myreflect.TypeOfValue(data) == targetType {
+	if reflect2.TypeOfValue(data) == targetType {
 		return data, nil
 	}
 
-	if targetType.Implements(myreflect.TypeOf[FromAny]()) {
+	if targetType.Implements(reflect2.TypeOf[FromAny]()) {
 		// 非pointer receiver的FromAny没有意义，因为修改不了receiver的内容，所以这里只支持指针类型
 		if targetType.Kind() == reflect.Pointer {
 			val := reflect.New(targetType.Elem())
@@ -88,7 +88,7 @@ func fromAny(srcType reflect.Type, targetType reflect.Type, data interface{}) (i
 			return val.Interface(), nil
 		}
 
-	} else if reflect.PointerTo(targetType).Implements(myreflect.TypeOf[FromAny]()) {
+	} else if reflect.PointerTo(targetType).Implements(reflect2.TypeOf[FromAny]()) {
 		val := reflect.New(targetType)
 		anyIf := val.Interface().(FromAny)
 		ok, err := anyIf.FromAny(data)
@@ -107,12 +107,12 @@ func fromAny(srcType reflect.Type, targetType reflect.Type, data interface{}) (i
 
 // 如果源字段实现了ToAny接口，那么通过此接口实现字段类型转换
 func toAny(srcType reflect.Type, targetType reflect.Type, data interface{}) (interface{}, error) {
-	dataType := myreflect.TypeOfValue(data)
+	dataType := reflect2.TypeOfValue(data)
 	if dataType == targetType {
 		return data, nil
 	}
 
-	if dataType.Implements(myreflect.TypeOf[ToAny]()) {
+	if dataType.Implements(reflect2.TypeOf[ToAny]()) {
 		anyIf := data.(ToAny)
 		dstVal, ok, err := anyIf.ToAny(targetType)
 		if err != nil {
@@ -123,7 +123,7 @@ func toAny(srcType reflect.Type, targetType reflect.Type, data interface{}) (int
 		}
 
 		return dstVal, nil
-	} else if reflect.PointerTo(dataType).Implements(myreflect.TypeOf[ToAny]()) {
+	} else if reflect.PointerTo(dataType).Implements(reflect2.TypeOf[ToAny]()) {
 		dataVal := reflect.ValueOf(data)
 
 		dataPtrVal := reflect.New(dataType)

@@ -10,7 +10,7 @@ import (
 	"github.com/streadway/amqp"
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
 	"gitlink.org.cn/cloudream/common/pkgs/logger"
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/utils/reflect2"
 )
 
 const (
@@ -323,8 +323,8 @@ func Request[TSvc any, TReq MessageBody, TResp MessageBody](_ func(svc TSvc, msg
 	respBody, ok := resp.Body.(TResp)
 	if !ok {
 		return defRet, fmt.Errorf("expect a %s body, but got %s",
-			myreflect.ElemTypeOf[TResp]().Name(),
-			myreflect.TypeOfValue(resp.Body).Name())
+			reflect2.ElemTypeOf[TResp]().Name(),
+			reflect2.TypeOfValue(resp.Body).Name())
 	}
 
 	return respBody, nil

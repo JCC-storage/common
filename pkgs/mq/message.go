@@ -2,7 +2,7 @@ package mq
 
 import (
 	"gitlink.org.cn/cloudream/common/pkgs/types"
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/utils/reflect2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -83,7 +83,7 @@ var msgBodyTypeUnion = serder.UseTypeUnionExternallyTagged(types.Ref(types.NewTy
 
 // 所有新定义的Message都需要在init中调用此函数
 func RegisterMessage[T MessageBody]() {
-	err := msgBodyTypeUnion.Add(myreflect.TypeOf[T]())
+	err := msgBodyTypeUnion.Add(reflect2.TypeOf[T]())
 	if err != nil {
 		panic(err)
 	}
