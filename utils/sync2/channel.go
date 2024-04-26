@@ -48,30 +48,33 @@ func (c *Channel[T]) Receive(ctx context.Context) (T, error) {
 	}
 }
 
+// 获取channel的发送端，需要与Closed一起使用，防止错过关闭信号
 func (c *Channel[T]) Sender() chan<- T {
 	return c.ch
 }
 
+// 获取channel的接收端，需要与Closed一起使用，防止错过关闭信号
 func (c *Channel[T]) Receiver() <-chan T {
 	return c.ch
 }
 
+// 获取channel的关闭信号，用于通知接收端和发送端关闭
+func (c *Channel[T]) Closed() <-chan any {
+	return c.closed
+}
+
+// 关闭channel。注：此操作不会关闭Sender和Receiver返回的channel
 func (c *Channel[T]) Close() {
 	c.closeOnce.Do(func() {
 		close(c.closed)
-		close(c.ch)
 		c.err = ErrChannelClosed
 	})
 }
 
+// 关闭channel并设置error。注：此操作不会关闭Sender和Receiver返回的channel
 func (c *Channel[T]) CloseWithError(err error) {
 	c.closeOnce.Do(func() {
 		close(c.closed)
-		close(c.ch)
 		c.err = err
 	})
-}
-
-func (c *Channel[T]) Closed() <-chan any {
-	return c.closed
 }
