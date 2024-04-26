@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"reflect"
 
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/utils/reflect2"
 )
 
 type AnyTypeUnion struct {
 	// 这个集合的类型
-	UnionType myreflect.Type
+	UnionType reflect2.Type
 	// 集合中包含的类型，即遇到UnionType类型的值时，它内部的实际类型的范围
-	ElementTypes []myreflect.Type
+	ElementTypes []reflect2.Type
 }
 
-func (u *AnyTypeUnion) Include(typ myreflect.Type) bool {
+func (u *AnyTypeUnion) Include(typ reflect2.Type) bool {
 	for _, t := range u.ElementTypes {
 		if t == typ {
 			return true
@@ -24,7 +24,7 @@ func (u *AnyTypeUnion) Include(typ myreflect.Type) bool {
 	return false
 }
 
-func (u *AnyTypeUnion) Add(typ myreflect.Type) error {
+func (u *AnyTypeUnion) Add(typ reflect2.Type) error {
 	if !typ.AssignableTo(u.UnionType) {
 		return fmt.Errorf("type is not assignable to union type")
 	}
@@ -55,7 +55,7 @@ func NewTypeUnion[TU any](eleValues ...TU) TypeUnion[TU] {
 
 	return TypeUnion[TU]{
 		AnyTypeUnion{
-			UnionType:    myreflect.TypeOf[TU](),
+			UnionType:    reflect2.TypeOf[TU](),
 			ElementTypes: eleTypes,
 		},
 	}

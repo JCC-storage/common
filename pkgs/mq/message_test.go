@@ -9,7 +9,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlink.org.cn/cloudream/common/pkgs/types"
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/utils/reflect2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -42,13 +42,13 @@ func TestMessage(t *testing.T) {
 			Nil: nil,
 		}
 
-		jsoniter.RegisterTypeEncoderFunc(myreflect.TypeOf[MyAny]().String(),
+		jsoniter.RegisterTypeEncoderFunc(reflect2.TypeOf[MyAny]().String(),
 			func(ptr unsafe.Pointer, stream *jsoniter.Stream) {
 				val := *((*MyAny)(ptr))
 
 				stream.WriteArrayStart()
 				if val != nil {
-					stream.WriteString(myreflect.TypeOfValue(val).String())
+					stream.WriteString(reflect2.TypeOfValue(val).String())
 					stream.WriteRaw(",")
 					stream.WriteVal(val)
 				}
@@ -58,7 +58,7 @@ func TestMessage(t *testing.T) {
 				return false
 			})
 
-		jsoniter.RegisterTypeDecoderFunc(myreflect.TypeOf[MyAny]().String(),
+		jsoniter.RegisterTypeDecoderFunc(reflect2.TypeOf[MyAny]().String(),
 			func(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
 				vp := (*MyAny)(ptr)
 

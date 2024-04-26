@@ -3,27 +3,27 @@ package mq
 import (
 	"fmt"
 
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/utils/reflect2"
 )
 
 type HandlerFn func(svcBase any, msg *Message) (*Message, error)
 
 type MessageDispatcher struct {
-	Handlers map[myreflect.Type]HandlerFn
+	Handlers map[reflect2.Type]HandlerFn
 }
 
 func NewMessageDispatcher() MessageDispatcher {
 	return MessageDispatcher{
-		Handlers: make(map[myreflect.Type]HandlerFn),
+		Handlers: make(map[reflect2.Type]HandlerFn),
 	}
 }
 
-func (h *MessageDispatcher) Add(typ myreflect.Type, handler HandlerFn) {
+func (h *MessageDispatcher) Add(typ reflect2.Type, handler HandlerFn) {
 	h.Handlers[typ] = handler
 }
 
 func (h *MessageDispatcher) Handle(svcBase any, msg *Message) (*Message, error) {
-	typ := myreflect.TypeOfValue(msg.Body)
+	typ := reflect2.TypeOfValue(msg.Body)
 	fn, ok := h.Handlers[typ]
 	if !ok {
 		return nil, fmt.Errorf("unsupported message type: %s", typ.String())
@@ -34,7 +34,7 @@ func (h *MessageDispatcher) Handle(svcBase any, msg *Message) (*Message, error) 
 
 // 将Service中的一个接口函数作为指定类型消息的处理函数
 func AddServiceFn[TSvc any, TReq MessageBody, TResp MessageBody](dispatcher *MessageDispatcher, svcFn func(svc TSvc, msg TReq) (TResp, *CodeMessage)) {
-	dispatcher.Add(myreflect.TypeOf[TReq](), func(svcBase any, reqMsg *Message) (*Message, error) {
+	dispatcher.Add(reflect2.TypeOf[TReq](), func(svcBase any, reqMsg *Message) (*Message, error) {
 
 		reqMsgBody := reqMsg.Body.(TReq)
 		ret, codeMsg := svcFn(svcBase.(TSvc), reqMsgBody)
@@ -47,7 +47,7 @@ func AddServiceFn[TSvc any, TReq MessageBody, TResp MessageBody](dispatcher *Mes
 
 // 将Service中的一个*没有返回值的*接口函数作为指定类型消息的处理函数
 func AddNoRespServiceFn[TSvc any, TReq MessageBody](dispatcher *MessageDispatcher, svcFn func(svc TSvc, msg TReq)) {
-	dispatcher.Add(myreflect.TypeOf[TReq](), func(svcBase any, reqMsg *Message) (*Message, error) {
+	dispatcher.Add(reflect2.TypeOf[TReq](), func(svcBase any, reqMsg *Message) (*Message, error) {
 
 		reqMsgBody := reqMsg.Body.(TReq)
 		svcFn(svcBase.(TSvc), reqMsgBody)

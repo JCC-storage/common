@@ -15,7 +15,7 @@ func Test_JobSet(t *testing.T) {
 		id, err := cli.JobSetSumbit(JobSetSumbitReq{
 			JobSetInfo: JobSetInfo{
 				Jobs: []JobInfo{
-					&ResourceJobInfo{
+					&DataReturnJobInfo{
 						Type: JobTypeResource,
 					},
 					&NormalJobInfo{

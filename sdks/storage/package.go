@@ -217,7 +217,7 @@ func (c *PackageService) GetCachedNodes(req PackageGetCachedNodesReq) (*PackageG
 		return nil, err
 	}
 	resp, err := myhttp.GetJSON(url, myhttp.RequestParam{
-		Body: req,
+		Query: req,
 	})
 	if err != nil {
 		return nil, err
@@ -252,7 +252,7 @@ func (c *PackageService) GetLoadedNodes(req PackageGetLoadedNodesReq) (*PackageG
 		return nil, err
 	}
 	resp, err := myhttp.GetJSON(url, myhttp.RequestParam{
-		Body: req,
+		Query: req,
 	})
 	if err != nil {
 		return nil, err
