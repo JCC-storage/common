@@ -36,6 +36,7 @@ type JobInfo interface {
 var JobInfoTypeUnion = types.NewTypeUnion[JobInfo](
 	(*NormalJobInfo)(nil),
 	(*DataReturnJobInfo)(nil),
+	(*MultiInstanceJobInfo)(nil),
 )
 var _ = serder.UseTypeUnionInternallyTagged(&JobInfoTypeUnion, "type")
 
@@ -65,6 +66,25 @@ type DataReturnJobInfo struct {
 	TargetLocalJobID string          `json:"targetLocalJobID"`
 }
 
+type MultiInstanceJobInfo struct {
+	serder.Metadata `union:"MultiInstance"`
+	JobInfoBase
+	Type      string           `json:"type"`
+	Files     JobFilesInfo     `json:"files"`
+	Runtime   JobRuntimeInfo   `json:"runtime"`
+	Resources JobResourcesInfo `json:"resources"`
+}
+
+type InstanceJobInfo struct {
+	serder.Metadata `union:"SubJob"`
+	JobInfoBase
+	Type       string           `json:"type"`
+	LocalJobID string           `json:"multiInstJobID"`
+	Files      JobFilesInfo     `json:"files"`
+	Runtime    JobRuntimeInfo   `json:"runtime"`
+	Resources  JobResourcesInfo `json:"resources"`
+}
+
 type JobFilesInfo struct {
 	Dataset JobFileInfo `json:"dataset"`
 	Code    JobFileInfo `json:"code"`
@@ -78,7 +98,7 @@ type JobFileInfo interface {
 var FileInfoTypeUnion = types.NewTypeUnion[JobFileInfo](
 	(*PackageJobFileInfo)(nil),
 	(*LocalJobFileInfo)(nil),
-	(*ResourceJobFileInfo)(nil),
+	(*DataReturnJobFileInfo)(nil),
 	(*ImageJobFileInfo)(nil),
 )
 var _ = serder.UseTypeUnionInternallyTagged(&FileInfoTypeUnion, "type")
@@ -101,11 +121,11 @@ type LocalJobFileInfo struct {
 	LocalPath string `json:"localPath"`
 }
 
-type ResourceJobFileInfo struct {
-	serder.Metadata `union:"Resource"`
+type DataReturnJobFileInfo struct {
+	serder.Metadata `union:"DataReturn"`
 	JobFileInfoBase
-	Type               string `json:"type"`
-	ResourceLocalJobID string `json:"resourceLocalJobID"`
+	Type                 string `json:"type"`
+	DataReturnLocalJobID string `json:"dataReturnLocalJobID"`
 }
 
 type ImageJobFileInfo struct {
@@ -137,6 +157,10 @@ type JobResourcesInfo struct {
 }
 
 type JobSetFilesUploadScheme struct {
+	LocalFileSchemes []LocalFileUploadScheme `json:"localFileUploadSchemes"`
+}
+
+type JobFilesUploadScheme struct {
 	LocalFileSchemes []LocalFileUploadScheme `json:"localFileUploadSchemes"`
 }
 
