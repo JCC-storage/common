@@ -183,7 +183,7 @@ func (s *DefaultPreScheduler) ScheduleJobSet(info *schsdk.JobSetInfo) (*jobmod.J
 	// 经过排序后，按顺序生成调度方案
 	for _, job := range schJobs {
 		if norJob, ok := job.Job.(*schsdk.NormalJobInfo); ok {
-			scheme, err := s.scheduleForNormalJob(info, job, ccs, jobSetScheme.JobSchemes)
+			scheme, err := s.scheduleForNormalOrMultiJob(info, job, ccs, jobSetScheme.JobSchemes)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -191,7 +191,19 @@ func (s *DefaultPreScheduler) ScheduleJobSet(info *schsdk.JobSetInfo) (*jobmod.J
 			jobSetScheme.JobSchemes[job.Job.GetLocalJobID()] = *scheme
 
 			// 检查数据文件的配置项，生成上传文件方案
-			s.fillNormarlJobLocalUploadScheme(norJob, scheme.TargetCCID, filesUploadSchemes, ccs)
+			s.fillNormarlJobLocalUploadScheme(norJob.Files, scheme.TargetCCID, filesUploadSchemes, ccs)
+		}
+
+		if mulJob, ok := job.Job.(*schsdk.MultiInstanceJobInfo); ok {
+			scheme, err := s.scheduleForNormalOrMultiJob(info, job, ccs, jobSetScheme.JobSchemes)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			jobSetScheme.JobSchemes[job.Job.GetLocalJobID()] = *scheme
+
+			// 检查数据文件的配置项，生成上传文件方案
+			s.fillNormarlJobLocalUploadScheme(mulJob.Files, scheme.TargetCCID, filesUploadSchemes, ccs)
 		}
 
 		// 回源任务目前不需要生成调度方案
@@ -237,13 +249,13 @@ func (s *DefaultPreScheduler) ScheduleJob(instJobInfo *schsdk.InstanceJobInfo) (
 	job := &schedulingJob{
 		Job: info,
 	}
-	scheme, err := s.scheduleForNormalJob2(job, ccs)
+	scheme, err := s.scheduleForSingleJob(job, ccs)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// 检查数据文件的配置项，生成上传文件方案
-	s.fillNormarlJobLocalUploadScheme(info, scheme.TargetCCID, filesUploadSchemes, ccs)
+	s.fillNormarlJobLocalUploadScheme(info.Files, scheme.TargetCCID, filesUploadSchemes, ccs)
 
 	return scheme, &schsdk.JobFilesUploadScheme{
 		LocalFileSchemes: lo.Values(filesUploadSchemes),
@@ -303,7 +315,7 @@ func (s *DefaultPreScheduler) orderByAfters(jobs []*schedulingJob) ([]*schedulin
 	return orderedJob, true
 }
 
-func (s *DefaultPreScheduler) scheduleForNormalJob(jobSet *schsdk.JobSetInfo, job *schedulingJob, ccs map[schsdk.CCID]schmod.ComputingCenter, jobSchemes map[string]jobmod.JobScheduleScheme) (*jobmod.JobScheduleScheme, error) {
+func (s *DefaultPreScheduler) scheduleForNormalOrMultiJob(jobSet *schsdk.JobSetInfo, job *schedulingJob, ccs map[schsdk.CCID]schmod.ComputingCenter, jobSchemes map[string]jobmod.JobScheduleScheme) (*jobmod.JobScheduleScheme, error) {
 	allCCs := make(map[schsdk.CCID]*candidate)
 
 	// 初始化备选节点信息
@@ -334,16 +346,28 @@ func (s *DefaultPreScheduler) scheduleForNormalJob(jobSet *schsdk.JobSetInfo, jo
 		allCCs[cc.CCID] = caNode
 	}
 
-	norJob := job.Job.(*schsdk.NormalJobInfo)
+	//norJob := job.Job.(*schsdk.NormalJobInfo)
+
+	var jobFiles *schsdk.JobFilesInfo
+	var jobResource *schsdk.JobResourcesInfo
+
+	switch runningJob := job.Job.(type) {
+	case *schsdk.NormalJobInfo:
+		jobFiles = &runningJob.Files
+		jobResource = &runningJob.Resources
+	case *schsdk.MultiInstanceJobInfo:
+		jobFiles = &runningJob.Files
+		jobResource = &runningJob.Resources
+	}
 
 	// 计算文件占有量得分
-	err := s.calcFileScore(norJob.Files, allCCs)
+	err := s.calcFileScore(*jobFiles, allCCs)
 	if err != nil {
 		return nil, err
 	}
 
 	// 计算资源余量得分
-	err = s.calcResourceScore(norJob, allCCs)
+	err = s.calcResourceScore(*jobResource, allCCs)
 	if err != nil {
 		return nil, err
 	}
@@ -356,11 +380,11 @@ func (s *DefaultPreScheduler) scheduleForNormalJob(jobSet *schsdk.JobSetInfo, jo
 		return nil, ErrNoAvailableScheme
 	}
 
-	scheme := s.makeSchemeForNode(norJob, targetNode)
+	scheme := s.makeSchemeForNode(jobFiles, targetNode)
 	return &scheme, nil
 }
 
-func (s *DefaultPreScheduler) scheduleForNormalJob2(job *schedulingJob, ccs map[schsdk.CCID]schmod.ComputingCenter) (*jobmod.JobScheduleScheme, error) {
+func (s *DefaultPreScheduler) scheduleForSingleJob(job *schedulingJob, ccs map[schsdk.CCID]schmod.ComputingCenter) (*jobmod.JobScheduleScheme, error) {
 	allCCs := make(map[schsdk.CCID]*candidate)
 
 	// 初始化备选节点信息
@@ -372,16 +396,28 @@ func (s *DefaultPreScheduler) scheduleForNormalJob2(job *schedulingJob, ccs map[
 		allCCs[cc.CCID] = caNode
 	}
 
-	norJob := job.Job.(*schsdk.NormalJobInfo)
+	//norJob := job.Job.(*schsdk.NormalJobInfo)
+
+	var jobFiles *schsdk.JobFilesInfo
+	var jobResource *schsdk.JobResourcesInfo
+
+	switch runningJob := job.Job.(type) {
+	case *schsdk.NormalJobInfo:
+		jobFiles = &runningJob.Files
+		jobResource = &runningJob.Resources
+	case *schsdk.MultiInstanceJobInfo:
+		jobFiles = &runningJob.Files
+		jobResource = &runningJob.Resources
+	}
 
 	// 计算文件占有量得分
-	err := s.calcFileScore(norJob.Files, allCCs)
+	err := s.calcFileScore(*jobFiles, allCCs)
 	if err != nil {
 		return nil, err
 	}
 
 	// 计算资源余量得分
-	err = s.calcResourceScore(norJob, allCCs)
+	err = s.calcResourceScore(*jobResource, allCCs)
 	if err != nil {
 		return nil, err
 	}
@@ -394,12 +430,12 @@ func (s *DefaultPreScheduler) scheduleForNormalJob2(job *schedulingJob, ccs map[
 		return nil, ErrNoAvailableScheme
 	}
 
-	scheme := s.makeSchemeForNode(norJob, targetNode)
+	scheme := s.makeSchemeForNode(jobFiles, targetNode)
 	return &scheme, nil
 }
 
-func (s *DefaultPreScheduler) fillNormarlJobLocalUploadScheme(norJob *schsdk.NormalJobInfo, targetCCID schsdk.CCID, schemes map[string]schsdk.LocalFileUploadScheme, ccs map[schsdk.CCID]schmod.ComputingCenter) {
-	if localFile, ok := norJob.Files.Dataset.(*schsdk.LocalJobFileInfo); ok {
+func (s *DefaultPreScheduler) fillNormarlJobLocalUploadScheme(files schsdk.JobFilesInfo, targetCCID schsdk.CCID, schemes map[string]schsdk.LocalFileUploadScheme, ccs map[schsdk.CCID]schmod.ComputingCenter) {
+	if localFile, ok := files.Dataset.(*schsdk.LocalJobFileInfo); ok {
 		if _, ok := schemes[localFile.LocalPath]; !ok {
 			cdsNodeID := ccs[targetCCID].CDSNodeID
 			schemes[localFile.LocalPath] = schsdk.LocalFileUploadScheme{
@@ -409,7 +445,7 @@ func (s *DefaultPreScheduler) fillNormarlJobLocalUploadScheme(norJob *schsdk.Nor
 		}
 	}
 
-	if localFile, ok := norJob.Files.Code.(*schsdk.LocalJobFileInfo); ok {
+	if localFile, ok := files.Code.(*schsdk.LocalJobFileInfo); ok {
 		if _, ok := schemes[localFile.LocalPath]; !ok {
 			cdsNodeID := ccs[targetCCID].CDSNodeID
 			schemes[localFile.LocalPath] = schsdk.LocalFileUploadScheme{
@@ -419,7 +455,7 @@ func (s *DefaultPreScheduler) fillNormarlJobLocalUploadScheme(norJob *schsdk.Nor
 		}
 	}
 
-	if localFile, ok := norJob.Files.Image.(*schsdk.LocalJobFileInfo); ok {
+	if localFile, ok := files.Image.(*schsdk.LocalJobFileInfo); ok {
 		if _, ok := schemes[localFile.LocalPath]; !ok {
 			cdsNodeID := ccs[targetCCID].CDSNodeID
 			schemes[localFile.LocalPath] = schsdk.LocalFileUploadScheme{
@@ -430,26 +466,26 @@ func (s *DefaultPreScheduler) fillNormarlJobLocalUploadScheme(norJob *schsdk.Nor
 	}
 }
 
-func (s *DefaultPreScheduler) makeSchemeForNode(job *schsdk.NormalJobInfo, targetCC *candidate) jobmod.JobScheduleScheme {
+func (s *DefaultPreScheduler) makeSchemeForNode(jobFiles *schsdk.JobFilesInfo, targetCC *candidate) jobmod.JobScheduleScheme {
 	scheme := jobmod.JobScheduleScheme{
 		TargetCCID: targetCC.CC.CCID,
 	}
 
 	// TODO 根据实际情况选择Move或者Load
 
-	if _, ok := job.Files.Dataset.(*schsdk.PackageJobFileInfo); ok && !targetCC.Files.Dataset.IsLoaded {
+	if _, ok := jobFiles.Dataset.(*schsdk.PackageJobFileInfo); ok && !targetCC.Files.Dataset.IsLoaded {
 		scheme.Dataset.Action = jobmod.ActionLoad
 	} else {
 		scheme.Dataset.Action = jobmod.ActionNo
 	}
 
-	if _, ok := job.Files.Code.(*schsdk.PackageJobFileInfo); ok && !targetCC.Files.Code.IsLoaded {
+	if _, ok := jobFiles.Code.(*schsdk.PackageJobFileInfo); ok && !targetCC.Files.Code.IsLoaded {
 		scheme.Code.Action = jobmod.ActionLoad
 	} else {
 		scheme.Code.Action = jobmod.ActionNo
 	}
 
-	if _, ok := job.Files.Image.(*schsdk.PackageJobFileInfo); ok && !targetCC.Files.Image.IsLoaded {
+	if _, ok := jobFiles.Image.(*schsdk.PackageJobFileInfo); ok && !targetCC.Files.Image.IsLoaded {
 		scheme.Image.Action = jobmod.ActionImportImage
 	} else {
 		scheme.Image.Action = jobmod.ActionNo

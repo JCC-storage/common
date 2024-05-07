@@ -223,41 +223,127 @@ func (c *Client) GetMemoryData(node GetOneResourceDataReq) (*MemoryResourceData,
 }
 
 func (c *Client) GetIndicatorData(node GetOneResourceDataReq) (*[]ResourceData, error) {
-	url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getIndicatorData")
-	if err != nil {
-		return nil, err
+	//url, err := url.JoinPath(c.baseURL, "/cmdb/resApi/getIndicatorData")
+	//if err != nil {
+	//	return nil, err
+	//}
+	//resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	//	Body: node,
+	//})
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//contType := resp.Header.Get("Content-Type")
+	//if strings.Contains(contType, myhttp.ContentTypeJSON) {
+	//
+	//	var codeResp response[[]map[string]any]
+	//	if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
+	//		return nil, fmt.Errorf("parsing response: %w", err)
+	//	}
+	//
+	//	if codeResp.Code != CORRECT_CODE {
+	//		return nil, codeResp.ToError()
+	//	}
+	//
+	//	var ret []ResourceData
+	//	for _, mp := range codeResp.Data {
+	//		var data ResourceData
+	//		err := serder.MapToObject(mp, &data)
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//		ret = append(ret, data)
+	//	}
+	//
+	//	return &ret, nil
+	//}
+	//
+	//return nil, fmt.Errorf("unknow response content type: %s", contType)
+
+	return mockData()
+}
+
+func mockData() (*[]ResourceData, error) {
+	var ret []ResourceData
+
+	cpuResourceData := CPUResourceData{
+		Name: ResourceTypeCPU,
+		Total: UnitValue[int64]{
+			Value: 100,
+			Unit:  "",
+		},
+		Available: UnitValue[int64]{
+			Value: 100,
+			Unit:  "",
+		},
 	}
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
-		Body: node,
-	})
-	if err != nil {
-		return nil, err
+	ret = append(ret, &cpuResourceData)
+
+	npuResourceData := NPUResourceData{
+		Name: ResourceTypeNPU,
+		Total: UnitValue[int64]{
+			Value: 100,
+			Unit:  "",
+		},
+		Available: UnitValue[int64]{
+			Value: 100,
+			Unit:  "",
+		},
 	}
+	ret = append(ret, &npuResourceData)
 
-	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
-
-		var codeResp response[[]map[string]any]
-		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
-			return nil, fmt.Errorf("parsing response: %w", err)
-		}
-
-		if codeResp.Code != CORRECT_CODE {
-			return nil, codeResp.ToError()
-		}
-
-		var ret []ResourceData
-		for _, mp := range codeResp.Data {
-			var data ResourceData
-			err := serder.MapToObject(mp, &data)
-			if err != nil {
-				return nil, err
-			}
-			ret = append(ret, data)
-		}
-
-		return &ret, nil
+	gpuResourceData := GPUResourceData{
+		Name: ResourceTypeGPU,
+		Total: UnitValue[int64]{
+			Value: 100,
+			Unit:  "",
+		},
+		Available: UnitValue[int64]{
+			Value: 100,
+			Unit:  "",
+		},
 	}
+	ret = append(ret, &gpuResourceData)
 
-	return nil, fmt.Errorf("unknow response content type: %s", contType)
+	mluResourceData := MLUResourceData{
+		Name: ResourceTypeMLU,
+		Total: UnitValue[int64]{
+			Value: 100,
+			Unit:  "",
+		},
+		Available: UnitValue[int64]{
+			Value: 100,
+			Unit:  "",
+		},
+	}
+	ret = append(ret, &mluResourceData)
+
+	storageResourceData := StorageResourceData{
+		Name: ResourceTypeStorage,
+		Total: UnitValue[float64]{
+			Value: 100,
+			Unit:  "GB",
+		},
+		Available: UnitValue[float64]{
+			Value: 100,
+			Unit:  "GB",
+		},
+	}
+	ret = append(ret, &storageResourceData)
+
+	memoryResourceData := MemoryResourceData{
+		Name: ResourceTypeMemory,
+		Total: UnitValue[float64]{
+			Value: 100,
+			Unit:  "GB",
+		},
+		Available: UnitValue[float64]{
+			Value: 100,
+			Unit:  "GB",
+		},
+	}
+	ret = append(ret, &memoryResourceData)
+
+	return &ret, nil
 }

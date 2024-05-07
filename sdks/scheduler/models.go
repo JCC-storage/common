@@ -58,6 +58,16 @@ type NormalJobInfo struct {
 	Services  JobServicesInfo  `json:"services"`
 }
 
+type CommonJobInfo struct {
+	serder.Metadata `union:"Normal"`
+	JobInfoBase
+	Type      string           `json:"type"`
+	Files     JobFilesInfo     `json:"files"`
+	Runtime   JobRuntimeInfo   `json:"runtime"`
+	Resources JobResourcesInfo `json:"resources"`
+	Services  JobServicesInfo  `json:"services"`
+}
+
 type DataReturnJobInfo struct {
 	serder.Metadata `union:"DataReturn"`
 	JobInfoBase

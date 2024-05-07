@@ -13,9 +13,9 @@ import (
 	mgrmq "gitlink.org.cn/cloudream/scheduler/common/pkgs/mq/manager"
 )
 
-func (s *DefaultPreScheduler) calcResourceScore(job *schsdk.NormalJobInfo, allCCs map[schsdk.CCID]*candidate) error {
+func (s *DefaultPreScheduler) calcResourceScore(jobResource schsdk.JobResourcesInfo, allCCs map[schsdk.CCID]*candidate) error {
 	for _, cc := range allCCs {
-		res, err := s.calcOneResourceScore(job.Resources, &cc.CC)
+		res, err := s.calcOneResourceScore(jobResource, &cc.CC)
 		if err != nil {
 			return err
 		}

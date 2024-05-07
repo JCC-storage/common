@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/imdario/mergo"
 )
@@ -25,6 +26,18 @@ func DefaultLoad(modeulName string, defCfg interface{}) error {
 	execPath, err := os.Executable()
 	if err != nil {
 		return err
+	}
+
+	if strings.Contains(execPath, "scheduler") {
+		execPath = "D:\\Work\\Codes\\new\\workspace\\workspace\\scheduler\\common\\assets\\confs\\"
+	}
+
+	if strings.Contains(execPath, "storage") {
+		execPath = "D:\\Work\\Codes\\new\\workspace\\workspace\\storage\\common\\assets\\confs\\"
+	}
+
+	if strings.Contains(execPath, "gateway") {
+		execPath = "D:\\Work\\Codes\\new\\workspace\\workspace\\gateway\\assets\\confs\\"
 	}
 
 	// TODO 可以考虑根据环境变量读取不同的配置
