@@ -71,7 +71,7 @@ func (b *RepRedundancy) Value() (driver.Value, error) {
 	return serder.ObjectToJSONEx[Redundancy](b)
 }
 
-var DefaultECRedundancy = *NewECRedundancy(3, 5, 1024*1024*5)
+var DefaultECRedundancy = *NewECRedundancy(2, 3, 1024*1024*5)
 
 type ECRedundancy struct {
 	serder.Metadata `union:"ec"`
