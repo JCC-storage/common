@@ -9,6 +9,7 @@ import (
 const (
 	JobTypeNormal   = "Normal"
 	JobTypeResource = "Resource"
+	JobTypeInstance = "Instance"
 
 	FileInfoTypePackage   = "Package"
 	FileInfoTypeLocalFile = "LocalFile"
@@ -37,6 +38,7 @@ var JobInfoTypeUnion = types.NewTypeUnion[JobInfo](
 	(*NormalJobInfo)(nil),
 	(*DataReturnJobInfo)(nil),
 	(*MultiInstanceJobInfo)(nil),
+	(*InstanceJobInfo)(nil),
 )
 var _ = serder.UseTypeUnionInternallyTagged(&JobInfoTypeUnion, "type")
 
@@ -49,16 +51,6 @@ func (i *JobInfoBase) GetLocalJobID() string {
 }
 
 type NormalJobInfo struct {
-	serder.Metadata `union:"Normal"`
-	JobInfoBase
-	Type      string           `json:"type"`
-	Files     JobFilesInfo     `json:"files"`
-	Runtime   JobRuntimeInfo   `json:"runtime"`
-	Resources JobResourcesInfo `json:"resources"`
-	Services  JobServicesInfo  `json:"services"`
-}
-
-type CommonJobInfo struct {
 	serder.Metadata `union:"Normal"`
 	JobInfoBase
 	Type      string           `json:"type"`
@@ -86,7 +78,7 @@ type MultiInstanceJobInfo struct {
 }
 
 type InstanceJobInfo struct {
-	serder.Metadata `union:"SubJob"`
+	serder.Metadata `union:"Instance"`
 	JobInfoBase
 	Type       string           `json:"type"`
 	LocalJobID string           `json:"multiInstJobID"`
