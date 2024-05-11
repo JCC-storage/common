@@ -22,12 +22,12 @@ const (
 var ErrWaitResponseTimeout = fmt.Errorf("wait response timeout")
 
 type CodeMessageError struct {
-	code    string
-	message string
+	Code    string
+	Message string
 }
 
 func (e *CodeMessageError) Error() string {
-	return fmt.Sprintf("code: %s, message: %s", e.code, e.message)
+	return fmt.Sprintf("code: %s, message: %s", e.Code, e.Message)
 }
 
 type SendOption struct {
@@ -315,8 +315,8 @@ func Request[TSvc any, TReq MessageBody, TResp MessageBody](_ func(svc TSvc, msg
 	errCode, errMsg := resp.GetCodeMessage()
 	if errCode != errorcode.OK {
 		return defRet, &CodeMessageError{
-			code:    errCode,
-			message: errMsg,
+			Code:    errCode,
+			Message: errMsg,
 		}
 	}
 
