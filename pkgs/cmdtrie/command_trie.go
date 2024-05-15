@@ -10,6 +10,8 @@ import (
 	"gitlink.org.cn/cloudream/common/utils/reflect2"
 )
 
+var ErrCommandNotFound = fmt.Errorf("command not found")
+
 type ExecuteOption struct {
 	ReplaceEmptyArrayWithNil bool // 如果最后一个参数是空数组，则调用命令的时候传递nil参数
 }
@@ -178,7 +180,7 @@ func (t *anyCommandTrie) findCommand(cmdWords []string, argWords []string) (*com
 	})
 
 	if cmd == nil {
-		return nil, nil, fmt.Errorf("command not found")
+		return nil, nil, ErrCommandNotFound
 	}
 	return cmd, argWords, nil
 }
