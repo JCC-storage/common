@@ -26,18 +26,6 @@ func DefaultLoad(modeulName string, defCfg interface{}) error {
 		return err
 	}
 
-	//if strings.Contains(execPath, "scheduler") {
-	//	execPath = "D:\\Work\\Codes\\new\\workspace\\workspace\\scheduler\\common\\assets\\confs\\"
-	//}
-	//
-	//if strings.Contains(execPath, "storage") {
-	//	execPath = "D:\\Work\\Codes\\new\\workspace\\workspace\\storage\\common\\assets\\confs\\"
-	//}
-	//
-	//if strings.Contains(execPath, "gateway") {
-	//	execPath = "D:\\Work\\Codes\\new\\workspace\\workspace\\gateway\\assets\\confs\\"
-	//}
-
 	// TODO 可以考虑根据环境变量读取不同的配置
 	configFilePath := filepath.Join(filepath.Dir(execPath), "..", "confs", fmt.Sprintf("%s.config.json", modeulName))
 	return Load(configFilePath, defCfg)
