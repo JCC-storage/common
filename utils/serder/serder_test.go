@@ -7,7 +7,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlink.org.cn/cloudream/common/pkgs/types"
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/utils/reflect2"
 )
 
 type FromAnyString struct {
@@ -28,7 +28,7 @@ type ToAnyString struct {
 }
 
 func (a *ToAnyString) ToAny(typ reflect.Type) (val any, ok bool, err error) {
-	if typ == myreflect.TypeOf[map[string]any]() {
+	if typ == reflect2.TypeOf[map[string]any]() {
 		return map[string]any{
 			"str": "@" + a.Str,
 		}, true, nil
@@ -55,7 +55,7 @@ type ToAnySt struct {
 }
 
 func (a *ToAnySt) ToAny(typ reflect.Type) (val any, ok bool, err error) {
-	if typ == myreflect.TypeOf[FromAnySt]() {
+	if typ == reflect2.TypeOf[FromAnySt]() {
 		return FromAnySt{
 			Value: "To:" + a.Value,
 		}, true, nil
@@ -69,7 +69,7 @@ type DirToAnySt struct {
 }
 
 func (a DirToAnySt) ToAny(typ reflect.Type) (val any, ok bool, err error) {
-	if typ == myreflect.TypeOf[FromAnySt]() {
+	if typ == reflect2.TypeOf[FromAnySt]() {
 		return FromAnySt{
 			Value: "DirTo:" + a.Value,
 		}, true, nil
@@ -181,7 +181,7 @@ func Test_AnyToAny(t *testing.T) {
 
 		err := AnyToAny(st1, &st2, AnyToAnyOption{
 			Converters: []Converter{func(from reflect.Value, to reflect.Value) (interface{}, error) {
-				if from.Type() == myreflect.TypeOf[Struct1]() && to.Type() == myreflect.TypeOf[Struct2]() {
+				if from.Type() == reflect2.TypeOf[Struct1]() && to.Type() == reflect2.TypeOf[Struct2]() {
 					s1 := from.Interface().(Struct1)
 					return Struct2{
 						Value: "@" + s1.Value,

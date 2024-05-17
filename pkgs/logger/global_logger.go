@@ -8,7 +8,7 @@ import (
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/sirupsen/logrus"
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/utils/reflect2"
 )
 
 // 输出日志到标准输出。适用于没有设计好日志输出方案时临时使用。
@@ -123,6 +123,6 @@ func WithField(key string, val any) Logger {
 
 func WithType[T any](key string) Logger {
 	return &logrusLogger{
-		entry: logrus.WithField(key, myreflect.TypeOf[T]().Name()),
+		entry: logrus.WithField(key, reflect2.TypeOf[T]().Name()),
 	}
 }

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"strings"
 
 	jsoniter "github.com/json-iterator/go"
+	"github.com/mitchellh/mapstructure"
 )
 
 var unionHandler = UnionHandler{
@@ -45,6 +45,18 @@ func ObjectToJSONEx[T any](obj T) ([]byte, error) {
 func JSONToObjectEx[T any](data []byte) (T, error) {
 	var ret T
 	dec := defaultAPI.NewDecoder(bytes.NewReader(data))
+	err := dec.Decode(&ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
+// 将JSON字符串转为对象。支持TypeUnion。
+func JSONToObjectStreamEx[T any](stream io.Reader) (T, error) {
+	var ret T
+	dec := defaultAPI.NewDecoder(stream)
 	err := dec.Decode(&ret)
 	if err != nil {
 		return ret, err
@@ -151,78 +163,13 @@ func MapToObject(m map[string]any, obj any, opt ...MapToObjectOption) error {
 }
 
 func ObjectToMap(obj any) (map[string]any, error) {
-	ctx := WalkValue(obj, func(ctx *WalkContext, event WalkEvent) WalkingOp {
-		switch e := event.(type) {
-		case StructBeginEvent:
-			mp := make(map[string]any)
-			ctx.StackPush(mp)
-
-		case StructArriveFieldEvent:
-			if !WillWalkInto(e.Value) {
-				ctx.StackPush(e.Value.Interface())
-			}
-		case StructLeaveFieldEvent:
-			val := ctx.StackPop()
-			mp := ctx.StackPeek().(map[string]any)
-			jsonTag := e.Info.Tag.Get("json")
-			if jsonTag == "-" {
-				break
-			}
-
-			opts := strings.Split(jsonTag, ",")
-			keyName := opts[0]
-			if keyName == "" {
-				keyName = e.Info.Name
-			}
-
-			if contains(opts, "string", 1) {
-				val = fmt.Sprintf("%v", val)
-			}
-
-			mp[keyName] = val
-
-		case StructEndEvent:
-
-		case MapBeginEvent:
-			ctx.StackPush(make(map[string]any))
-		case MapArriveEntryEvent:
-			if !WillWalkInto(e.Value) {
-				ctx.StackPush(e.Value.Interface())
-			}
-		case MapLeaveEntryEvent:
-			val := ctx.StackPop()
-			mp := ctx.StackPeek().(map[string]any)
-			mp[fmt.Sprintf("%v", e.Key)] = val
-		case MapEndEvent:
-
-		case ArrayBeginEvent:
-			ctx.StackPush(make([]any, e.Value.Len()))
-		case ArrayArriveElementEvent:
-			if !WillWalkInto(e.Value) {
-				ctx.StackPush(e.Value.Interface())
-			}
-		case ArrayLeaveElementEvent:
-			val := ctx.StackPop()
-			arr := ctx.StackPeek().([]any)
-			arr[e.Index] = val
-		case ArrayEndEvent:
-		}
-
-		return Next
-
-	}, WalkOption{
-		StackValues: []any{make(map[string]any)},
+	mp := make(map[string]any)
+	dec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		TagName: "json",
+		Result:  &mp,
 	})
-
-	return ctx.StackPop().(map[string]any), nil
-}
-
-func contains(arr []string, ele string, startIndex int) bool {
-	for i := startIndex; i < len(arr); i++ {
-		if arr[i] == ele {
-			return true
-		}
+	if err != nil {
+		return nil, err
 	}
-
-	return false
+	return mp, dec.Decode(obj)
 }

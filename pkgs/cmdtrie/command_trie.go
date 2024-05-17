@@ -7,8 +7,10 @@ import (
 
 	"github.com/samber/lo"
 	"gitlink.org.cn/cloudream/common/pkgs/trie"
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/utils/reflect2"
 )
+
+var ErrCommandNotFound = fmt.Errorf("command not found")
 
 type ExecuteOption struct {
 	ReplaceEmptyArrayWithNil bool // 如果最后一个参数是空数组，则调用命令的时候传递nil参数
@@ -178,7 +180,7 @@ func (t *anyCommandTrie) findCommand(cmdWords []string, argWords []string) (*com
 	})
 
 	if cmd == nil {
-		return nil, nil, fmt.Errorf("command not found")
+		return nil, nil, ErrCommandNotFound
 	}
 	return cmd, argWords, nil
 }
@@ -296,7 +298,7 @@ type CommandTrie[TCtx any, TRet any] struct {
 
 func NewCommandTrie[TCtx any, TRet any]() CommandTrie[TCtx, TRet] {
 	return CommandTrie[TCtx, TRet]{
-		anyTrie: newAnyCommandTrie(myreflect.TypeOf[TCtx](), myreflect.TypeOf[TRet]()),
+		anyTrie: newAnyCommandTrie(reflect2.TypeOf[TCtx](), reflect2.TypeOf[TRet]()),
 	}
 }
 
@@ -337,7 +339,7 @@ type VoidCommandTrie[TCtx any] struct {
 
 func NewVoidCommandTrie[TCtx any]() VoidCommandTrie[TCtx] {
 	return VoidCommandTrie[TCtx]{
-		anyTrie: newAnyCommandTrie(myreflect.TypeOf[TCtx](), nil),
+		anyTrie: newAnyCommandTrie(reflect2.TypeOf[TCtx](), nil),
 	}
 }
 
@@ -368,7 +370,7 @@ type StaticCommandTrie[TRet any] struct {
 
 func NewStaticCommandTrie[TRet any]() StaticCommandTrie[TRet] {
 	return StaticCommandTrie[TRet]{
-		anyTrie: newAnyCommandTrie(nil, myreflect.TypeOf[TRet]()),
+		anyTrie: newAnyCommandTrie(nil, reflect2.TypeOf[TRet]()),
 	}
 }
 

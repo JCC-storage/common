@@ -3,10 +3,9 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/imdario/mergo"
 	"os"
 	"path/filepath"
-
-	"github.com/imdario/mergo"
 )
 
 // Load 加载配置文件

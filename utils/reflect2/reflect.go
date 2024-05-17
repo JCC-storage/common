@@ -1,4 +1,4 @@
-package reflect
+package reflect2
 
 import "reflect"
 

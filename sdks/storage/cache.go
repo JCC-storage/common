@@ -7,7 +7,7 @@ import (
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 )
 
-var CacheMovePackagePath = "/cache/movePackage"
+const CacheMovePackagePath = "/cache/movePackage"
 
 type CacheMovePackageReq struct {
 	UserID    UserID    `json:"userID"`
@@ -29,7 +29,7 @@ func (c *Client) CacheMovePackage(req CacheMovePackageReq) (*CacheMovePackageRes
 		return nil, err
 	}
 
-	jsonResp, err := myhttp.ParseJSONResponse[response[CacheMovePackageResp]](resp)
+	jsonResp, err := ParseJSONResponse[response[CacheMovePackageResp]](resp)
 	if err != nil {
 		return nil, err
 	}

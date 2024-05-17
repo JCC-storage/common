@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"gitlink.org.cn/cloudream/common/pkgs/logger"
-	mylo "gitlink.org.cn/cloudream/common/utils/lo"
+	"gitlink.org.cn/cloudream/common/utils/lo2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -191,6 +191,6 @@ func (a *ServiceInfoActor) OnLockRequestEvent(evt LockRequestEvent) {
 	if evt.IsLocking {
 		status.LockRequestIDs = append(status.LockRequestIDs, evt.Data.ID)
 	} else {
-		status.LockRequestIDs = mylo.Remove(status.LockRequestIDs, evt.Data.ID)
+		status.LockRequestIDs = lo2.Remove(status.LockRequestIDs, evt.Data.ID)
 	}
 }

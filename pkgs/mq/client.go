@@ -10,7 +10,7 @@ import (
 	"github.com/streadway/amqp"
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
 	"gitlink.org.cn/cloudream/common/pkgs/logger"
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/utils/reflect2"
 )
 
 const (
@@ -22,12 +22,12 @@ const (
 var ErrWaitResponseTimeout = fmt.Errorf("wait response timeout")
 
 type CodeMessageError struct {
-	code    string
-	message string
+	Code    string
+	Message string
 }
 
 func (e *CodeMessageError) Error() string {
-	return fmt.Sprintf("code: %s, message: %s", e.code, e.message)
+	return fmt.Sprintf("code: %s, message: %s", e.Code, e.Message)
 }
 
 type SendOption struct {
@@ -300,7 +300,7 @@ func (c *RabbitMQTransport) Close() error {
 
 // 发送消息并等待回应。因为无法自动推断出TResp的类型，所以将其放在第一个手工填写，之后的TBody可以自动推断出来
 func Request[TSvc any, TReq MessageBody, TResp MessageBody](_ func(svc TSvc, msg TReq) (TResp, *CodeMessage), cli RoundTripper, req TReq, opts ...RequestOption) (TResp, error) {
-	opt := RequestOption{Timeout: time.Second * 15}
+	opt := RequestOption{Timeout: time.Second * 15, KeepAlive: true}
 	if len(opts) > 0 {
 		opt = opts[0]
 	}
@@ -315,16 +315,16 @@ func Request[TSvc any, TReq MessageBody, TResp MessageBody](_ func(svc TSvc, msg
 	errCode, errMsg := resp.GetCodeMessage()
 	if errCode != errorcode.OK {
 		return defRet, &CodeMessageError{
-			code:    errCode,
-			message: errMsg,
+			Code:    errCode,
+			Message: errMsg,
 		}
 	}
 
 	respBody, ok := resp.Body.(TResp)
 	if !ok {
 		return defRet, fmt.Errorf("expect a %s body, but got %s",
-			myreflect.ElemTypeOf[TResp]().Name(),
-			myreflect.TypeOfValue(resp.Body).Name())
+			reflect2.ElemTypeOf[TResp]().Name(),
+			reflect2.TypeOfValue(resp.Body).Name())
 	}
 
 	return respBody, nil

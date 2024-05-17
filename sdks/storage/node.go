@@ -30,7 +30,7 @@ func (c *Client) NodeGetNodes(req NodeGetNodesReq) (*NodeGetNodesResp, error) {
 		return nil, err
 	}
 
-	jsonResp, err := myhttp.ParseJSONResponse[response[NodeGetNodesResp]](resp)
+	jsonResp, err := ParseJSONResponse[response[NodeGetNodesResp]](resp)
 	if err != nil {
 		return nil, err
 	}

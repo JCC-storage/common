@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/utils/reflect2"
 )
 
 func Test_WalkValue(t *testing.T) {
@@ -38,8 +38,8 @@ func Test_WalkValue(t *testing.T) {
 
 	isBaseDataType := func(val reflect.Value) bool {
 		typ := val.Type()
-		return typ == myreflect.TypeOf[int]() || typ == myreflect.TypeOf[bool]() ||
-			typ == myreflect.TypeOf[string]() || typ == myreflect.TypeOf[float32]() || val.IsZero()
+		return typ == reflect2.TypeOf[int]() || typ == reflect2.TypeOf[bool]() ||
+			typ == reflect2.TypeOf[string]() || typ == reflect2.TypeOf[float32]() || val.IsZero()
 	}
 
 	toString := func(val any) string {

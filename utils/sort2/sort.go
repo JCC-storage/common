@@ -1,4 +1,4 @@
-package sort
+package sort2
 
 import (
 	"sort"
@@ -34,6 +34,14 @@ func Sort[T any](arr []T, cmp Comparer[T]) []T {
 
 	sort.Sort(st)
 	return arr
+}
+
+func SortAsc[T constraints.Ordered](arr []T) []T {
+	return Sort(arr, Cmp[T])
+}
+
+func SortDesc[T constraints.Ordered](arr []T) []T {
+	return Sort(arr, func(left, right T) int { return Cmp(right, left) })
 }
 
 // false < true

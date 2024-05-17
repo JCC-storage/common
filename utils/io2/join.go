@@ -1,10 +1,10 @@
-package io
+package io2
 
 import (
 	"io"
 
-	"gitlink.org.cn/cloudream/common/utils/lo"
-	"gitlink.org.cn/cloudream/common/utils/math"
+	"gitlink.org.cn/cloudream/common/utils/lo2"
+	"gitlink.org.cn/cloudream/common/utils/math2"
 )
 
 func Join(strs []io.Reader) io.ReadCloser {
@@ -69,7 +69,7 @@ func (s *chunkedJoin) Read(buf []byte) (int, error) {
 		return 0, io.EOF
 	}
 
-	bufLen := math.Min(math.Min(s.chunkSize, len(buf)), s.chunkSize-s.currentRead)
+	bufLen := math2.Min(math2.Min(s.chunkSize, len(buf)), s.chunkSize-s.currentRead)
 	rd, err := s.inputs[s.currentInput].Read(buf[:bufLen])
 	if err == nil {
 		s.currentRead += rd
@@ -81,7 +81,7 @@ func (s *chunkedJoin) Read(buf []byte) (int, error) {
 	}
 
 	if err == io.EOF {
-		s.inputs = lo.RemoveAt(s.inputs, s.currentInput)
+		s.inputs = lo2.RemoveAt(s.inputs, s.currentInput)
 		// 此处不需要+1
 		if len(s.inputs) > 0 {
 			s.currentInput = s.currentInput % len(s.inputs)
