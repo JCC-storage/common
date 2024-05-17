@@ -5,11 +5,10 @@ import schsdk "gitlink.org.cn/cloudream/common/sdks/scheduler"
 const (
 	EnvPackageList    = "IMFS_PACKAGE_LIST"
 	EnvServiceAddress = "IMFS_SERVICE_ADDRESS"
-
-	EnvLocalJobID        = "LOCAL_JOB_ID"
-	EnvJobsetID          = "JOBSET_ID"
-	EnvClientServiceList = "CLIENT_SERVICE_LIST"
-	EnvServerServiceList = "SERVER_SERVICE_LIST"
+	EnvLocalJobID     = "IMFS_LOCAL_JOB_ID"
+	EnvJobsetID       = "IMFS_JOBSET_ID"
+	EnvListeningList  = "IMFS_PROXY_LSTENING_LIST"
+	EnvServingList    = "IMFS_PROXY_SERVING_LIST"
 )
 
 //代表本任务需要访问的服务

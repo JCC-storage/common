@@ -6,6 +6,28 @@ import (
 	"io"
 )
 
+// TODO2 定义BinaryWriter和BinaryReader类型，下面的函数作为它的成员函数
+
+func WriteBool(writer *bufio.Writer, val bool) error {
+	v := byte(0)
+	if val {
+		v = 1
+	}
+
+	if err := writer.WriteByte(v); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ReadBool(reader *bufio.Reader) (bool, error) {
+	v, err := reader.ReadByte()
+	if err != nil {
+		return false, err
+	}
+	return v > 0, nil
+}
+
 func WriteUint8Field(writer *bufio.Writer, data uint8) error {
 	if err := writer.WriteByte(data); err != nil {
 		return err
