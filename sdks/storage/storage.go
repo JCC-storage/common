@@ -94,8 +94,8 @@ func (c *Client) StorageCreatePackage(req StorageCreatePackageReq) (*StorageCrea
 const StorageGetInfoPath = "/storage/getInfo"
 
 type StorageGetInfoReq struct {
-	UserID    UserID    `form:"userID" binding:"required"`
-	StorageID StorageID `form:"storageID" binding:"required"`
+	UserID    UserID    `form:"userID" json:"userID" binding:"required"`
+	StorageID StorageID `form:"storageID" json:"storageID" binding:"required"`
 }
 type StorageGetInfoResp struct {
 	Name      string `json:"name"`
