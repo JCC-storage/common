@@ -8,7 +8,7 @@ type SafeChannel[T any] struct {
 	cacnel func()
 }
 
-func NewChannel[T any]() SafeChannel[T] {
+func NewSafeChannel[T any]() SafeChannel[T] {
 	ctx, cancel := context.WithCancel(context.Background())
 	return SafeChannel[T]{
 		ch:     make(chan T),
