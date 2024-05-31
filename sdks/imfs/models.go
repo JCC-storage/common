@@ -16,10 +16,10 @@ type ClientService struct {
 //代表任务给提供各服务的端口
 type ServerService struct {
 	Name string `json:"name"`
-	Port string `json:"port"`
+	Port int    `json:"port"`
 }
 
 type FullJobID struct {
-	JobSetID   schsdk.JobSetID
-	LocalJobID string
+	JobSetID   schsdk.JobSetID `json:"jobSetID"`
+	LocalJobID string          `json:"localJobID"`
 }

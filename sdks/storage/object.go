@@ -102,6 +102,7 @@ type ObjectDownload struct {
 	ObjectID ObjectID `form:"objectID" json:"objectID" binding:"required"`
 	Offset   int64    `form:"offset" json:"offset,omitempty"`
 	Length   *int64   `form:"length" json:"length,omitempty"`
+	PartSize int64    `form:"partSize" json:"partSize,omitempty"`
 }
 type DownloadingObject struct {
 	Path string
