@@ -186,3 +186,39 @@ type JobSetServiceInfo struct {
 	CDSNodeID  *cdssdk.NodeID `json:"cdsNodeID"`
 	LocalJobID string         `json:"localJobID"`
 }
+
+type Bootstrap interface {
+	GetBootstrapType() string
+}
+
+type DirectBootstrap struct {
+	serder.Metadata `union:"Direct"`
+	Type            string `json:"type"`
+}
+
+type NoEnvBootstrap struct {
+	serder.Metadata `union:"NoEnv"`
+	Type            string           `json:"type"`
+	ScriptPackageID cdssdk.PackageID `json:"scriptPackageID"`
+	ScriptFileName  string           `json:"scriptFileName"`
+}
+
+var BootstrapTypeUnion = types.NewTypeUnion[Bootstrap](
+	(*DirectBootstrap)(nil),
+	(*NoEnvBootstrap)(nil),
+)
+
+var _ = serder.UseTypeUnionInternallyTagged(&BootstrapTypeUnion, "type")
+
+func (b *DirectBootstrap) GetBootstrapType() string {
+	return b.Type
+}
+
+func (b *NoEnvBootstrap) GetBootstrapType() string {
+	return b.Type
+}
+
+const (
+	JobDataInEnv  = "SCH_DATA_IN"
+	JobDataOutEnv = "SCH_DATA_OUT"
+)

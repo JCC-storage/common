@@ -260,11 +260,102 @@ func (c *Client) GetIndicatorData(node GetOneResourceDataReq) (*[]ResourceData, 
 	//}
 	//
 	//return nil, fmt.Errorf("unknow response content type: %s", contType)
+	if node.SlwNodeID == 1 {
+		return mockData1()
+	}
 
-	return mockData()
+	if node.SlwNodeID == 2 {
+		return mockData2()
+	}
+
+	return mockData3()
 }
 
-func mockData() (*[]ResourceData, error) {
+func mockData1() (*[]ResourceData, error) {
+	var ret []ResourceData
+
+	cpuResourceData := CPUResourceData{
+		Name: ResourceTypeCPU,
+		Total: UnitValue[int64]{
+			Value: 100,
+			Unit:  "",
+		},
+		Available: UnitValue[int64]{
+			Value: 100,
+			Unit:  "",
+		},
+	}
+	ret = append(ret, &cpuResourceData)
+
+	npuResourceData := NPUResourceData{
+		Name: ResourceTypeNPU,
+		Total: UnitValue[int64]{
+			Value: 0,
+			Unit:  "",
+		},
+		Available: UnitValue[int64]{
+			Value: 0,
+			Unit:  "",
+		},
+	}
+	ret = append(ret, &npuResourceData)
+
+	gpuResourceData := GPUResourceData{
+		Name: ResourceTypeGPU,
+		Total: UnitValue[int64]{
+			Value: 0,
+			Unit:  "",
+		},
+		Available: UnitValue[int64]{
+			Value: 0,
+			Unit:  "",
+		},
+	}
+	ret = append(ret, &gpuResourceData)
+
+	mluResourceData := MLUResourceData{
+		Name: ResourceTypeMLU,
+		Total: UnitValue[int64]{
+			Value: 100,
+			Unit:  "",
+		},
+		Available: UnitValue[int64]{
+			Value: 100,
+			Unit:  "",
+		},
+	}
+	ret = append(ret, &mluResourceData)
+
+	storageResourceData := StorageResourceData{
+		Name: ResourceTypeStorage,
+		Total: UnitValue[float64]{
+			Value: 100,
+			Unit:  "GB",
+		},
+		Available: UnitValue[float64]{
+			Value: 100,
+			Unit:  "GB",
+		},
+	}
+	ret = append(ret, &storageResourceData)
+
+	memoryResourceData := MemoryResourceData{
+		Name: ResourceTypeMemory,
+		Total: UnitValue[float64]{
+			Value: 100,
+			Unit:  "GB",
+		},
+		Available: UnitValue[float64]{
+			Value: 100,
+			Unit:  "GB",
+		},
+	}
+	ret = append(ret, &memoryResourceData)
+
+	return &ret, nil
+}
+
+func mockData2() (*[]ResourceData, error) {
 	var ret []ResourceData
 
 	cpuResourceData := CPUResourceData{
@@ -296,6 +387,90 @@ func mockData() (*[]ResourceData, error) {
 	gpuResourceData := GPUResourceData{
 		Name: ResourceTypeGPU,
 		Total: UnitValue[int64]{
+			Value: 0,
+			Unit:  "",
+		},
+		Available: UnitValue[int64]{
+			Value: 0,
+			Unit:  "",
+		},
+	}
+	ret = append(ret, &gpuResourceData)
+
+	mluResourceData := MLUResourceData{
+		Name: ResourceTypeMLU,
+		Total: UnitValue[int64]{
+			Value: 0,
+			Unit:  "",
+		},
+		Available: UnitValue[int64]{
+			Value: 0,
+			Unit:  "",
+		},
+	}
+	ret = append(ret, &mluResourceData)
+
+	storageResourceData := StorageResourceData{
+		Name: ResourceTypeStorage,
+		Total: UnitValue[float64]{
+			Value: 100,
+			Unit:  "GB",
+		},
+		Available: UnitValue[float64]{
+			Value: 100,
+			Unit:  "GB",
+		},
+	}
+	ret = append(ret, &storageResourceData)
+
+	memoryResourceData := MemoryResourceData{
+		Name: ResourceTypeMemory,
+		Total: UnitValue[float64]{
+			Value: 100,
+			Unit:  "GB",
+		},
+		Available: UnitValue[float64]{
+			Value: 100,
+			Unit:  "GB",
+		},
+	}
+	ret = append(ret, &memoryResourceData)
+
+	return &ret, nil
+}
+
+func mockData3() (*[]ResourceData, error) {
+	var ret []ResourceData
+
+	cpuResourceData := CPUResourceData{
+		Name: ResourceTypeCPU,
+		Total: UnitValue[int64]{
+			Value: 100,
+			Unit:  "",
+		},
+		Available: UnitValue[int64]{
+			Value: 100,
+			Unit:  "",
+		},
+	}
+	ret = append(ret, &cpuResourceData)
+
+	npuResourceData := NPUResourceData{
+		Name: ResourceTypeNPU,
+		Total: UnitValue[int64]{
+			Value: 0,
+			Unit:  "",
+		},
+		Available: UnitValue[int64]{
+			Value: 0,
+			Unit:  "",
+		},
+	}
+	ret = append(ret, &npuResourceData)
+
+	gpuResourceData := GPUResourceData{
+		Name: ResourceTypeGPU,
+		Total: UnitValue[int64]{
 			Value: 100,
 			Unit:  "",
 		},
@@ -309,11 +484,11 @@ func mockData() (*[]ResourceData, error) {
 	mluResourceData := MLUResourceData{
 		Name: ResourceTypeMLU,
 		Total: UnitValue[int64]{
-			Value: 100,
+			Value: 0,
 			Unit:  "",
 		},
 		Available: UnitValue[int64]{
-			Value: 100,
+			Value: 0,
 			Unit:  "",
 		},
 	}
