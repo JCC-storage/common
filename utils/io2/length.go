@@ -7,7 +7,7 @@ import (
 )
 
 type lengthStream struct {
-	src        io.Reader
+	src        io.ReadCloser
 	length     int64
 	readLength int64
 	must       bool
@@ -46,17 +46,18 @@ func (s *lengthStream) Read(buf []byte) (int, error) {
 
 func (s *lengthStream) Close() error {
 	s.err = io.ErrClosedPipe
+	s.src.Close()
 	return nil
 }
 
-func Length(str io.Reader, length int64) io.ReadCloser {
+func Length(str io.ReadCloser, length int64) io.ReadCloser {
 	return &lengthStream{
 		src:    str,
 		length: length,
 	}
 }
 
-func MustLength(str io.Reader, length int64) io.ReadCloser {
+func MustLength(str io.ReadCloser, length int64) io.ReadCloser {
 	return &lengthStream{
 		src:    str,
 		length: length,
