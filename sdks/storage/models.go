@@ -147,6 +147,15 @@ type NodeConnectivity struct {
 	TestTime   time.Time `db:"TestTime" json:"testTime"`
 }
 
+type Storage struct {
+	StorageID  StorageID `db:"StorageID" json:"storageID"`
+	Name       string    `db:"Name" json:"name"`
+	NodeID     NodeID    `db:"NodeID" json:"nodeID"`
+	LocalBase  string    `db:"LocalBase" json:"localBase"`   // 存储服务挂载在代理节点的目录
+	RemoteBase string    `db:"RemoteBase" json:"remoteBase"` // 挂载在本地的目录对应存储服务的哪个路径
+	State      string    `db:"State" json:"state"`
+}
+
 type NodePackageCachingInfo struct {
 	NodeID      NodeID `json:"nodeID"`
 	FileSize    int64  `json:"fileSize"`

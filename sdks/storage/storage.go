@@ -18,7 +18,10 @@ type StorageLoadPackageReq struct {
 	StorageID StorageID `json:"storageID" binding:"required"`
 }
 type StorageLoadPackageResp struct {
-	FullPath string `json:"fullPath"`
+	FullPath    string `json:"fullPath"` // TODO 临时保留给中期测试的前端使用，后续会删除
+	PackagePath string `json:"packagePath"`
+	LocalBase   string `json:"localBase"`
+	RemoteBase  string `json:"remoteBase"`
 }
 
 func (c *Client) StorageLoadPackage(req StorageLoadPackageReq) (*StorageLoadPackageResp, error) {
@@ -91,20 +94,18 @@ func (c *Client) StorageCreatePackage(req StorageCreatePackageReq) (*StorageCrea
 	return nil, fmt.Errorf("unknow response content type: %s", contType)
 }
 
-const StorageGetInfoPath = "/storage/getInfo"
+const StorageGetPath = "/storage/get"
 
-type StorageGetInfoReq struct {
+type StorageGet struct {
 	UserID    UserID    `form:"userID" json:"userID" binding:"required"`
 	StorageID StorageID `form:"storageID" json:"storageID" binding:"required"`
 }
-type StorageGetInfoResp struct {
-	Name      string `json:"name"`
-	NodeID    NodeID `json:"nodeID"`
-	Directory string `json:"directory"`
+type StorageGetResp struct {
+	Storage
 }
 
-func (c *Client) StorageGetInfo(req StorageGetInfoReq) (*StorageGetInfoResp, error) {
-	url, err := url.JoinPath(c.baseURL, StorageGetInfoPath)
+func (c *Client) StorageGet(req StorageGet) (*StorageGetResp, error) {
+	url, err := url.JoinPath(c.baseURL, StorageGetPath)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +117,7 @@ func (c *Client) StorageGetInfo(req StorageGetInfoReq) (*StorageGetInfoResp, err
 		return nil, err
 	}
 
-	codeResp, err := ParseJSONResponse[response[StorageGetInfoResp]](resp)
+	codeResp, err := ParseJSONResponse[response[StorageGetResp]](resp)
 	if err != nil {
 		return nil, err
 	}
