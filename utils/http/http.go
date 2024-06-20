@@ -6,13 +6,11 @@ import (
 	"io"
 	"mime"
 	"mime/multipart"
-	"net"
 	"net/http"
 	"net/textproto"
 	ul "net/url"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gitlink.org.cn/cloudream/common/pkgs/iterator"
@@ -28,15 +26,7 @@ const (
 	ContentTypeOctetStream = "application/octet-stream"
 )
 
-var defaultClient = http.Client{
-	Timeout: time.Second * 5,
-	Transport: &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   time.Second * 5,
-			KeepAlive: 0, // 修改为 0 可以生效
-		}).DialContext,
-	},
-}
+var defaultClient = http.DefaultClient
 
 type RequestParam struct {
 	Header any
