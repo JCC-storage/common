@@ -22,3 +22,10 @@ func RemoveAt[T any](arr []T, index int) []T {
 func ArrayClone[T any](arr []T) []T {
 	return append([]T{}, arr...)
 }
+
+func Insert[T any](arr []T, index int, item T) []T {
+	arr = append(arr, item)
+	copy(arr[index+1:], arr[index:])
+	arr[index] = item
+	return arr
+}
