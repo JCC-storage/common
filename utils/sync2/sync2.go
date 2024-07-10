@@ -1,9 +1,14 @@
 package sync2
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 func ParallelDo[T any](args []T, fn func(val T, index int) error) error {
-	var err error
+	err := atomic.Value{}
+	err.Store((error)(nil))
+
 	var wg sync.WaitGroup
 	wg.Add(len(args))
 	for i, arg := range args {
@@ -11,10 +16,10 @@ func ParallelDo[T any](args []T, fn func(val T, index int) error) error {
 			defer wg.Done()
 
 			if e := fn(arg, index); e != nil {
-				err = e
+				err.CompareAndSwap((error)(nil), e)
 			}
 		}(arg, i)
 	}
 	wg.Wait()
-	return err
+	return err.Load().(error)
 }
