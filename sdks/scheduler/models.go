@@ -26,6 +26,10 @@ type ImageID int64
 // 计算中心ID
 type CCID int64
 
+type ModelID string
+type NodeID int64
+type Address string
+
 type JobSetInfo struct {
 	Jobs []JobInfo `json:"jobs"`
 }
@@ -71,20 +75,27 @@ type DataReturnJobInfo struct {
 type MultiInstanceJobInfo struct {
 	serder.Metadata `union:"MultiInstance"`
 	JobInfoBase
-	Type      string           `json:"type"`
-	Files     JobFilesInfo     `json:"files"`
-	Runtime   JobRuntimeInfo   `json:"runtime"`
-	Resources JobResourcesInfo `json:"resources"`
+	Type         string           `json:"type"`
+	Files        JobFilesInfo     `json:"files"`
+	Runtime      JobRuntimeInfo   `json:"runtime"`
+	Resources    JobResourcesInfo `json:"resources"`
+	ModelJobInfo ModelJobInfo     `json:"modelJobInfo"`
+}
+
+type ModelJobInfo struct {
+	Type    string `json:"type"`
+	ModelID string `json:"modelID"`
 }
 
 type InstanceJobInfo struct {
 	serder.Metadata `union:"Instance"`
 	JobInfoBase
-	Type       string           `json:"type"`
-	LocalJobID string           `json:"multiInstJobID"`
-	Files      JobFilesInfo     `json:"files"`
-	Runtime    JobRuntimeInfo   `json:"runtime"`
-	Resources  JobResourcesInfo `json:"resources"`
+	Type         string           `json:"type"`
+	LocalJobID   string           `json:"multiInstJobID"`
+	Files        JobFilesInfo     `json:"files"`
+	Runtime      JobRuntimeInfo   `json:"runtime"`
+	Resources    JobResourcesInfo `json:"resources"`
+	ModelJobInfo ModelJobInfo     `json:"modelJobInfo"`
 }
 
 type JobFilesInfo struct {
