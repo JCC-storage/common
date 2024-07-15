@@ -128,6 +128,10 @@ type Node struct {
 	LastReportTime   *time.Time `db:"LastReportTime" json:"lastReportTime"`
 }
 
+func (n Node) String() string {
+	return fmt.Sprintf("%v(%v)", n.Name, n.NodeID)
+}
+
 type PinnedObject struct {
 	ObjectID   ObjectID  `db:"ObjectID" json:"objectID"`
 	NodeID     NodeID    `db:"NodeID" json:"nodeID"`
