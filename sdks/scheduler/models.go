@@ -233,3 +233,8 @@ const (
 	JobDataInEnv  = "SCH_DATA_IN"
 	JobDataOutEnv = "SCH_DATA_OUT"
 )
+
+type Rclone struct {
+	CDSRcloneID       string `json:"cds_rcloneID"`
+	CDSRcloneConfigID string `json:"cds_rcloneConfigID"`
+}
