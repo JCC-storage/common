@@ -43,6 +43,7 @@ var JobInfoTypeUnion = types.NewTypeUnion[JobInfo](
 	(*DataReturnJobInfo)(nil),
 	(*MultiInstanceJobInfo)(nil),
 	(*InstanceJobInfo)(nil),
+	(*UpdateMultiInstanceJobInfo)(nil),
 )
 var _ = serder.UseTypeUnionInternallyTagged(&JobInfoTypeUnion, "type")
 
@@ -80,6 +81,17 @@ type MultiInstanceJobInfo struct {
 	Runtime      JobRuntimeInfo   `json:"runtime"`
 	Resources    JobResourcesInfo `json:"resources"`
 	ModelJobInfo ModelJobInfo     `json:"modelJobInfo"`
+}
+
+type UpdateMultiInstanceJobInfo struct {
+	serder.Metadata `union:"UpdateModel"`
+	JobInfoBase
+	Type                  string         `json:"type"`
+	Files                 JobFilesInfo   `json:"files"`
+	Runtime               JobRuntimeInfo `json:"runtime"`
+	MultiInstanceJobSetID JobSetID       `json:"multiInstanceJobSetID"`
+	InstanceIDs           []JobID        `json:"instanceIDs"`
+	UpdateStrategy        string         `json:"updateStrategy"`
 }
 
 type ModelJobInfo struct {
