@@ -24,6 +24,7 @@ const (
 	ContentTypeForm        = "application/x-www-form-urlencoded"
 	ContentTypeMultiPart   = "multipart/form-data"
 	ContentTypeOctetStream = "application/octet-stream"
+	ContentTypeEventStream = "text/event-stream"
 )
 
 var defaultClient = http.DefaultClient

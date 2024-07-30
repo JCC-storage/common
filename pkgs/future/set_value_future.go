@@ -2,6 +2,7 @@ package future
 
 import (
 	"context"
+	"sync"
 )
 
 type SetValueFuture[T any] struct {
@@ -9,6 +10,7 @@ type SetValueFuture[T any] struct {
 	err          error
 	isCompleted  bool
 	completeChan chan any
+	completeOnce sync.Once
 }
 
 func NewSetValue[T any]() *SetValueFuture[T] {
@@ -18,22 +20,28 @@ func NewSetValue[T any]() *SetValueFuture[T] {
 }
 
 func (f *SetValueFuture[T]) SetComplete(val T, err error) {
-	f.value = val
-	f.err = err
-	f.isCompleted = true
-	close(f.completeChan)
+	f.completeOnce.Do(func() {
+		f.value = val
+		f.err = err
+		f.isCompleted = true
+		close(f.completeChan)
+	})
 }
 
 func (f *SetValueFuture[T]) SetValue(val T) {
-	f.value = val
-	f.isCompleted = true
-	close(f.completeChan)
+	f.completeOnce.Do(func() {
+		f.value = val
+		f.isCompleted = true
+		close(f.completeChan)
+	})
 }
 
 func (f *SetValueFuture[T]) SetError(err error) {
-	f.err = err
-	f.isCompleted = true
-	close(f.completeChan)
+	f.completeOnce.Do(func() {
+		f.err = err
+		f.isCompleted = true
+		close(f.completeChan)
+	})
 }
 
 func (f *SetValueFuture[T]) Error() error {
@@ -77,6 +85,7 @@ type SetValueFuture2[T1 any, T2 any] struct {
 	err          error
 	isCompleted  bool
 	completeChan chan any
+	completeOnce sync.Once
 }
 
 func NewSetValue2[T1 any, T2 any]() *SetValueFuture2[T1, T2] {
@@ -86,24 +95,30 @@ func NewSetValue2[T1 any, T2 any]() *SetValueFuture2[T1, T2] {
 }
 
 func (f *SetValueFuture2[T1, T2]) SetComplete(val1 T1, val2 T2, err error) {
-	f.value1 = val1
-	f.value2 = val2
-	f.err = err
-	f.isCompleted = true
-	close(f.completeChan)
+	f.completeOnce.Do(func() {
+		f.value1 = val1
+		f.value2 = val2
+		f.err = err
+		f.isCompleted = true
+		close(f.completeChan)
+	})
 }
 
 func (f *SetValueFuture2[T1, T2]) SetValue(val1 T1, val2 T2) {
-	f.value1 = val1
-	f.value2 = val2
-	f.isCompleted = true
-	close(f.completeChan)
+	f.completeOnce.Do(func() {
+		f.value1 = val1
+		f.value2 = val2
+		f.isCompleted = true
+		close(f.completeChan)
+	})
 }
 
 func (f *SetValueFuture2[T1, T2]) SetError(err error) {
-	f.err = err
-	f.isCompleted = true
-	close(f.completeChan)
+	f.completeOnce.Do(func() {
+		f.err = err
+		f.isCompleted = true
+		close(f.completeChan)
+	})
 }
 
 func (f *SetValueFuture2[T1, T2]) Error() error {

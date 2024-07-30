@@ -2,12 +2,14 @@ package future
 
 import (
 	"context"
+	"sync"
 )
 
 type SetVoidFuture struct {
 	err          error
 	isCompleted  bool
 	completeChan chan any
+	completeOnce sync.Once
 }
 
 func NewSetVoid() *SetVoidFuture {
@@ -17,14 +19,18 @@ func NewSetVoid() *SetVoidFuture {
 }
 
 func (f *SetVoidFuture) SetVoid() {
-	f.isCompleted = true
-	close(f.completeChan)
+	f.completeOnce.Do(func() {
+		f.isCompleted = true
+		close(f.completeChan)
+	})
 }
 
 func (f *SetVoidFuture) SetError(err error) {
-	f.err = err
-	f.isCompleted = true
-	close(f.completeChan)
+	f.completeOnce.Do(func() {
+		f.err = err
+		f.isCompleted = true
+		close(f.completeChan)
+	})
 }
 
 func (f *SetVoidFuture) Error() error {
