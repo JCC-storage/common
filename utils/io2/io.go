@@ -90,6 +90,41 @@ func AfterReadClosedOnce(closer io.ReadCloser, callback func(closer io.ReadClose
 	}
 }
 
+type afterEOF struct {
+	inner    io.ReadCloser
+	callback func(str io.ReadCloser, err error)
+}
+
+func (hook *afterEOF) Read(buf []byte) (n int, err error) {
+	n, err = hook.inner.Read(buf)
+	if hook.callback != nil {
+		if err == io.EOF {
+			hook.callback(hook.inner, nil)
+			hook.callback = nil
+		} else if err != nil {
+			hook.callback(hook.inner, err)
+			hook.callback = nil
+		}
+	}
+	return n, err
+}
+
+func (hook *afterEOF) Close() error {
+	err := hook.inner.Close()
+	if hook.callback != nil {
+		hook.callback(hook.inner, io.ErrClosedPipe)
+		hook.callback = nil
+	}
+	return err
+}
+
+func AfterEOF(str io.ReadCloser, callback func(str io.ReadCloser, err error)) io.ReadCloser {
+	return &afterEOF{
+		inner:    str,
+		callback: callback,
+	}
+}
+
 type readerWithCloser struct {
 	reader io.Reader
 	closer func(reader io.Reader) error
@@ -149,6 +184,18 @@ func ToReaders(strs []io.ReadCloser) ([]io.Reader, func()) {
 	return readers, func() {
 		for _, s := range strs {
 			s.Close()
+		}
+	}
+}
+
+func DropWithBuf(str io.Reader, buf []byte) error {
+	for {
+		_, err := str.Read(buf)
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
 		}
 	}
 }
