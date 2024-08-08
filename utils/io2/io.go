@@ -188,14 +188,11 @@ func ToReaders(strs []io.ReadCloser) ([]io.Reader, func()) {
 	}
 }
 
-func DropWithBuf(str io.Reader, buf []byte) error {
+func DropWithBuf(str io.Reader, buf []byte) {
 	for {
 		_, err := str.Read(buf)
-		if err == io.EOF {
-			return nil
-		}
 		if err != nil {
-			return err
+			break
 		}
 	}
 }
