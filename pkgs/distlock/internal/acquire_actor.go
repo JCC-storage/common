@@ -93,7 +93,7 @@ func (a *AcquireActor) Acquire(ctx context.Context, req LockRequest) (string, er
 	}()
 
 	// 此处不能直接用ctx去等Callback，原因是Wait超时不代表锁没有获取到，这会导致锁泄露。
-	return info.Callback.WaitValue(context.Background())
+	return info.Callback.Wait(context.Background())
 }
 
 // TryAcquireNow 重试一下内部还没有成功的锁请求。不会阻塞调用者

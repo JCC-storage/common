@@ -90,8 +90,8 @@ type UpdateMultiInstanceJobInfo struct {
 	Files                 JobFilesInfo   `json:"files"`
 	Runtime               JobRuntimeInfo `json:"runtime"`
 	MultiInstanceJobSetID JobSetID       `json:"multiInstanceJobSetID"`
-	InstanceIDs           []JobID        `json:"instanceIDs"`
-	UpdateStrategy        string         `json:"updateStrategy"`
+	//InstanceIDs           []JobID        `json:"instanceIDs"`
+	UpdateStrategy string `json:"updateStrategy"`
 }
 
 type ModelJobInfo struct {
