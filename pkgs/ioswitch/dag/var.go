@@ -1,33 +1,37 @@
 package dag
 
-import "gitlink.org.cn/cloudream/common/utils/lo2"
+import (
+	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/exec"
+	"gitlink.org.cn/cloudream/common/utils/lo2"
+)
 
-type EndPoint[NP any, VP any] struct {
-	Node      *Node[NP, VP]
+type EndPoint struct {
+	Node      *Node
 	SlotIndex int // 所连接的Node的Output或Input数组的索引
 }
 
-type StreamVar[NP any, VP any] struct {
+type StreamVar struct {
 	ID    int
-	From  EndPoint[NP, VP]
-	Toes  []EndPoint[NP, VP]
-	Props VP
+	From  EndPoint
+	Toes  []EndPoint
+	Props any
+	Var   *exec.StreamVar
 }
 
-func (v *StreamVar[NP, VP]) To(to *Node[NP, VP], slotIdx int) int {
-	v.Toes = append(v.Toes, EndPoint[NP, VP]{Node: to, SlotIndex: slotIdx})
+func (v *StreamVar) To(to *Node, slotIdx int) int {
+	v.Toes = append(v.Toes, EndPoint{Node: to, SlotIndex: slotIdx})
 	to.InputStreams[slotIdx] = v
 	return len(v.Toes) - 1
 }
 
-// func (v *StreamVar[NP, VP]) NotTo(toIdx int) EndPoint[NP, VP] {
+// func (v *StreamVar) NotTo(toIdx int) EndPoint {
 // 	ed := v.Toes[toIdx]
 // 	lo2.RemoveAt(v.Toes, toIdx)
 // 	ed.Node.InputStreams[ed.SlotIndex] = nil
 // 	return ed
 // }
 
-func (v *StreamVar[NP, VP]) NotTo(node *Node[NP, VP]) (EndPoint[NP, VP], bool) {
+func (v *StreamVar) NotTo(node *Node) (EndPoint, bool) {
 	for i, ed := range v.Toes {
 		if ed.Node == node {
 			v.Toes = lo2.RemoveAt(v.Toes, i)
@@ -36,12 +40,12 @@ func (v *StreamVar[NP, VP]) NotTo(node *Node[NP, VP]) (EndPoint[NP, VP], bool) {
 		}
 	}
 
-	return EndPoint[NP, VP]{}, false
+	return EndPoint{}, false
 }
 
-func (v *StreamVar[NP, VP]) NotToWhere(pred func(to EndPoint[NP, VP]) bool) []EndPoint[NP, VP] {
-	var newToes []EndPoint[NP, VP]
-	var rmed []EndPoint[NP, VP]
+func (v *StreamVar) NotToWhere(pred func(to EndPoint) bool) []EndPoint {
+	var newToes []EndPoint
+	var rmed []EndPoint
 	for _, ed := range v.Toes {
 		if pred(ed) {
 			ed.Node.InputStreams[ed.SlotIndex] = nil
@@ -54,7 +58,7 @@ func (v *StreamVar[NP, VP]) NotToWhere(pred func(to EndPoint[NP, VP]) bool) []En
 	return rmed
 }
 
-func (v *StreamVar[NP, VP]) NotToAll() []EndPoint[NP, VP] {
+func (v *StreamVar) NotToAll() []EndPoint {
 	for _, ed := range v.Toes {
 		ed.Node.InputStreams[ed.SlotIndex] = nil
 	}
@@ -63,18 +67,18 @@ func (v *StreamVar[NP, VP]) NotToAll() []EndPoint[NP, VP] {
 	return toes
 }
 
-func NodeNewOutputStream[NP any, VP any](node *Node[NP, VP], props VP) *StreamVar[NP, VP] {
-	str := &StreamVar[NP, VP]{
+func NodeNewOutputStream(node *Node, props any) *StreamVar {
+	str := &StreamVar{
 		ID:    node.Graph.genVarID(),
-		From:  EndPoint[NP, VP]{Node: node, SlotIndex: len(node.OutputStreams)},
+		From:  EndPoint{Node: node, SlotIndex: len(node.OutputStreams)},
 		Props: props,
 	}
 	node.OutputStreams = append(node.OutputStreams, str)
 	return str
 }
 
-func NodeDeclareInputStream[NP any, VP any](node *Node[NP, VP], cnt int) {
-	node.InputStreams = make([]*StreamVar[NP, VP], cnt)
+func NodeDeclareInputStream(node *Node, cnt int) {
+	node.InputStreams = make([]*StreamVar, cnt)
 }
 
 type ValueVarType int
@@ -84,29 +88,31 @@ const (
 	SignalValueVar
 )
 
-type ValueVar[NP any, VP any] struct {
+type ValueVar struct {
 	ID    int
-	From  EndPoint[NP, VP]
-	Toes  []EndPoint[NP, VP]
-	Props VP
+	Type  ValueVarType
+	From  EndPoint
+	Toes  []EndPoint
+	Props any
+	Var   exec.Var
 }
 
-func (v *ValueVar[NP, VP]) To(to *Node[NP, VP], slotIdx int) int {
-	v.Toes = append(v.Toes, EndPoint[NP, VP]{Node: to, SlotIndex: slotIdx})
+func (v *ValueVar) To(to *Node, slotIdx int) int {
+	v.Toes = append(v.Toes, EndPoint{Node: to, SlotIndex: slotIdx})
 	to.InputValues[slotIdx] = v
 	return len(v.Toes) - 1
 }
 
-func NodeNewOutputValue[NP any, VP any](node *Node[NP, VP], props VP) *ValueVar[NP, VP] {
-	val := &ValueVar[NP, VP]{
+func NodeNewOutputValue(node *Node, props any) *ValueVar {
+	val := &ValueVar{
 		ID:    node.Graph.genVarID(),
-		From:  EndPoint[NP, VP]{Node: node, SlotIndex: len(node.OutputStreams)},
+		From:  EndPoint{Node: node, SlotIndex: len(node.OutputStreams)},
 		Props: props,
 	}
 	node.OutputValues = append(node.OutputValues, val)
 	return val
 }
 
-func NodeDeclareInputValue[NP any, VP any](node *Node[NP, VP], cnt int) {
-	node.InputValues = make([]*ValueVar[NP, VP], cnt)
+func NodeDeclareInputValue(node *Node, cnt int) {
+	node.InputValues = make([]*ValueVar, cnt)
 }

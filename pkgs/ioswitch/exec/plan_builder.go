@@ -2,44 +2,42 @@ package exec
 
 import (
 	"context"
-	"sync"
 
 	"gitlink.org.cn/cloudream/common/pkgs/future"
-	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
 	"gitlink.org.cn/cloudream/common/utils/lo2"
 )
 
 type PlanBuilder struct {
 	Vars        []Var
-	WorkerPlans map[cdssdk.NodeID]*WorkerPlanBuilder
+	WorkerPlans []*WorkerPlanBuilder
 	DriverPlan  DriverPlanBuilder
 }
 
 func NewPlanBuilder() *PlanBuilder {
 	bld := &PlanBuilder{
-		WorkerPlans: make(map[cdssdk.NodeID]*WorkerPlanBuilder),
-		DriverPlan: DriverPlanBuilder{
-			StoreMap: &sync.Map{},
-		},
+		DriverPlan: DriverPlanBuilder{},
 	}
 
 	return bld
 }
 
-func (b *PlanBuilder) AtExecutor() *DriverPlanBuilder {
+func (b *PlanBuilder) AtDriver() *DriverPlanBuilder {
 	return &b.DriverPlan
 }
 
-func (b *PlanBuilder) AtAgent(node cdssdk.Node) *WorkerPlanBuilder {
-	agtPlan, ok := b.WorkerPlans[node.NodeID]
-	if !ok {
-		agtPlan = &WorkerPlanBuilder{
-			Node: node,
+func (b *PlanBuilder) AtWorker(worker WorkerInfo) *WorkerPlanBuilder {
+	for _, p := range b.WorkerPlans {
+		if p.Worker.Equals(worker) {
+			return p
 		}
-		b.WorkerPlans[node.NodeID] = agtPlan
 	}
 
-	return agtPlan
+	p := &WorkerPlanBuilder{
+		Worker: worker,
+	}
+	b.WorkerPlans = append(b.WorkerPlans, p)
+
+	return p
 }
 
 func (b *PlanBuilder) NewStreamVar() *StreamVar {
@@ -89,7 +87,7 @@ func (b *PlanBuilder) Execute() *Driver {
 	exec := Driver{
 		planID:     planID,
 		planBlder:  b,
-		callback:   future.NewSetVoid(),
+		callback:   future.NewSetValue[map[string]any](),
 		ctx:        ctx,
 		cancel:     cancel,
 		driverExec: NewExecutor(execPlan),
@@ -100,8 +98,8 @@ func (b *PlanBuilder) Execute() *Driver {
 }
 
 type WorkerPlanBuilder struct {
-	Node cdssdk.Node
-	Ops  []Op
+	Worker WorkerInfo
+	Ops    []Op
 }
 
 func (b *WorkerPlanBuilder) AddOp(op Op) {
@@ -113,8 +111,7 @@ func (b *WorkerPlanBuilder) RemoveOp(op Op) {
 }
 
 type DriverPlanBuilder struct {
-	Ops      []Op
-	StoreMap *sync.Map
+	Ops []Op
 }
 
 func (b *DriverPlanBuilder) AddOp(op Op) {

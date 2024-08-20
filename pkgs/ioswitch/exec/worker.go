@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"io"
 	"sync"
 
 	"github.com/samber/lo"
@@ -82,4 +83,21 @@ func (s *Worker) FindByIDContexted(ctx context.Context, id PlanID) *Executor {
 	s.findings = lo2.Remove(s.findings, f)
 
 	return sw
+}
+
+type WorkerInfo interface {
+	NewClient() (WorkerClient, error)
+	// 判断两个worker是否相同
+	Equals(worker WorkerInfo) bool
+	// Worker信息，比如ID、地址等
+	String() string
+}
+
+type WorkerClient interface {
+	ExecutePlan(ctx context.Context, plan Plan) error
+	SendStream(ctx context.Context, planID PlanID, v *StreamVar, str io.ReadCloser) error
+	SendVar(ctx context.Context, planID PlanID, v Var) error
+	GetStream(ctx context.Context, planID PlanID, v *StreamVar, signal *SignalVar) (io.ReadCloser, error)
+	GetVar(ctx context.Context, planID PlanID, v Var, signal *SignalVar) error
+	Close() error
 }

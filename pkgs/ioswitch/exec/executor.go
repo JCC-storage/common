@@ -21,12 +21,14 @@ type Executor struct {
 	vars     map[VarID]Var
 	bindings []*bindingVars
 	lock     sync.Mutex
+	store    map[string]any
 }
 
 func NewExecutor(plan Plan) *Executor {
 	planning := Executor{
-		plan: plan,
-		vars: make(map[VarID]Var),
+		plan:  plan,
+		vars:  make(map[VarID]Var),
+		store: make(map[string]any),
 	}
 
 	return &planning
@@ -36,11 +38,11 @@ func (s *Executor) Plan() *Plan {
 	return &s.plan
 }
 
-func (s *Executor) Run(ctx context.Context) error {
+func (s *Executor) Run(ctx context.Context) (map[string]any, error) {
 	ctx2, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	return sync2.ParallelDo(s.plan.Ops, func(o Op, idx int) error {
+	err := sync2.ParallelDo(s.plan.Ops, func(o Op, idx int) error {
 		err := o.Execute(ctx2, s)
 
 		s.lock.Lock()
@@ -53,6 +55,11 @@ func (s *Executor) Run(ctx context.Context) error {
 
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return s.store, nil
 }
 
 func (s *Executor) BindVars(ctx context.Context, vs ...Var) error {
@@ -130,6 +137,13 @@ loop:
 		// 如果没有绑定，则直接放入变量表中
 		s.vars[v.GetID()] = v
 	}
+}
+
+func (s *Executor) Store(key string, val any) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.store[key] = val
 }
 
 func BindArrayVars[T Var](sw *Executor, ctx context.Context, vs []T) error {

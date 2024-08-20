@@ -8,13 +8,12 @@ import (
 
 	"gitlink.org.cn/cloudream/common/pkgs/future"
 	"gitlink.org.cn/cloudream/common/utils/io2"
-	stgglb "gitlink.org.cn/cloudream/storage/common/globals"
 )
 
 type Driver struct {
 	planID     PlanID
 	planBlder  *PlanBuilder
-	callback   *future.SetVoidFuture
+	callback   *future.SetValueFuture[map[string]any]
 	ctx        context.Context
 	cancel     context.CancelFunc
 	driverExec *Executor
@@ -46,18 +45,12 @@ func (e *Driver) Signal(signal *DriverSignalVar) {
 }
 
 func (e *Driver) Wait(ctx context.Context) (map[string]any, error) {
-	err := e.callback.Wait(ctx)
+	stored, err := e.callback.WaitValue(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	ret := make(map[string]any)
-	e.planBlder.DriverPlan.StoreMap.Range(func(k, v any) bool {
-		ret[k.(string)] = v
-		return true
-	})
-
-	return ret, nil
+	return stored, nil
 }
 
 func (e *Driver) execute() {
@@ -74,22 +67,22 @@ func (e *Driver) execute() {
 				Ops: p.Ops,
 			}
 
-			cli, err := stgglb.AgentRPCPool.Acquire(stgglb.SelectGRPCAddress(&p.Node))
+			cli, err := p.Worker.NewClient()
 			if err != nil {
-				e.stopWith(fmt.Errorf("new agent rpc client of node %v: %w", p.Node.NodeID, err))
+				e.stopWith(fmt.Errorf("new client to worker %v: %w", p.Worker, err))
 				return
 			}
-			defer stgglb.AgentRPCPool.Release(cli)
+			defer cli.Close()
 
-			err = cli.ExecuteIOPlan(e.ctx, plan)
+			err = cli.ExecutePlan(e.ctx, plan)
 			if err != nil {
-				e.stopWith(fmt.Errorf("execute plan at %v: %w", p.Node.NodeID, err))
+				e.stopWith(fmt.Errorf("execute plan at worker %v: %w", p.Worker, err))
 				return
 			}
 		}(p)
 	}
 
-	err := e.driverExec.Run(e.ctx)
+	stored, err := e.driverExec.Run(e.ctx)
 	if err != nil {
 		e.stopWith(fmt.Errorf("run executor switch: %w", err))
 		return
@@ -97,7 +90,7 @@ func (e *Driver) execute() {
 
 	wg.Wait()
 
-	e.callback.SetVoid()
+	e.callback.SetValue(stored)
 }
 
 func (e *Driver) stopWith(err error) {

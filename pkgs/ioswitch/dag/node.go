@@ -6,30 +6,23 @@ import (
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/exec"
 )
 
-type NodeType[NP any, VP any] interface {
-	InitNode(node *Node[NP, VP])
-	String(node *Node[NP, VP]) string
-	GenerateOp(node *Node[NP, VP], blder *exec.PlanBuilder) error
-}
-
-type WorkerInfo interface {
-	// 获取连接到这个worker的GRPC服务的地址
-	GetAddress() string
-	// 判断两个worker是否相同
-	Equals(worker WorkerInfo) bool
+type NodeType interface {
+	InitNode(node *Node)
+	String(node *Node) string
+	GenerateOp(node *Node) (exec.Op, error)
 }
 
 type NodeEnvType string
 
 const (
-	EnvUnknown  NodeEnvType = ""
-	EnvExecutor NodeEnvType = "Executor"
-	EnvWorker   NodeEnvType = "Worker"
+	EnvUnknown NodeEnvType = ""
+	EnvDriver  NodeEnvType = "Driver"
+	EnvWorker  NodeEnvType = "Worker"
 )
 
 type NodeEnv struct {
 	Type   NodeEnvType
-	Worker WorkerInfo
+	Worker exec.WorkerInfo
 }
 
 func (e *NodeEnv) ToEnvUnknown() {
@@ -37,12 +30,12 @@ func (e *NodeEnv) ToEnvUnknown() {
 	e.Worker = nil
 }
 
-func (e *NodeEnv) ToEnvExecutor() {
-	e.Type = EnvExecutor
+func (e *NodeEnv) ToEnvDriver() {
+	e.Type = EnvDriver
 	e.Worker = nil
 }
 
-func (e *NodeEnv) ToEnvWorker(worker WorkerInfo) {
+func (e *NodeEnv) ToEnvWorker(worker exec.WorkerInfo) {
 	e.Type = EnvWorker
 	e.Worker = worker
 }
@@ -59,17 +52,17 @@ func (e *NodeEnv) Equals(other NodeEnv) bool {
 	return e.Worker.Equals(other.Worker)
 }
 
-type Node[NP any, VP any] struct {
-	Type          NodeType[NP, VP]
+type Node struct {
+	Type          NodeType
 	Env           NodeEnv
-	Props         NP
-	InputStreams  []*StreamVar[NP, VP]
-	OutputStreams []*StreamVar[NP, VP]
-	InputValues   []*ValueVar[NP, VP]
-	OutputValues  []*ValueVar[NP, VP]
-	Graph         *Graph[NP, VP]
+	Props         any
+	InputStreams  []*StreamVar
+	OutputStreams []*StreamVar
+	InputValues   []*ValueVar
+	OutputValues  []*ValueVar
+	Graph         *Graph
 }
 
-func (n *Node[NP, VP]) String() string {
+func (n *Node) String() string {
 	return fmt.Sprintf("%v", n.Type.String(n))
 }
