@@ -37,6 +37,7 @@ var RedundancyUnion = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTyp
 	(*NoneRedundancy)(nil),
 	(*RepRedundancy)(nil),
 	(*ECRedundancy)(nil),
+	(*LRCRedundancy)(nil),
 )), "type")
 
 type NoneRedundancy struct {
@@ -91,6 +92,42 @@ func NewECRedundancy(k int, n int, chunkSize int) *ECRedundancy {
 }
 func (b *ECRedundancy) Value() (driver.Value, error) {
 	return serder.ObjectToJSONEx[Redundancy](b)
+}
+
+var DefaultLRCRedundancy = *NewLRCRedundancy(3, 2, []int{2}, 1024*1024*5)
+
+type LRCRedundancy struct {
+	serder.Metadata `union:"lrc"`
+	Type            string `json:"type"`
+	K               int    `json:"k"`
+	N               int    `json:"n"`
+	Groups          []int  `json:"groups"`
+	ChunkSize       int    `json:"chunkSize"`
+}
+
+func NewLRCRedundancy(k int, n int, groups []int, chunkSize int) *LRCRedundancy {
+	return &LRCRedundancy{
+		Type:      "lrc",
+		K:         k,
+		N:         n,
+		Groups:    groups,
+		ChunkSize: chunkSize,
+	}
+}
+func (b *LRCRedundancy) Value() (driver.Value, error) {
+	return serder.ObjectToJSONEx[Redundancy](b)
+}
+
+// 判断指定块属于哪个组。如果都不属于，则返回-1。
+func (b *LRCRedundancy) FindGroup(idx int) int {
+	for i, group := range b.Groups {
+		if idx < group {
+			return i
+		}
+		idx -= group
+	}
+
+	return -1
 }
 
 const (

@@ -4,7 +4,6 @@ import (
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/dag"
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/exec"
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/plan/ops"
-	"gitlink.org.cn/cloudream/storage/common/pkgs/ioswitch"
 )
 
 func Generate(graph *dag.Graph, planBld *exec.PlanBuilder) error {
@@ -24,11 +23,11 @@ func generateSend(graph *dag.Graph) {
 			switch to.Node.Env.Type {
 			case dag.EnvDriver:
 				// // 如果是要送到Driver，则只能由Driver主动去拉取
-				getNode := graph.NewNode(&ops.GetStreamType{}, ioswitch.NodeProps{})
+				getNode := graph.NewNode(&ops.GetStreamType{}, nil)
 				getNode.Env.ToEnvDriver()
 
 				// // 同时需要对此变量生成HoldUntil指令，避免Plan结束时Get指令还未到达
-				holdNode := graph.NewNode(&ops.HoldUntilType{}, ioswitch.NodeProps{})
+				holdNode := graph.NewNode(&ops.HoldUntilType{}, nil)
 				holdNode.Env = node.Env
 
 				// 将Get指令的信号送到Hold指令
@@ -43,7 +42,7 @@ func generateSend(graph *dag.Graph) {
 
 			case dag.EnvWorker:
 				// 如果是要送到Agent，则可以直接发送
-				n := graph.NewNode(&ops.SendStreamType{}, ioswitch.NodeProps{})
+				n := graph.NewNode(&ops.SendStreamType{}, nil)
 				n.Env = node.Env
 				n.OutputStreams[0].To(to.Node, to.SlotIndex)
 				out.Toes = nil
@@ -60,11 +59,11 @@ func generateSend(graph *dag.Graph) {
 			switch to.Node.Env.Type {
 			case dag.EnvDriver:
 				// // 如果是要送到Driver，则只能由Driver主动去拉取
-				getNode := graph.NewNode(&ops.GetVaType{}, ioswitch.NodeProps{})
+				getNode := graph.NewNode(&ops.GetVaType{}, nil)
 				getNode.Env.ToEnvDriver()
 
 				// // 同时需要对此变量生成HoldUntil指令，避免Plan结束时Get指令还未到达
-				holdNode := graph.NewNode(&ops.HoldUntilType{}, ioswitch.NodeProps{})
+				holdNode := graph.NewNode(&ops.HoldUntilType{}, nil)
 				holdNode.Env = node.Env
 
 				// 将Get指令的信号送到Hold指令
@@ -79,7 +78,7 @@ func generateSend(graph *dag.Graph) {
 
 			case dag.EnvWorker:
 				// 如果是要送到Agent，则可以直接发送
-				n := graph.NewNode(&ops.SendVarType{}, ioswitch.NodeProps{})
+				n := graph.NewNode(&ops.SendVarType{}, nil)
 				n.Env = node.Env
 				n.OutputValues[0].To(to.Node, to.SlotIndex)
 				out.Toes = nil
