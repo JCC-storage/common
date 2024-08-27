@@ -167,6 +167,24 @@ func (t *HoldUntilType) GenerateOp(op *dag.Node) (exec.Op, error) {
 	return o, nil
 }
 
+func (t *HoldUntilType) Signal(n *dag.Node, s *dag.ValueVar) {
+	s.To(n, 0)
+}
+
+func (t *HoldUntilType) HoldStream(n *dag.Node, str *dag.StreamVar) *dag.StreamVar {
+	n.InputStreams = append(n.InputStreams, nil)
+	str.To(n, len(n.InputStreams)-1)
+
+	return dag.NodeNewOutputStream(n, nil)
+}
+
+func (t *HoldUntilType) HoldVar(n *dag.Node, v *dag.ValueVar) *dag.ValueVar {
+	n.InputValues = append(n.InputValues, nil)
+	v.To(n, len(n.InputValues)-1)
+
+	return dag.NodeNewOutputValue(n, v.Type, nil)
+}
+
 func (t *HoldUntilType) String(node *dag.Node) string {
 	return fmt.Sprintf("HoldUntil[]%v%v", formatStreamIO(node), formatValueIO(node))
 }

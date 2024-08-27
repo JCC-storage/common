@@ -33,6 +33,10 @@ type StoreType struct {
 	StoreKey string
 }
 
+func (t *StoreType) Store(node *dag.Node, v *dag.ValueVar) {
+	v.To(node, 0)
+}
+
 func (t *StoreType) InitNode(node *dag.Node) {
 	dag.NodeDeclareInputValue(node, 1)
 }
