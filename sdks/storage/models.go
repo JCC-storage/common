@@ -94,7 +94,7 @@ func (b *ECRedundancy) Value() (driver.Value, error) {
 	return serder.ObjectToJSONEx[Redundancy](b)
 }
 
-var DefaultLRCRedundancy = *NewLRCRedundancy(3, 2, []int{2}, 1024*1024*5)
+var DefaultLRCRedundancy = *NewLRCRedundancy(2, 4, []int{2}, 1024*1024*5)
 
 type LRCRedundancy struct {
 	serder.Metadata `union:"lrc"`
@@ -120,6 +120,10 @@ func (b *LRCRedundancy) Value() (driver.Value, error) {
 
 // 判断指定块属于哪个组。如果都不属于，则返回-1。
 func (b *LRCRedundancy) FindGroup(idx int) int {
+	if idx >= b.N-len(b.Groups) {
+		return idx - (b.N - len(b.Groups))
+	}
+
 	for i, group := range b.Groups {
 		if idx < group {
 			return i
@@ -128,6 +132,27 @@ func (b *LRCRedundancy) FindGroup(idx int) int {
 	}
 
 	return -1
+}
+
+// M = N - len(Groups)，即数据块+校验块的总数，不包括组校验块。
+func (b *LRCRedundancy) M() int {
+	return b.N - len(b.Groups)
+}
+
+func (b *LRCRedundancy) GetGroupElements(grp int) []int {
+	var idxes []int
+
+	grpStart := 0
+	for i := 0; i < grp; i++ {
+		grpStart += b.Groups[i]
+	}
+
+	for i := 0; i < b.Groups[grp]; i++ {
+		idxes = append(idxes, grpStart+i)
+	}
+
+	idxes = append(idxes, b.N-len(b.Groups)+grp)
+	return idxes
 }
 
 const (

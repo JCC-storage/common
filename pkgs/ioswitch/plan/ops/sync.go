@@ -8,6 +8,7 @@ import (
 	"gitlink.org.cn/cloudream/common/pkgs/future"
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/dag"
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/exec"
+	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/utils"
 )
 
 func init() {
@@ -34,6 +35,10 @@ func (o *OnStreamBegin) Execute(ctx context.Context, e *exec.Executor) error {
 
 	e.PutVars(o.New, o.Signal)
 	return nil
+}
+
+func (o *OnStreamBegin) String() string {
+	return fmt.Sprintf("OnStreamBegin %v->%v S:%v", o.Raw.ID, o.New.ID, o.Signal.ID)
 }
 
 type OnStreamEnd struct {
@@ -85,6 +90,10 @@ func (o *OnStreamEnd) Execute(ctx context.Context, e *exec.Executor) error {
 	return nil
 }
 
+func (o *OnStreamEnd) String() string {
+	return fmt.Sprintf("OnStreamEnd %v->%v S:%v", o.Raw.ID, o.New.ID, o.Signal.ID)
+}
+
 type HoldUntil struct {
 	Waits []*exec.SignalVar `json:"waits"`
 	Holds []exec.Var        `json:"holds"`
@@ -113,6 +122,10 @@ func (w *HoldUntil) Execute(ctx context.Context, e *exec.Executor) error {
 	return nil
 }
 
+func (w *HoldUntil) String() string {
+	return fmt.Sprintf("HoldUntil Waits: %v, (%v) -> (%v)", utils.FormatVarIDs(w.Waits), utils.FormatVarIDs(w.Holds), utils.FormatVarIDs(w.Emits))
+}
+
 type HangUntil struct {
 	Waits []*exec.SignalVar `json:"waits"`
 	Op    exec.Op           `json:"op"`
@@ -125,6 +138,10 @@ func (h *HangUntil) Execute(ctx context.Context, e *exec.Executor) error {
 	}
 
 	return h.Op.Execute(ctx, e)
+}
+
+func (h *HangUntil) String() string {
+	return "HangUntil"
 }
 
 type Broadcast struct {
@@ -140,6 +157,10 @@ func (b *Broadcast) Execute(ctx context.Context, e *exec.Executor) error {
 
 	exec.PutArrayVars(e, b.Targets)
 	return nil
+}
+
+func (b *Broadcast) String() string {
+	return "Broadcast"
 }
 
 type HoldUntilType struct {

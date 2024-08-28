@@ -5,6 +5,7 @@ import (
 
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/dag"
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/exec"
+	"gitlink.org.cn/cloudream/storage/common/pkgs/ioswitch2"
 )
 
 type FromDriverType struct {
@@ -12,7 +13,7 @@ type FromDriverType struct {
 }
 
 func (t *FromDriverType) InitNode(node *dag.Node) {
-	dag.NodeNewOutputStream(node, nil)
+	dag.NodeNewOutputStream(node, &ioswitch2.VarProps{})
 }
 
 func (t *FromDriverType) GenerateOp(op *dag.Node) (exec.Op, error) {

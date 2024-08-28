@@ -49,6 +49,10 @@ func (o *SendStream) Execute(ctx context.Context, e *exec.Executor) error {
 	return nil
 }
 
+func (o *SendStream) String() string {
+	return fmt.Sprintf("SendStream %v->%v@%v", o.Input.ID, o.Send.ID, o.Worker)
+}
+
 type GetStream struct {
 	Signal *exec.SignalVar `json:"signal"`
 	Target *exec.StreamVar `json:"target"`
@@ -80,6 +84,10 @@ func (o *GetStream) Execute(ctx context.Context, e *exec.Executor) error {
 	return fut.Wait(ctx)
 }
 
+func (o *GetStream) String() string {
+	return fmt.Sprintf("GetStream %v(S:%v)<-%v@%v", o.Output.ID, o.Signal.ID, o.Target.ID, o.Worker)
+}
+
 type SendVar struct {
 	Input  exec.Var        `json:"input"`
 	Send   exec.Var        `json:"send"`
@@ -109,6 +117,10 @@ func (o *SendVar) Execute(ctx context.Context, e *exec.Executor) error {
 	return nil
 }
 
+func (o *SendVar) String() string {
+	return fmt.Sprintf("SendVar %v->%v@%v", o.Input.GetID(), o.Send.GetID(), o.Worker)
+}
+
 type GetVar struct {
 	Signal *exec.SignalVar `json:"signal"`
 	Target exec.Var        `json:"target"`
@@ -133,6 +145,10 @@ func (o *GetVar) Execute(ctx context.Context, e *exec.Executor) error {
 	e.PutVars(o.Output)
 
 	return nil
+}
+
+func (o *GetVar) String() string {
+	return fmt.Sprintf("GetVar %v(S:%v)<-%v@%v", o.Output.GetID(), o.Signal.ID, o.Target.GetID(), o.Worker)
 }
 
 type SendStreamType struct {

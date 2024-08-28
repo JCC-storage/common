@@ -19,6 +19,7 @@ var opUnion = serder.UseTypeUnionExternallyTagged(types.Ref(types.NewTypeUnion[O
 
 type Op interface {
 	Execute(ctx context.Context, e *Executor) error
+	String() string
 }
 
 func UseOp[T Op]() {
