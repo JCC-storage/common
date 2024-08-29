@@ -11,6 +11,12 @@ func Remove[T comparable](arr []T, item T) []T {
 	return RemoveAt(arr, index)
 }
 
+func RemoveAll[T comparable](arr []T, item T) []T {
+	return lo.Filter(arr, func(i T, idx int) bool {
+		return i != item
+	})
+}
+
 func RemoveAt[T any](arr []T, index int) []T {
 	if index >= len(arr) {
 		return arr

@@ -18,3 +18,7 @@ func (o *ConstVar) Execute(ctx context.Context, e *exec.Executor) error {
 	e.PutVars(o.Var)
 	return nil
 }
+
+func (o *ConstVar) String() string {
+	return "ConstVar"
+}

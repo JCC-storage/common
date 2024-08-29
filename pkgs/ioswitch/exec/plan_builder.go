@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"strings"
 
 	"gitlink.org.cn/cloudream/common/pkgs/future"
 	"gitlink.org.cn/cloudream/common/utils/lo2"
@@ -95,6 +96,29 @@ func (b *PlanBuilder) Execute() *Driver {
 	go exec.execute()
 
 	return &exec
+}
+
+func (b *PlanBuilder) String() string {
+	sb := strings.Builder{}
+	sb.WriteString("Driver:\n")
+	for _, op := range b.DriverPlan.Ops {
+		sb.WriteString(op.String())
+		sb.WriteRune('\n')
+	}
+	sb.WriteRune('\n')
+
+	for _, w := range b.WorkerPlans {
+		sb.WriteString("Worker(")
+		sb.WriteString(w.Worker.String())
+		sb.WriteString("):\n")
+		for _, op := range w.Ops {
+			sb.WriteString(op.String())
+			sb.WriteRune('\n')
+		}
+		sb.WriteRune('\n')
+	}
+
+	return sb.String()
 }
 
 type WorkerPlanBuilder struct {

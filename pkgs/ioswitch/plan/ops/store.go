@@ -29,8 +29,16 @@ func (o *Store) Execute(ctx context.Context, e *exec.Executor) error {
 	return nil
 }
 
+func (o *Store) String() string {
+	return fmt.Sprintf("Store %v: %v", o.Key, o.Var.GetID())
+}
+
 type StoreType struct {
 	StoreKey string
+}
+
+func (t *StoreType) Store(node *dag.Node, v *dag.ValueVar) {
+	v.To(node, 0)
 }
 
 func (t *StoreType) InitNode(node *dag.Node) {

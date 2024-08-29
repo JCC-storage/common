@@ -49,6 +49,10 @@ func (o *SendStream) Execute(ctx context.Context, e *exec.Executor) error {
 	return nil
 }
 
+func (o *SendStream) String() string {
+	return fmt.Sprintf("SendStream %v->%v@%v", o.Input.ID, o.Send.ID, o.Worker)
+}
+
 type GetStream struct {
 	Signal *exec.SignalVar `json:"signal"`
 	Target *exec.StreamVar `json:"target"`
@@ -80,6 +84,10 @@ func (o *GetStream) Execute(ctx context.Context, e *exec.Executor) error {
 	return fut.Wait(ctx)
 }
 
+func (o *GetStream) String() string {
+	return fmt.Sprintf("GetStream %v(S:%v)<-%v@%v", o.Output.ID, o.Signal.ID, o.Target.ID, o.Worker)
+}
+
 type SendVar struct {
 	Input  exec.Var        `json:"input"`
 	Send   exec.Var        `json:"send"`
@@ -109,6 +117,10 @@ func (o *SendVar) Execute(ctx context.Context, e *exec.Executor) error {
 	return nil
 }
 
+func (o *SendVar) String() string {
+	return fmt.Sprintf("SendVar %v->%v@%v", o.Input.GetID(), o.Send.GetID(), o.Worker)
+}
+
 type GetVar struct {
 	Signal *exec.SignalVar `json:"signal"`
 	Target exec.Var        `json:"target"`
@@ -135,8 +147,17 @@ func (o *GetVar) Execute(ctx context.Context, e *exec.Executor) error {
 	return nil
 }
 
+func (o *GetVar) String() string {
+	return fmt.Sprintf("GetVar %v(S:%v)<-%v@%v", o.Output.GetID(), o.Signal.ID, o.Target.GetID(), o.Worker)
+}
+
 type SendStreamType struct {
 	ToWorker exec.WorkerInfo
+}
+
+func (t *SendStreamType) Send(n *dag.Node, v *dag.StreamVar) *dag.StreamVar {
+	v.To(n, 0)
+	return n.OutputStreams[0]
 }
 
 func (t *SendStreamType) InitNode(node *dag.Node) {
@@ -160,9 +181,15 @@ type SendVarType struct {
 	ToWorker exec.WorkerInfo
 }
 
+func (t *SendVarType) Send(n *dag.Node, v *dag.ValueVar) *dag.ValueVar {
+	v.To(n, 0)
+	n.OutputValues[0].Type = v.Type
+	return n.OutputValues[0]
+}
+
 func (t *SendVarType) InitNode(node *dag.Node) {
 	dag.NodeDeclareInputValue(node, 1)
-	dag.NodeNewOutputValue(node, nil)
+	dag.NodeNewOutputValue(node, 0, nil)
 }
 
 func (t *SendVarType) GenerateOp(op *dag.Node) (exec.Op, error) {
@@ -181,9 +208,18 @@ type GetStreamType struct {
 	FromWorker exec.WorkerInfo
 }
 
+func (t *GetStreamType) Get(n *dag.Node, v *dag.StreamVar) *dag.StreamVar {
+	v.To(n, 0)
+	return n.OutputStreams[0]
+}
+
+func (t *GetStreamType) SignalVar(n *dag.Node) *dag.ValueVar {
+	return n.OutputValues[0]
+}
+
 func (t *GetStreamType) InitNode(node *dag.Node) {
 	dag.NodeDeclareInputStream(node, 1)
-	dag.NodeNewOutputValue(node, nil)
+	dag.NodeNewOutputValue(node, dag.SignalValueVar, nil)
 	dag.NodeNewOutputStream(node, nil)
 }
 
@@ -204,10 +240,20 @@ type GetVaType struct {
 	FromWorker exec.WorkerInfo
 }
 
+func (t *GetVaType) Get(n *dag.Node, v *dag.ValueVar) *dag.ValueVar {
+	v.To(n, 0)
+	n.OutputValues[1].Type = v.Type
+	return n.OutputValues[1]
+}
+
+func (t *GetVaType) SignalVar(n *dag.Node) *dag.ValueVar {
+	return n.OutputValues[0]
+}
+
 func (t *GetVaType) InitNode(node *dag.Node) {
 	dag.NodeDeclareInputValue(node, 1)
-	dag.NodeNewOutputValue(node, nil)
-	dag.NodeNewOutputValue(node, nil)
+	dag.NodeNewOutputValue(node, dag.SignalValueVar, nil)
+	dag.NodeNewOutputValue(node, 0, nil)
 }
 
 func (t *GetVaType) GenerateOp(op *dag.Node) (exec.Op, error) {

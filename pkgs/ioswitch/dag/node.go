@@ -23,6 +23,7 @@ const (
 type NodeEnv struct {
 	Type   NodeEnvType
 	Worker exec.WorkerInfo
+	Pinned bool // 如果为true，则不应该改变这个节点的执行环境
 }
 
 func (e *NodeEnv) ToEnvUnknown() {

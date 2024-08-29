@@ -22,6 +22,7 @@ func (o *DropStream) Execute(ctx context.Context, e *exec.Executor) error {
 	if err != nil {
 		return err
 	}
+	defer o.Input.Stream.Close()
 
 	for {
 		buf := make([]byte, 1024*8)
@@ -33,6 +34,10 @@ func (o *DropStream) Execute(ctx context.Context, e *exec.Executor) error {
 			return err
 		}
 	}
+}
+
+func (o *DropStream) String() string {
+	return fmt.Sprintf("DropStream %v", o.Input.ID)
 }
 
 type DropType struct{}

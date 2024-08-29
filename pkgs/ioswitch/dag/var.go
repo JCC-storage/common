@@ -84,7 +84,8 @@ func NodeDeclareInputStream(node *Node, cnt int) {
 type ValueVarType int
 
 const (
-	StringValueVar ValueVarType = iota
+	UnknownValueVar ValueVarType = iota
+	StringValueVar
 	SignalValueVar
 )
 
@@ -103,9 +104,10 @@ func (v *ValueVar) To(to *Node, slotIdx int) int {
 	return len(v.Toes) - 1
 }
 
-func NodeNewOutputValue(node *Node, props any) *ValueVar {
+func NodeNewOutputValue(node *Node, typ ValueVarType, props any) *ValueVar {
 	val := &ValueVar{
 		ID:    node.Graph.genVarID(),
+		Type:  typ,
 		From:  EndPoint{Node: node, SlotIndex: len(node.OutputStreams)},
 		Props: props,
 	}
