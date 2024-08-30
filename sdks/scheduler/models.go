@@ -27,6 +27,7 @@ type ImageID int64
 type CCID int64
 
 type ModelID string
+type ModelName string
 type NodeID int64
 type Address string
 
@@ -90,13 +91,16 @@ type UpdateMultiInstanceJobInfo struct {
 	Files                 JobFilesInfo   `json:"files"`
 	Runtime               JobRuntimeInfo `json:"runtime"`
 	MultiInstanceJobSetID JobSetID       `json:"multiInstanceJobSetID"`
-	//InstanceIDs           []JobID        `json:"instanceIDs"`
-	UpdateStrategy string `json:"updateStrategy"`
+	UpdateType            string         `json:"updateType"`
+	SubJobs               []JobID        `json:"subJobs"`
+	Operate               string         `json:"operate"`
 }
 
 type ModelJobInfo struct {
-	Type    string `json:"type"`
-	ModelID string `json:"modelID"`
+	Type            string    `json:"type"`
+	ModelID         ModelID   `json:"modelID"`
+	CustomModelName ModelName `json:"customModelName"`
+	Command         string    `json:"command"`
 }
 
 type InstanceJobInfo struct {
