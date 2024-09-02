@@ -163,49 +163,53 @@ func (b *Broadcast) String() string {
 	return "Broadcast"
 }
 
-type HoldUntilType struct {
+type HoldUntilNode struct {
+	dag.NodeBase
 }
 
-func (t *HoldUntilType) InitNode(node *dag.Node) {
-	dag.NodeDeclareInputValue(node, 1)
+func (b *GraphNodeBuilder) NewHoldUntil() *HoldUntilNode {
+	node := &HoldUntilNode{}
+	b.AddNode(node)
+	return node
 }
 
-func (t *HoldUntilType) GenerateOp(op *dag.Node) (exec.Op, error) {
+func (t *HoldUntilNode) SetSignal(s *dag.ValueVar) {
+	t.InputValues().EnsureSize(1)
+	s.Connect(t, 0)
+}
+
+func (t *HoldUntilNode) HoldStream(str *dag.StreamVar) *dag.StreamVar {
+	str.Connect(t, t.InputStreams().EnlargeOne())
+	output := t.Graph().NewStreamVar()
+	t.OutputStreams().SetupNew(t, output)
+	return output
+}
+
+func (t *HoldUntilNode) HoldVar(v *dag.ValueVar) *dag.ValueVar {
+	v.Connect(t, t.InputValues().EnlargeOne())
+	output := t.Graph().NewValueVar(v.Type)
+	t.OutputValues().SetupNew(t, output)
+	return output
+}
+
+func (t *HoldUntilNode) GenerateOp() (exec.Op, error) {
 	o := &HoldUntil{
-		Waits: []*exec.SignalVar{op.InputValues[0].Var.(*exec.SignalVar)},
+		Waits: []*exec.SignalVar{t.InputValues().Get(0).Var.(*exec.SignalVar)},
 	}
 
-	for i := 0; i < len(op.OutputValues); i++ {
-		o.Holds = append(o.Holds, op.InputValues[i+1].Var)
-		o.Emits = append(o.Emits, op.OutputValues[i].Var)
+	for i := 0; i < t.OutputValues().Len(); i++ {
+		o.Holds = append(o.Holds, t.InputValues().Get(i+1).Var)
+		o.Emits = append(o.Emits, t.OutputValues().Get(i).Var)
 	}
 
-	for i := 0; i < len(op.OutputStreams); i++ {
-		o.Holds = append(o.Holds, op.InputStreams[i].Var)
-		o.Emits = append(o.Emits, op.OutputStreams[i].Var)
+	for i := 0; i < t.OutputStreams().Len(); i++ {
+		o.Holds = append(o.Holds, t.InputStreams().Get(i).Var)
+		o.Emits = append(o.Emits, t.OutputStreams().Get(i).Var)
 	}
 
 	return o, nil
 }
 
-func (t *HoldUntilType) Signal(n *dag.Node, s *dag.ValueVar) {
-	s.To(n, 0)
-}
-
-func (t *HoldUntilType) HoldStream(n *dag.Node, str *dag.StreamVar) *dag.StreamVar {
-	n.InputStreams = append(n.InputStreams, nil)
-	str.To(n, len(n.InputStreams)-1)
-
-	return dag.NodeNewOutputStream(n, nil)
-}
-
-func (t *HoldUntilType) HoldVar(n *dag.Node, v *dag.ValueVar) *dag.ValueVar {
-	n.InputValues = append(n.InputValues, nil)
-	v.To(n, len(n.InputValues)-1)
-
-	return dag.NodeNewOutputValue(n, v.Type, nil)
-}
-
-func (t *HoldUntilType) String(node *dag.Node) string {
-	return fmt.Sprintf("HoldUntil[]%v%v", formatStreamIO(node), formatValueIO(node))
-}
+// func (t *HoldUntilType) String() string {
+// 	return fmt.Sprintf("HoldUntil[]%v%v", formatStreamIO(node), formatValueIO(node))
+// }

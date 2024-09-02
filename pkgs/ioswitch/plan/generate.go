@@ -9,103 +9,105 @@ import (
 )
 
 func Generate(graph *dag.Graph, planBld *exec.PlanBuilder) error {
-	generateSend(graph)
+	myGraph := &ops.GraphNodeBuilder{graph}
+	generateSend(myGraph)
 	return buildPlan(graph, planBld)
 }
 
 // 生成Send指令
-func generateSend(graph *dag.Graph) {
-	graph.Walk(func(node *dag.Node) bool {
-		switch node.Type.(type) {
-		case *ops.SendStreamType:
+func generateSend(graph *ops.GraphNodeBuilder) {
+	graph.Walk(func(node dag.Node) bool {
+		switch node.(type) {
+		case *ops.SendStreamNode:
 			return true
-		case *ops.SendVarType:
+		case *ops.SendValueNode:
 			return true
-		case *ops.GetStreamType:
+		case *ops.GetStreamNode:
 			return true
-		case *ops.GetVaType:
+		case *ops.GetValueNode:
 			return true
-		case *ops.HoldUntilType:
+		case *ops.HoldUntilNode:
 			return true
 		}
 
-		for _, out := range node.OutputStreams {
-			to := out.Toes[0]
-			if to.Node.Env.Equals(node.Env) {
+		for i := 0; i < node.OutputStreams().Len(); i++ {
+			out := node.OutputStreams().Get(i)
+			to := out.To().Get(0)
+			if to.Node.Env().Equals(node.Env()) {
 				continue
 			}
 
-			switch to.Node.Env.Type {
+			switch to.Node.Env().Type {
 			case dag.EnvDriver:
+
 				// // 如果是要送到Driver，则只能由Driver主动去拉取
-				getNode, getType := dag.NewNode(graph, &ops.GetStreamType{
-					FromWorker: node.Env.Worker,
-				}, nil)
-				getNode.Env.ToEnvDriver()
+				getNode := graph.NewGetStream(node.Env().Worker)
+				getNode.Env().ToEnvDriver()
 
 				// // 同时需要对此变量生成HoldUntil指令，避免Plan结束时Get指令还未到达
-				holdNode, holdType := dag.NewNode(graph, &ops.HoldUntilType{}, nil)
-				holdNode.Env = node.Env
+				holdType := graph.NewHoldUntil() //dag.NewNode(graph, &ops.HoldUntilNode{}, nil)
+				*holdType.Env() = *node.Env()
 
 				// 将Get指令的信号送到Hold指令
-				holdType.Signal(holdNode, getType.SignalVar(getNode))
+				holdType.SetSignal(getNode.SignalVar())
 
-				out.Toes = nil
+				out.To().RemoveAt(0)
 
 				// 将源节点的输出送到Hold指令，将Hold指令的输出送到Get指令
-				getType.Get(getNode, holdType.HoldStream(holdNode, out)).
+				getNode.Get(holdType.HoldStream(out)).
 					// 将Get指令的输出送到目的地
-					To(to.Node, to.SlotIndex)
+					Connect(to.Node, to.SlotIndex)
 
 			case dag.EnvWorker:
 				// 如果是要送到Agent，则可以直接发送
-				n, t := dag.NewNode(graph, &ops.SendStreamType{
-					ToWorker: to.Node.Env.Worker,
-				}, nil)
-				n.Env = node.Env
+				n := graph.NewSendStream(to.Node.Env().Worker)
+				*n.Env() = *node.Env()
 
-				out.Toes = nil
-				t.Send(n, out).To(to.Node, to.SlotIndex)
+				out.To().RemoveAt(0)
+				n.Send(out).Connect(to.Node, to.SlotIndex)
 			}
 		}
 
-		for _, out := range node.OutputValues {
-			to := out.Toes[0]
-			if to.Node.Env.Equals(node.Env) {
+		for i := 0; i < node.OutputValues().Len(); i++ {
+			out := node.OutputValues().Get(i)
+			// 允许Value变量不被使用
+			if out.To().Len() == 0 {
 				continue
 			}
 
-			switch to.Node.Env.Type {
+			to := out.To().Get(0)
+			if to.Node.Env().Equals(node.Env()) {
+				continue
+			}
+
+			switch to.Node.Env().Type {
 			case dag.EnvDriver:
 				// // 如果是要送到Driver，则只能由Driver主动去拉取
-				getNode, getType := dag.NewNode(graph, &ops.GetVaType{
-					FromWorker: node.Env.Worker,
-				}, nil)
-				getNode.Env.ToEnvDriver()
+				getNode := graph.NewGetValue(node.Env().Worker)
+				getNode.Env().ToEnvDriver()
 
 				// // 同时需要对此变量生成HoldUntil指令，避免Plan结束时Get指令还未到达
-				holdNode, holdType := dag.NewNode(graph, &ops.HoldUntilType{}, nil)
-				holdNode.Env = node.Env
+				holdNode := graph.NewHoldUntil()
+				*holdNode.Env() = *node.Env()
 
 				// 将Get指令的信号送到Hold指令
-				holdType.Signal(holdNode, getType.SignalVar(getNode))
+				holdNode.SetSignal(getNode.SignalVar())
 
-				out.Toes = nil
+				out.To().RemoveAt(0)
 
 				// 将源节点的输出送到Hold指令，将Hold指令的输出送到Get指令
-				getType.Get(getNode, holdType.HoldVar(holdNode, out)).
+				getNode.Get(holdNode.HoldVar(out)).
 					// 将Get指令的输出送到目的地
-					To(to.Node, to.SlotIndex)
+					Connect(to.Node, to.SlotIndex)
 
 			case dag.EnvWorker:
 				// 如果是要送到Agent，则可以直接发送
-				n, t := dag.NewNode(graph, &ops.SendVarType{
-					ToWorker: to.Node.Env.Worker,
-				}, nil)
-				n.Env = node.Env
+				t := graph.NewSendValue(to.Node.Env().Worker)
+				*t.Env() = *node.Env()
 
-				out.Toes = nil
-				t.Send(n, out).To(to.Node, to.SlotIndex)
+				out.To().RemoveAt(0)
+
+				t.Send(out).Connect(to.Node, to.SlotIndex)
 			}
 		}
 
@@ -116,8 +118,10 @@ func generateSend(graph *dag.Graph) {
 // 生成Plan
 func buildPlan(graph *dag.Graph, blder *exec.PlanBuilder) error {
 	var retErr error
-	graph.Walk(func(node *dag.Node) bool {
-		for _, out := range node.OutputStreams {
+	graph.Walk(func(node dag.Node) bool {
+		for i := 0; i < node.OutputStreams().Len(); i++ {
+			out := node.OutputStreams().Get(i)
+
 			if out.Var != nil {
 				continue
 			}
@@ -125,7 +129,9 @@ func buildPlan(graph *dag.Graph, blder *exec.PlanBuilder) error {
 			out.Var = blder.NewStreamVar()
 		}
 
-		for _, in := range node.InputStreams {
+		for i := 0; i < node.InputStreams().Len(); i++ {
+			in := node.InputStreams().Get(i)
+
 			if in.Var != nil {
 				continue
 			}
@@ -133,7 +139,9 @@ func buildPlan(graph *dag.Graph, blder *exec.PlanBuilder) error {
 			in.Var = blder.NewStreamVar()
 		}
 
-		for _, out := range node.OutputValues {
+		for i := 0; i < node.OutputValues().Len(); i++ {
+			out := node.OutputValues().Get(i)
+
 			if out.Var != nil {
 				continue
 			}
@@ -149,7 +157,9 @@ func buildPlan(graph *dag.Graph, blder *exec.PlanBuilder) error {
 			}
 		}
 
-		for _, in := range node.InputValues {
+		for i := 0; i < node.InputValues().Len(); i++ {
+			in := node.InputValues().Get(i)
+
 			if in.Var != nil {
 				continue
 			}
@@ -165,7 +175,7 @@ func buildPlan(graph *dag.Graph, blder *exec.PlanBuilder) error {
 			}
 		}
 
-		op, err := node.Type.GenerateOp(node)
+		op, err := node.GenerateOp()
 		if err != nil {
 			retErr = err
 			return false
@@ -176,11 +186,11 @@ func buildPlan(graph *dag.Graph, blder *exec.PlanBuilder) error {
 			return true
 		}
 
-		switch node.Env.Type {
+		switch node.Env().Type {
 		case dag.EnvDriver:
 			blder.AtDriver().AddOp(op)
 		case dag.EnvWorker:
-			blder.AtWorker(node.Env.Worker).AddOp(op)
+			blder.AtWorker(node.Env().Worker).AddOp(op)
 		}
 
 		return true
