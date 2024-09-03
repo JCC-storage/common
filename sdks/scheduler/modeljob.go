@@ -6,6 +6,7 @@ import (
 	"gitlink.org.cn/cloudream/common/pkgs/mq"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 	"gitlink.org.cn/cloudream/common/utils/serder"
+	schmod "gitlink.org.cn/cloudream/scheduler/common/models"
 	"net/url"
 	"strings"
 )
@@ -19,6 +20,11 @@ func (b *MessageBodyBase) Noop() {}
 type RunningModelResp struct {
 	MessageBodyBase
 	RunningModels map[string]RunningModelInfo `json:"allNode"`
+}
+
+type AllModelResp struct {
+	MessageBodyBase
+	AllModels []schmod.Models `json:"allModels"`
 }
 
 type NodeInfo struct {
@@ -80,11 +86,11 @@ const (
 	OperateServer = "operate"
 )
 
-type QueryAllModelsReq struct {
+type QueryRunningModelsReq struct {
 	UserID int64 `form:"userID" json:"userID"`
 }
 
-func (c *Client) QueryAllModels(req QueryAllModelsReq) (*RunningModelResp, error) {
+func (c *Client) QueryRunningModels(req QueryRunningModelsReq) (*RunningModelResp, error) {
 	url, err := url.JoinPath(c.baseURL, "/job/queryRunningModels")
 	if err != nil {
 		return nil, err
@@ -100,6 +106,36 @@ func (c *Client) QueryAllModels(req QueryAllModelsReq) (*RunningModelResp, error
 	contType := resp.Header.Get("Content-Type")
 	if strings.Contains(contType, myhttp.ContentTypeJSON) {
 		var codeResp response[RunningModelResp]
+		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
+			return nil, fmt.Errorf("parsing response: %w", err)
+		}
+
+		if codeResp.Code == errorcode.OK {
+			return &codeResp.Data, nil
+		}
+
+		return nil, codeResp.ToError()
+	}
+
+	return nil, fmt.Errorf("unknow response content type: %s", contType)
+}
+
+func (c *Client) QueryAllModels(req QueryRunningModelsReq) (*AllModelResp, error) {
+	url, err := url.JoinPath(c.baseURL, "/job/getAllModels")
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := myhttp.GetJSON(url, myhttp.RequestParam{
+		Body: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	contType := resp.Header.Get("Content-Type")
+	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+		var codeResp response[AllModelResp]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
 		}
