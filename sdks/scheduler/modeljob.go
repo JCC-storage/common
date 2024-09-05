@@ -6,7 +6,6 @@ import (
 	"gitlink.org.cn/cloudream/common/pkgs/mq"
 	myhttp "gitlink.org.cn/cloudream/common/utils/http"
 	"gitlink.org.cn/cloudream/common/utils/serder"
-	schmod "gitlink.org.cn/cloudream/scheduler/common/models"
 	"net/url"
 	"strings"
 )
@@ -24,7 +23,12 @@ type RunningModelResp struct {
 
 type AllModelResp struct {
 	MessageBodyBase
-	AllModels []schmod.Models `json:"allModels"`
+	AllModels []Models `json:"allModels"`
+}
+
+type Models struct {
+	ModelID   ModelID   `json:"modelID"`
+	ModelName ModelName `json:"modelName"`
 }
 
 type NodeInfo struct {
@@ -75,8 +79,6 @@ type UsageRate struct {
 }
 
 const (
-	RunStatus  = "run"
-	StopStatus = "stop"
 	FineTuning = "finetuning"
 
 	CreateECS     = "create"
