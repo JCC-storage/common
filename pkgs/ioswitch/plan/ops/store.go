@@ -33,25 +33,30 @@ func (o *Store) String() string {
 	return fmt.Sprintf("Store %v: %v", o.Key, o.Var.GetID())
 }
 
-type StoreType struct {
-	StoreKey string
+type StoreNode struct {
+	dag.NodeBase
+	Key string
 }
 
-func (t *StoreType) Store(node *dag.Node, v *dag.ValueVar) {
-	v.To(node, 0)
+func (b *GraphNodeBuilder) NewStore() *StoreNode {
+	node := &StoreNode{}
+	b.AddNode(node)
+	return node
 }
 
-func (t *StoreType) InitNode(node *dag.Node) {
-	dag.NodeDeclareInputValue(node, 1)
+func (t *StoreNode) Store(key string, v *dag.ValueVar) {
+	t.Key = key
+	t.InputValues().EnsureSize(1)
+	v.Connect(t, 0)
 }
 
-func (t *StoreType) GenerateOp(op *dag.Node) (exec.Op, error) {
+func (t *StoreNode) GenerateOp() (exec.Op, error) {
 	return &Store{
-		Var: op.InputValues[0].Var,
-		Key: t.StoreKey,
+		Var: t.InputValues().Get(0).Var,
+		Key: t.Key,
 	}, nil
 }
 
-func (t *StoreType) String(node *dag.Node) string {
-	return fmt.Sprintf("Store[%s]%v%v", t.StoreKey, formatStreamIO(node), formatValueIO(node))
-}
+// func (t *StoreType) String() string {
+// 	return fmt.Sprintf("Store[%s]%v%v", t.StoreKey, formatStreamIO(node), formatValueIO(node))
+// }

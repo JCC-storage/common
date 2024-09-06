@@ -151,120 +151,146 @@ func (o *GetVar) String() string {
 	return fmt.Sprintf("GetVar %v(S:%v)<-%v@%v", o.Output.GetID(), o.Signal.ID, o.Target.GetID(), o.Worker)
 }
 
-type SendStreamType struct {
+type SendStreamNode struct {
+	dag.NodeBase
 	ToWorker exec.WorkerInfo
 }
 
-func (t *SendStreamType) Send(n *dag.Node, v *dag.StreamVar) *dag.StreamVar {
-	v.To(n, 0)
-	return n.OutputStreams[0]
+func (b *GraphNodeBuilder) NewSendStream(to exec.WorkerInfo) *SendStreamNode {
+	node := &SendStreamNode{
+		ToWorker: to,
+	}
+	b.AddNode(node)
+	return node
 }
 
-func (t *SendStreamType) InitNode(node *dag.Node) {
-	dag.NodeDeclareInputStream(node, 1)
-	dag.NodeNewOutputStream(node, nil)
+func (t *SendStreamNode) Send(v *dag.StreamVar) *dag.StreamVar {
+	t.InputStreams().EnsureSize(1)
+	v.Connect(t, 0)
+	output := t.Graph().NewStreamVar()
+	t.OutputStreams().Setup(t, output, 0)
+	return output
 }
 
-func (t *SendStreamType) GenerateOp(op *dag.Node) (exec.Op, error) {
+func (t *SendStreamNode) GenerateOp() (exec.Op, error) {
 	return &SendStream{
-		Input:  op.InputStreams[0].Var,
-		Send:   op.OutputStreams[0].Var,
+		Input:  t.InputStreams().Get(0).Var,
+		Send:   t.OutputStreams().Get(0).Var,
 		Worker: t.ToWorker,
 	}, nil
 }
 
-func (t *SendStreamType) String(node *dag.Node) string {
-	return fmt.Sprintf("SendStream[]%v%v", formatStreamIO(node), formatValueIO(node))
-}
+// func (t *SendStreamType) String() string {
+// 	return fmt.Sprintf("SendStream[]%v%v", formatStreamIO(node), formatValueIO(node))
+// }
 
-type SendVarType struct {
+type SendValueNode struct {
+	dag.NodeBase
 	ToWorker exec.WorkerInfo
 }
 
-func (t *SendVarType) Send(n *dag.Node, v *dag.ValueVar) *dag.ValueVar {
-	v.To(n, 0)
-	n.OutputValues[0].Type = v.Type
-	return n.OutputValues[0]
+func (b *GraphNodeBuilder) NewSendValue(to exec.WorkerInfo) *SendValueNode {
+	node := &SendValueNode{
+		ToWorker: to,
+	}
+	b.AddNode(node)
+	return node
 }
 
-func (t *SendVarType) InitNode(node *dag.Node) {
-	dag.NodeDeclareInputValue(node, 1)
-	dag.NodeNewOutputValue(node, 0, nil)
+func (t *SendValueNode) Send(v *dag.ValueVar) *dag.ValueVar {
+	t.InputValues().EnsureSize(1)
+	v.Connect(t, 0)
+	output := t.Graph().NewValueVar(v.Type)
+	t.OutputValues().Setup(t, output, 0)
+	return output
 }
 
-func (t *SendVarType) GenerateOp(op *dag.Node) (exec.Op, error) {
+func (t *SendValueNode) GenerateOp() (exec.Op, error) {
 	return &SendVar{
-		Input:  op.InputValues[0].Var,
-		Send:   op.OutputValues[0].Var,
+		Input:  t.InputValues().Get(0).Var,
+		Send:   t.OutputValues().Get(0).Var,
 		Worker: t.ToWorker,
 	}, nil
 }
 
-func (t *SendVarType) String(node *dag.Node) string {
-	return fmt.Sprintf("SendVar[]%v%v", formatStreamIO(node), formatValueIO(node))
-}
+// func (t *SendVarType) String() string {
+// 	return fmt.Sprintf("SendVar[]%v%v", formatStreamIO(node), formatValueIO(node))
+// }
 
-type GetStreamType struct {
+type GetStreamNode struct {
+	dag.NodeBase
 	FromWorker exec.WorkerInfo
 }
 
-func (t *GetStreamType) Get(n *dag.Node, v *dag.StreamVar) *dag.StreamVar {
-	v.To(n, 0)
-	return n.OutputStreams[0]
+func (b *GraphNodeBuilder) NewGetStream(from exec.WorkerInfo) *GetStreamNode {
+	node := &GetStreamNode{
+		FromWorker: from,
+	}
+	b.AddNode(node)
+	node.OutputValues().Setup(node, node.Graph().NewValueVar(dag.SignalValueVar), 0)
+	return node
 }
 
-func (t *GetStreamType) SignalVar(n *dag.Node) *dag.ValueVar {
-	return n.OutputValues[0]
+func (t *GetStreamNode) Get(v *dag.StreamVar) *dag.StreamVar {
+	t.InputStreams().EnsureSize(1)
+	v.Connect(t, 0)
+	output := t.Graph().NewStreamVar()
+	t.OutputStreams().Setup(t, output, 0)
+	return output
 }
 
-func (t *GetStreamType) InitNode(node *dag.Node) {
-	dag.NodeDeclareInputStream(node, 1)
-	dag.NodeNewOutputValue(node, dag.SignalValueVar, nil)
-	dag.NodeNewOutputStream(node, nil)
+func (t *GetStreamNode) SignalVar() *dag.ValueVar {
+	return t.OutputValues().Get(0)
 }
 
-func (t *GetStreamType) GenerateOp(op *dag.Node) (exec.Op, error) {
+func (t *GetStreamNode) GenerateOp() (exec.Op, error) {
 	return &GetStream{
-		Signal: op.OutputValues[0].Var.(*exec.SignalVar),
-		Output: op.OutputStreams[0].Var,
-		Target: op.InputStreams[0].Var,
+		Signal: t.OutputValues().Get(0).Var.(*exec.SignalVar),
+		Output: t.OutputStreams().Get(0).Var,
+		Target: t.InputStreams().Get(0).Var,
 		Worker: t.FromWorker,
 	}, nil
 }
 
-func (t *GetStreamType) String(node *dag.Node) string {
-	return fmt.Sprintf("GetStream[]%v%v", formatStreamIO(node), formatValueIO(node))
-}
+// func (t *GetStreamType) String() string {
+// 	return fmt.Sprintf("GetStream[]%v%v", formatStreamIO(node), formatValueIO(node))
+// }
 
-type GetVaType struct {
+type GetValueNode struct {
+	dag.NodeBase
 	FromWorker exec.WorkerInfo
 }
 
-func (t *GetVaType) Get(n *dag.Node, v *dag.ValueVar) *dag.ValueVar {
-	v.To(n, 0)
-	n.OutputValues[1].Type = v.Type
-	return n.OutputValues[1]
+func (b *GraphNodeBuilder) NewGetValue(from exec.WorkerInfo) *GetValueNode {
+	node := &GetValueNode{
+		FromWorker: from,
+	}
+	b.AddNode(node)
+	node.OutputValues().Setup(node, node.Graph().NewValueVar(dag.SignalValueVar), 0)
+	return node
 }
 
-func (t *GetVaType) SignalVar(n *dag.Node) *dag.ValueVar {
-	return n.OutputValues[0]
+func (t *GetValueNode) Get(v *dag.ValueVar) *dag.ValueVar {
+	t.InputValues().EnsureSize(1)
+	v.Connect(t, 0)
+	output := t.Graph().NewValueVar(v.Type)
+	t.OutputValues().Setup(t, output, 1)
+	return output
 }
 
-func (t *GetVaType) InitNode(node *dag.Node) {
-	dag.NodeDeclareInputValue(node, 1)
-	dag.NodeNewOutputValue(node, dag.SignalValueVar, nil)
-	dag.NodeNewOutputValue(node, 0, nil)
+func (t *GetValueNode) SignalVar() *dag.ValueVar {
+	return t.OutputValues().Get(0)
 }
 
-func (t *GetVaType) GenerateOp(op *dag.Node) (exec.Op, error) {
+func (t *GetValueNode) GenerateOp() (exec.Op, error) {
 	return &GetVar{
-		Signal: op.OutputValues[0].Var.(*exec.SignalVar),
-		Output: op.OutputValues[1].Var,
-		Target: op.InputValues[0].Var,
+		Signal: t.OutputValues().Get(0).Var.(*exec.SignalVar),
+		Output: t.OutputValues().Get(1).Var,
+		Target: t.InputValues().Get(0).Var,
 		Worker: t.FromWorker,
 	}, nil
 }
 
-func (t *GetVaType) String(node *dag.Node) string {
-	return fmt.Sprintf("GetVar[]%v%v", formatStreamIO(node), formatValueIO(node))
-}
+// func (t *GetVaType) String() string {
+// 	return fmt.Sprintf("GetVar[]%v%v", formatStreamIO(node), formatValueIO(node))
+// }

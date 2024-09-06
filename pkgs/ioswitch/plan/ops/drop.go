@@ -40,18 +40,27 @@ func (o *DropStream) String() string {
 	return fmt.Sprintf("DropStream %v", o.Input.ID)
 }
 
-type DropType struct{}
-
-func (t *DropType) InitNode(node *dag.Node) {
-	dag.NodeDeclareInputStream(node, 1)
+type DropNode struct {
+	dag.NodeBase
 }
 
-func (t *DropType) GenerateOp(op *dag.Node) (exec.Op, error) {
+func (b *GraphNodeBuilder) NewDropStream() *DropNode {
+	node := &DropNode{}
+	b.AddNode(node)
+	return node
+}
+
+func (t *DropNode) SetInput(v *dag.StreamVar) {
+	t.InputStreams().EnsureSize(1)
+	v.Connect(t, 0)
+}
+
+func (t *DropNode) GenerateOp() (exec.Op, error) {
 	return &DropStream{
-		Input: op.InputStreams[0].Var,
+		Input: t.InputStreams().Get(0).Var,
 	}, nil
 }
 
-func (t *DropType) String(node *dag.Node) string {
-	return fmt.Sprintf("Drop[]%v%v", formatStreamIO(node), formatValueIO(node))
-}
+// func (t *DropType) String(node *dag.Node) string {
+// 	return fmt.Sprintf("Drop[]%v%v", formatStreamIO(node), formatValueIO(node))
+// }
