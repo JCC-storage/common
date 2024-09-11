@@ -56,6 +56,27 @@ func GetJSON(url string, param RequestParam) (*http.Response, error) {
 	return defaultClient.Do(req)
 }
 
+func DeleteJSON(url string, param RequestParam) (*http.Response, error) {
+	req, err := http.NewRequest(http.MethodDelete, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = prepareQuery(req, param.Query); err != nil {
+		return nil, err
+	}
+
+	if err = prepareHeader(req, param.Header); err != nil {
+		return nil, err
+	}
+
+	if err = prepareJSONBody(req, param.Body); err != nil {
+		return nil, err
+	}
+
+	return defaultClient.Do(req)
+}
+
 func GetForm(url string, param RequestParam) (*http.Response, error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {

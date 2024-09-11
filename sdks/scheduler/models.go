@@ -257,8 +257,10 @@ func (b *NoEnvBootstrap) GetBootstrapType() string {
 }
 
 const (
-	JobDataInEnv  = "SCH_DATA_IN"
-	JobDataOutEnv = "SCH_DATA_OUT"
+	JobDataInEnv     = "SCH_DATA_IN"
+	JobDataOutEnv    = "SCH_DATA_OUT"
+	FinetuningOutEnv = "FINETUNING_OUT"
+	AccessPath       = "ACCESS_PATH"
 )
 
 type Rclone struct {

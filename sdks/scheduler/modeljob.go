@@ -86,6 +86,9 @@ const (
 	PauseECS      = "pause"
 	DestroyECS    = "destroy"
 	OperateServer = "operate"
+
+	RcloneMount = "rclone"
+	Mounted     = "mounted"
 )
 
 type QueryRunningModelsReq struct {
