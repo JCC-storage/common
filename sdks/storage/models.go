@@ -94,6 +94,10 @@ func (b *ECRedundancy) Value() (driver.Value, error) {
 	return serder.ObjectToJSONEx[Redundancy](b)
 }
 
+func (b *ECRedundancy) StripSize() int64 {
+	return int64(b.ChunkSize) * int64(b.K)
+}
+
 var DefaultLRCRedundancy = *NewLRCRedundancy(2, 4, []int{2}, 1024*1024*5)
 
 type LRCRedundancy struct {
