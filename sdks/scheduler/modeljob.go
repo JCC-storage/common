@@ -67,10 +67,11 @@ func NewECSNodeRunningInfoResp(nodeUsageRateInfos []NodeUsageRateInfo) *ECSNodeR
 
 type NodeUsageRateInfo struct {
 	MessageBodyBase
-	InstanceID  JobID       `json:"instanceID"`
-	Address     Address     `json:"address"`
-	GPURate     []UsageRate `json:"GPURate"`
-	AccCardRate []UsageRate `json:"AccCardRate"`
+	InstanceID        JobID       `json:"instanceID"`
+	Address           Address     `json:"address"`
+	MemoryUtilization []UsageRate `json:"memoryUtilization"`
+	GPUUtilization    []UsageRate `json:"GPUUtilization"`
+	CPUUtilization    []UsageRate `json:"CPUUtilization"`
 }
 
 type UsageRate struct {
@@ -87,8 +88,14 @@ const (
 	DestroyECS    = "destroy"
 	OperateServer = "operate"
 
+	GPUMonitor = "GPUMonitor"
+
 	RcloneMount = "rclone"
 	Mounted     = "mounted"
+
+	Deploying = "Deploying"
+	Waiting   = "Waiting"
+	Failed    = "Failed"
 )
 
 type QueryRunningModelsReq struct {
