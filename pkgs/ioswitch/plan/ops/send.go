@@ -8,7 +8,6 @@ import (
 	"gitlink.org.cn/cloudream/common/pkgs/future"
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/dag"
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/exec"
-	"gitlink.org.cn/cloudream/common/pkgs/logger"
 	"gitlink.org.cn/cloudream/common/utils/io2"
 )
 
@@ -38,8 +37,6 @@ func (o *SendStream) Execute(ctx context.Context, e *exec.Executor) error {
 	}
 	defer cli.Close()
 
-	logger.Debugf("sending stream %v as %v to worker %v", o.Input.ID, o.Send.ID, o.Worker)
-
 	// 发送后流的ID不同
 	err = cli.SendStream(ctx, e.Plan().ID, o.Send, o.Input.Stream)
 	if err != nil {
@@ -66,8 +63,6 @@ func (o *GetStream) Execute(ctx context.Context, e *exec.Executor) error {
 		return fmt.Errorf("new worker %v client: %w", o.Worker, err)
 	}
 	defer cli.Close()
-
-	logger.Debugf("getting stream %v as %v from worker %v", o.Target.ID, o.Output.ID, o.Worker)
 
 	str, err := cli.GetStream(ctx, e.Plan().ID, o.Target, o.Signal)
 	if err != nil {
@@ -106,8 +101,6 @@ func (o *SendVar) Execute(ctx context.Context, e *exec.Executor) error {
 	}
 	defer cli.Close()
 
-	logger.Debugf("sending var %v as %v to worker %v", o.Input.GetID(), o.Send.GetID(), o.Worker)
-
 	exec.AssignVar(o.Input, o.Send)
 	err = cli.SendVar(ctx, e.Plan().ID, o.Send)
 	if err != nil {
@@ -134,8 +127,6 @@ func (o *GetVar) Execute(ctx context.Context, e *exec.Executor) error {
 		return fmt.Errorf("new worker %v client: %w", o.Worker, err)
 	}
 	defer cli.Close()
-
-	logger.Debugf("getting var %v as %v from worker %v", o.Target.GetID(), o.Output.GetID(), o.Worker)
 
 	err = cli.GetVar(ctx, e.Plan().ID, o.Target, o.Signal)
 	if err != nil {
