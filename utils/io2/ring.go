@@ -1,8 +1,10 @@
 package io2
 
 import (
+	"fmt"
 	"io"
 	"sync"
+	"time"
 )
 
 type RingBuffer2 struct {
@@ -18,7 +20,7 @@ type RingBuffer2 struct {
 	DownstreamName string
 }
 
-func RingBuffer(src io.ReadCloser, size int) io.ReadCloser {
+func RingBuffer(src io.ReadCloser, size int) *RingBuffer2 {
 	lk := &sync.Mutex{}
 	return &RingBuffer2{
 		buf:           make([]byte, size),
@@ -41,9 +43,9 @@ func (r *RingBuffer2) Read(p []byte) (n int, err error) {
 			return 0, r.err
 		}
 
-		// startTime := time.Now()
+		startTime := time.Now()
 		r.waitReading.Wait()
-		// fmt.Printf("%s wait data for %v\n", r.DownstreamName, time.Since(startTime))
+		fmt.Printf("%s wait data for %v\n", r.DownstreamName, time.Since(startTime))
 	}
 	writePos := r.writePos
 	readPos := r.readPos
@@ -79,7 +81,9 @@ func (r *RingBuffer2) reading() {
 		// writePos不能和readPos重合，因为无法区分缓冲区是已经满了，还是完全是空的
 		// 所以writePos最多能到readPos的前一格
 		for r.writePos+1 == r.readPos {
+			startTime := time.Now()
 			r.waitComsuming.Wait()
+			fmt.Printf("%s wait free space for %v\n", r.UpstreamName, time.Since(startTime))
 
 			if r.err != nil {
 				return
@@ -102,6 +106,9 @@ func (r *RingBuffer2) reading() {
 		} else if readPos > writePos {
 			n, err = r.src.Read(r.buf[writePos:readPos])
 		}
+
+		// <-time.After(time.Second)
+		// fmt.Printf("read %d bytes from %s\n", n, r.UpstreamName)
 
 		// 无论成功还是失败，都发送一下信号通知读取端
 		r.waitReading.L.Lock()
