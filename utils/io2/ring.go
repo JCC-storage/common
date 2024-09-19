@@ -68,6 +68,9 @@ func (r *RingBuffer2) Read(p []byte) (n int, err error) {
 
 func (r *RingBuffer2) Close() error {
 	r.src.Close()
+	r.waitComsuming.L.Lock()
+	r.err = io.ErrClosedPipe
+	r.waitComsuming.L.Unlock()
 	r.waitComsuming.Broadcast()
 	r.waitReading.Broadcast()
 	return nil
@@ -80,7 +83,7 @@ func (r *RingBuffer2) reading() {
 		r.waitComsuming.L.Lock()
 		// writePos不能和readPos重合，因为无法区分缓冲区是已经满了，还是完全是空的
 		// 所以writePos最多能到readPos的前一格
-		for r.writePos+1 == r.readPos {
+		for (r.writePos+1)%len(r.buf) == r.readPos {
 			startTime := time.Now()
 			r.waitComsuming.Wait()
 			fmt.Printf("%s wait free space for %v\n", r.UpstreamName, time.Since(startTime))
@@ -103,12 +106,9 @@ func (r *RingBuffer2) reading() {
 			} else {
 				n, err = r.src.Read(r.buf[writePos:])
 			}
-		} else if readPos > writePos {
-			n, err = r.src.Read(r.buf[writePos:readPos])
+		} else {
+			n, err = r.src.Read(r.buf[writePos : readPos-1])
 		}
-
-		// <-time.After(time.Second)
-		// fmt.Printf("read %d bytes from %s\n", n, r.UpstreamName)
 
 		// 无论成功还是失败，都发送一下信号通知读取端
 		r.waitReading.L.Lock()
