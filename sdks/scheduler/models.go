@@ -267,3 +267,16 @@ type Rclone struct {
 	CDSRcloneID       string `json:"cds_rcloneID"`
 	CDSRcloneConfigID string `json:"cds_rcloneConfigID"`
 }
+
+type InferencePlatform struct {
+	PlatformName        string  `json:"platformName"`
+	ApiBaseUrl          string  `json:"apiBaseUrl"`
+	ApiKey              string  `json:"apiKey"`
+	ApiProxy            string  `json:"apiProxy"`
+	LlmModel            string  `json:"llmModel"`
+	EmbedModel          string  `json:"embedModel"`
+	ChunkMaxLength      int64   `json:"chunkMaxLength"`
+	StartChunkThreshold int64   `json:"startChunkThreshold"`
+	SimilarityThreshold float64 `json:"similarityThreshold"`
+	EntriesPerFile      int64   `json:"entriesPerFile"`
+}

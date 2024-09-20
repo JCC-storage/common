@@ -80,7 +80,8 @@ type UsageRate struct {
 }
 
 const (
-	FineTuning = "finetuning"
+	FineTuning     = "finetuning"
+	DataPreprocess = "DataPreprocess"
 
 	CreateECS     = "create"
 	RunECS        = "run"
@@ -96,6 +97,7 @@ const (
 	Deploying = "Deploying"
 	Waiting   = "Waiting"
 	Failed    = "Failed"
+	Invalid   = "Invalid"
 )
 
 type QueryRunningModelsReq struct {
