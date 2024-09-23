@@ -41,7 +41,7 @@ func (r *syncReader) Close() error {
 
 func Test_RingBuffer(t *testing.T) {
 	Convey("写满读满", t, func() {
-		b := RingBuffer(io.NopCloser(bytes.NewBuffer([]byte{1, 2, 3})), 4)
+		b := Ring(io.NopCloser(bytes.NewBuffer([]byte{1, 2, 3})), 4)
 
 		ret := make([]byte, 3)
 		n, err := b.Read(ret)
@@ -53,7 +53,7 @@ func Test_RingBuffer(t *testing.T) {
 	Convey("1+3+1", t, func() {
 		sy := sync2.NewCounterCond(0)
 
-		b := RingBuffer(&syncReader{
+		b := Ring(&syncReader{
 			data: [][]byte{
 				{1},
 				nil,
@@ -84,7 +84,7 @@ func Test_RingBuffer(t *testing.T) {
 	Convey("3+1+2", t, func() {
 		sy := sync2.NewCounterCond(0)
 
-		b := RingBuffer(&syncReader{
+		b := Ring(&syncReader{
 			data: [][]byte{
 				{1, 2, 3, 4, 5, 6},
 			},
