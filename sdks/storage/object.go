@@ -138,7 +138,10 @@ func (c *ObjectService) Download(req ObjectDownload) (*DownloadingObject, error)
 		return nil, err
 	}
 
+	startTime := time.Now()
 	file, err := files.MoveNext()
+	endTime := time.Now()
+	fmt.Printf("files.MoveNext(), spend time: %.0f s", endTime.Sub(startTime).Seconds())
 	if err == iterator.ErrNoMoreItem {
 		return nil, fmt.Errorf("no file found in response")
 	}
