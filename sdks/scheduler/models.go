@@ -17,6 +17,10 @@ const (
 	FileInfoTypeLocalFile = "LocalFile"
 	FileInfoTypeResource  = "Resource"
 	FileInfoTypeImage     = "Image"
+
+	MemoryUtilization = "MemoryUtilization"
+	GPUUtilization    = "GPUUtilization"
+	CPUUtilization    = "CPUUtilization"
 )
 
 type JobID string
