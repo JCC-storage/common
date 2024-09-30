@@ -88,11 +88,13 @@ const (
 	PauseECS      = "pause"
 	DestroyECS    = "destroy"
 	OperateServer = "operate"
+	RestartServer = "restartServer"
 
 	GPUMonitor = "GPUMonitor"
 
 	RcloneMount = "rclone"
 	Mounted     = "mounted"
+	MountDir    = "/mnt/oss"
 
 	Deploying = "Deploying"
 	Waiting   = "Waiting"

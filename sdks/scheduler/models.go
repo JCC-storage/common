@@ -7,9 +7,11 @@ import (
 )
 
 const (
-	JobTypeNormal   = "Normal"
-	JobTypeResource = "Resource"
-	JobTypeInstance = "Instance"
+	JobTypeNormal         = "Normal"
+	JobTypeResource       = "Resource"
+	JobTypeInstance       = "Instance"
+	JobTypeFinetuning     = "Finetuning"
+	JobTypeDataPreprocess = "DataPreprocess"
 
 	FileInfoTypePackage   = "Package"
 	FileInfoTypeLocalFile = "LocalFile"
@@ -28,6 +30,7 @@ type CCID int64
 
 type ModelID string
 type ModelName string
+type ECSInstanceID string
 type NodeID int64
 type Address string
 
@@ -46,6 +49,7 @@ var JobInfoTypeUnion = types.NewTypeUnion[JobInfo](
 	(*InstanceJobInfo)(nil),
 	(*UpdateMultiInstanceJobInfo)(nil),
 	(*FinetuningJobInfo)(nil),
+	(*DataPreprocessJobInfo)(nil),
 )
 var _ = serder.UseTypeUnionInternallyTagged(&JobInfoTypeUnion, "type")
 
@@ -60,15 +64,29 @@ func (i *JobInfoBase) GetLocalJobID() string {
 type NormalJobInfo struct {
 	serder.Metadata `union:"Normal"`
 	JobInfoBase
-	Type      string           `json:"type"`
-	Files     JobFilesInfo     `json:"files"`
-	Runtime   JobRuntimeInfo   `json:"runtime"`
-	Resources JobResourcesInfo `json:"resources"`
-	Services  JobServicesInfo  `json:"services"`
+	Type         string           `json:"type"`
+	Files        JobFilesInfo     `json:"files"`
+	Runtime      JobRuntimeInfo   `json:"runtime"`
+	Resources    JobResourcesInfo `json:"resources"`
+	Services     JobServicesInfo  `json:"services"`
+	ModelJobInfo ModelJobInfo     `json:"modelJobInfo"`
 }
 
+// FinetuningJobInfo 模型微调
 type FinetuningJobInfo struct {
 	serder.Metadata `union:"Finetuning"`
+	JobInfoBase
+	Type         string           `json:"type"`
+	Files        JobFilesInfo     `json:"files"`
+	Runtime      JobRuntimeInfo   `json:"runtime"`
+	Resources    JobResourcesInfo `json:"resources"`
+	Services     JobServicesInfo  `json:"services"`
+	ModelJobInfo ModelJobInfo     `json:"modelJobInfo"`
+}
+
+// DataPreprocessJobInfo 数据预处理
+type DataPreprocessJobInfo struct {
+	serder.Metadata `union:"DataPreprocess"`
 	JobInfoBase
 	Type      string           `json:"type"`
 	Files     JobFilesInfo     `json:"files"`
@@ -85,6 +103,7 @@ type DataReturnJobInfo struct {
 	TargetLocalJobID string          `json:"targetLocalJobID"`
 }
 
+// MultiInstanceJobInfo 多实例(推理任务)
 type MultiInstanceJobInfo struct {
 	serder.Metadata `union:"MultiInstance"`
 	JobInfoBase
@@ -95,6 +114,7 @@ type MultiInstanceJobInfo struct {
 	ModelJobInfo ModelJobInfo     `json:"modelJobInfo"`
 }
 
+// UpdateMultiInstanceJobInfo 更新模型
 type UpdateMultiInstanceJobInfo struct {
 	serder.Metadata `union:"UpdateModel"`
 	JobInfoBase
@@ -114,6 +134,7 @@ type ModelJobInfo struct {
 	Command         string    `json:"command"`
 }
 
+// InstanceJobInfo 单实例(推理任务)
 type InstanceJobInfo struct {
 	serder.Metadata `union:"Instance"`
 	JobInfoBase
@@ -269,14 +290,14 @@ type Rclone struct {
 }
 
 type InferencePlatform struct {
-	PlatformName        string  `json:"platformName"`
-	ApiBaseUrl          string  `json:"apiBaseUrl"`
-	ApiKey              string  `json:"apiKey"`
-	ApiProxy            string  `json:"apiProxy"`
-	LlmModel            string  `json:"llmModel"`
-	EmbedModel          string  `json:"embedModel"`
-	ChunkMaxLength      int64   `json:"chunkMaxLength"`
-	StartChunkThreshold int64   `json:"startChunkThreshold"`
-	SimilarityThreshold float64 `json:"similarityThreshold"`
-	EntriesPerFile      int64   `json:"entriesPerFile"`
+	PlatformName        string `json:"platformName"`
+	ApiBaseUrl          string `json:"apiBaseUrl"`
+	ApiKey              string `json:"apiKey"`
+	ApiProxy            string `json:"apiProxy"`
+	LlmModel            string `json:"llmModel"`
+	EmbedModel          string `json:"embedModel"`
+	ChunkMaxLength      string `json:"chunkMaxLength"`
+	StartChunkThreshold string `json:"startChunkThreshold"`
+	SimilarityThreshold string `json:"similarityThreshold"`
+	EntriesPerFile      string `json:"entriesPerFile"`
 }
