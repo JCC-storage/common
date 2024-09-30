@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+
+	"gitlink.org.cn/cloudream/common/utils/serder/types"
 )
 
-type Metadata struct{}
+type Metadata = types.Metadata
 
 type TimestampSecond time.Time
 
