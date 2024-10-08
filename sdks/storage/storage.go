@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
-	myhttp "gitlink.org.cn/cloudream/common/utils/http"
+	"gitlink.org.cn/cloudream/common/utils/http2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -30,7 +30,7 @@ func (c *Client) StorageLoadPackage(req StorageLoadPackageReq) (*StorageLoadPack
 		return nil, err
 	}
 
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	resp, err := http2.PostJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
@@ -70,7 +70,7 @@ func (c *Client) StorageCreatePackage(req StorageCreatePackageReq) (*StorageCrea
 		return nil, err
 	}
 
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	resp, err := http2.PostJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
@@ -78,7 +78,7 @@ func (c *Client) StorageCreatePackage(req StorageCreatePackageReq) (*StorageCrea
 	}
 
 	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+	if strings.Contains(contType, http2.ContentTypeJSON) {
 		var codeResp response[StorageCreatePackageResp]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
@@ -110,7 +110,7 @@ func (c *Client) StorageGet(req StorageGet) (*StorageGetResp, error) {
 		return nil, err
 	}
 
-	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+	resp, err := http2.GetForm(url, http2.RequestParam{
 		Query: req,
 	})
 	if err != nil {

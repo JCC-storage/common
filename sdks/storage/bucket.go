@@ -4,7 +4,7 @@ import (
 	"net/url"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
-	myhttp "gitlink.org.cn/cloudream/common/utils/http"
+	"gitlink.org.cn/cloudream/common/utils/http2"
 )
 
 type BucketService struct {
@@ -31,7 +31,7 @@ func (c *BucketService) GetByName(req BucketGetByName) (*BucketGetByNameResp, er
 		return nil, err
 	}
 
-	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+	resp, err := http2.GetForm(url, http2.RequestParam{
 		Query: req,
 	})
 	if err != nil {
@@ -67,7 +67,7 @@ func (c *BucketService) Create(req BucketCreate) (*BucketCreateResp, error) {
 		return nil, err
 	}
 
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	resp, err := http2.PostJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
@@ -101,7 +101,7 @@ func (c *BucketService) Delete(req BucketDelete) error {
 		return err
 	}
 
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	resp, err := http2.PostJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
@@ -136,7 +136,7 @@ func (c *BucketService) ListUserBuckets(req BucketListUserBucketsReq) (*BucketLi
 		return nil, err
 	}
 
-	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+	resp, err := http2.GetForm(url, http2.RequestParam{
 		Query: req,
 	})
 	if err != nil {

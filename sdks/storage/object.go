@@ -3,13 +3,14 @@ package cdssdk
 import (
 	"fmt"
 	"io"
+	"mime"
 	"net/url"
 	"strings"
 	"time"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
 	"gitlink.org.cn/cloudream/common/pkgs/iterator"
-	myhttp "gitlink.org.cn/cloudream/common/utils/http"
+	"gitlink.org.cn/cloudream/common/utils/http2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -62,10 +63,10 @@ func (c *ObjectService) Upload(req ObjectUpload) (*ObjectUploadResp, error) {
 		return nil, fmt.Errorf("upload info to json: %w", err)
 	}
 
-	resp, err := myhttp.PostMultiPart(url, myhttp.MultiPartRequestParam{
+	resp, err := http2.PostMultiPart(url, http2.MultiPartRequestParam{
 		Form: map[string]string{"info": string(infoJSON)},
-		Files: iterator.Map(req.Files, func(src *UploadingObject) (*myhttp.IterMultiPartFile, error) {
-			return &myhttp.IterMultiPartFile{
+		Files: iterator.Map(req.Files, func(src *UploadingObject) (*http2.IterMultiPartFile, error) {
+			return &http2.IterMultiPartFile{
 				FieldName: "files",
 				FileName:  src.Path,
 				File:      src.File,
@@ -77,7 +78,7 @@ func (c *ObjectService) Upload(req ObjectUpload) (*ObjectUploadResp, error) {
 	}
 
 	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+	if strings.Contains(contType, http2.ContentTypeJSON) {
 		var err error
 		var codeResp response[ObjectUploadResp]
 		if codeResp, err = serder.JSONToObjectStreamEx[response[ObjectUploadResp]](resp.Body); err != nil {
@@ -115,7 +116,7 @@ func (c *ObjectService) Download(req ObjectDownload) (*DownloadingObject, error)
 		return nil, err
 	}
 
-	resp, err := myhttp.GetJSON(url, myhttp.RequestParam{
+	resp, err := http2.GetJSON(url, http2.RequestParam{
 		Query: req,
 	})
 	if err != nil {
@@ -124,7 +125,7 @@ func (c *ObjectService) Download(req ObjectDownload) (*DownloadingObject, error)
 
 	contType := resp.Header.Get("Content-Type")
 
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+	if strings.Contains(contType, http2.ContentTypeJSON) {
 		var codeResp response[any]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
@@ -133,25 +134,14 @@ func (c *ObjectService) Download(req ObjectDownload) (*DownloadingObject, error)
 		return nil, codeResp.ToError()
 	}
 
-	_, files, err := myhttp.ParseMultiPartResponse(resp)
+	_, params, err := mime.ParseMediaType(resp.Header.Get("Content-Disposition"))
 	if err != nil {
-		return nil, err
-	}
-
-	startTime := time.Now()
-	file, err := files.MoveNext()
-	endTime := time.Now()
-	fmt.Printf("files.MoveNext(), spend time: %.0f s", endTime.Sub(startTime).Seconds())
-	if err == iterator.ErrNoMoreItem {
-		return nil, fmt.Errorf("no file found in response")
-	}
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing content disposition: %w", err)
 	}
 
 	return &DownloadingObject{
-		Path: file.FileName,
-		File: file.File,
+		Path: params["filename"],
+		File: resp.Body,
 	}, nil
 }
 
@@ -181,7 +171,7 @@ func (c *ObjectService) UpdateInfo(req ObjectUpdateInfo) (*ObjectUpdateInfoResp,
 		return nil, err
 	}
 
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	resp, err := http2.PostJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
@@ -228,7 +218,7 @@ func (c *ObjectService) Move(req ObjectMove) (*ObjectMoveResp, error) {
 		return nil, err
 	}
 
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	resp, err := http2.PostJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
@@ -262,7 +252,7 @@ func (c *ObjectService) Delete(req ObjectDelete) error {
 		return err
 	}
 
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	resp, err := http2.PostJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
@@ -297,7 +287,7 @@ func (c *ObjectService) GetPackageObjects(req ObjectGetPackageObjects) (*ObjectG
 		return nil, err
 	}
 
-	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+	resp, err := http2.GetForm(url, http2.RequestParam{
 		Query: req,
 	})
 	if err != nil {

@@ -5,7 +5,7 @@ import (
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
 	schsdk "gitlink.org.cn/cloudream/common/sdks/scheduler"
-	myhttp "gitlink.org.cn/cloudream/common/utils/http"
+	"gitlink.org.cn/cloudream/common/utils/http2"
 )
 
 const ProxyGetServiceInfoPath = "/proxy/getServiceInfo"
@@ -25,14 +25,14 @@ func (c *Client) ProxyGetServiceInfo(req ProxyGetServiceInfo) (*ProxyGetServiceI
 		return nil, err
 	}
 
-	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+	resp, err := http2.GetForm(url, http2.RequestParam{
 		Query: req,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	jsonResp, err := myhttp.ParseJSONResponse[response[ProxyGetServiceInfoResp]](resp)
+	jsonResp, err := http2.ParseJSONResponse[response[ProxyGetServiceInfoResp]](resp)
 	if err != nil {
 		return nil, err
 	}
