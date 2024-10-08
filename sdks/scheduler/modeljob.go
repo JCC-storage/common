@@ -2,12 +2,13 @@ package schsdk
 
 import (
 	"fmt"
-	"gitlink.org.cn/cloudream/common/consts/errorcode"
-	"gitlink.org.cn/cloudream/common/pkgs/mq"
-	myhttp "gitlink.org.cn/cloudream/common/utils/http"
-	"gitlink.org.cn/cloudream/common/utils/serder"
 	"net/url"
 	"strings"
+
+	"gitlink.org.cn/cloudream/common/consts/errorcode"
+	"gitlink.org.cn/cloudream/common/pkgs/mq"
+	"gitlink.org.cn/cloudream/common/utils/http2"
+	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
 // 这个结构体无任何字段，但实现了Noop，每种MessageBody都要内嵌这个结构体
@@ -112,7 +113,7 @@ func (c *Client) QueryRunningModels(req QueryRunningModelsReq) (*RunningModelRes
 		return nil, err
 	}
 
-	resp, err := myhttp.GetJSON(url, myhttp.RequestParam{
+	resp, err := http2.GetJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
@@ -120,7 +121,7 @@ func (c *Client) QueryRunningModels(req QueryRunningModelsReq) (*RunningModelRes
 	}
 
 	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+	if strings.Contains(contType, http2.ContentTypeJSON) {
 		var codeResp response[RunningModelResp]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
@@ -142,7 +143,7 @@ func (c *Client) QueryAllModels(req QueryRunningModelsReq) (*AllModelResp, error
 		return nil, err
 	}
 
-	resp, err := myhttp.GetJSON(url, myhttp.RequestParam{
+	resp, err := http2.GetJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
@@ -150,7 +151,7 @@ func (c *Client) QueryAllModels(req QueryRunningModelsReq) (*AllModelResp, error
 	}
 
 	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+	if strings.Contains(contType, http2.ContentTypeJSON) {
 		var codeResp response[AllModelResp]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
@@ -172,7 +173,7 @@ func (c *Client) ECSNodeRunningInfo(req ECSNodeRunningInfoReq) (*ECSNodeRunningI
 		return nil, err
 	}
 
-	resp, err := myhttp.GetJSON(url, myhttp.RequestParam{
+	resp, err := http2.GetJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
@@ -180,7 +181,7 @@ func (c *Client) ECSNodeRunningInfo(req ECSNodeRunningInfoReq) (*ECSNodeRunningI
 	}
 
 	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+	if strings.Contains(contType, http2.ContentTypeJSON) {
 		var codeResp response[ECSNodeRunningInfoResp]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)

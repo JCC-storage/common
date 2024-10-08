@@ -45,7 +45,7 @@ func (e *Driver) Signal(signal *DriverSignalVar) {
 }
 
 func (e *Driver) Wait(ctx context.Context) (map[string]any, error) {
-	stored, err := e.callback.WaitValue(ctx)
+	stored, err := e.callback.Wait(ctx)
 	if err != nil {
 		return nil, err
 	}

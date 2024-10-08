@@ -75,7 +75,7 @@ func (s *Worker) FindByIDContexted(ctx context.Context, id PlanID) *Executor {
 
 	s.lock.Unlock()
 
-	sw, _ = cb.WaitValue(ctx)
+	sw, _ = cb.Wait(ctx)
 
 	s.lock.Lock()
 	defer s.lock.Unlock()
