@@ -18,7 +18,7 @@ type RingBufferStats struct {
 type RingBuffer struct {
 	buf           []byte
 	src           io.ReadCloser
-	maxPerRead    int // 后台读取线程每次读取的最大字节数，太小会导致IO次数增多，太大会导致读、写并行性下降
+	maxPreRead    int // 后台读取线程每次读取的最大字节数，太小会导致IO次数增多，太大会导致读、写并行性下降
 	err           error
 	isReading     bool
 	writePos      int // 指向下一次写入的位置，应该是一个空位
@@ -28,12 +28,23 @@ type RingBuffer struct {
 	stats         RingBufferStats
 }
 
-func Ring(src io.ReadCloser, size int) *RingBuffer {
+type RingBufferConfig struct {
+	MaxPreReading int // 后台读取线程每次读取的最大字节数，太小会导致IO次数增多，太大会导致读、写并行性下降
+}
+
+func Ring(src io.ReadCloser, size int, cfg ...RingBufferConfig) *RingBuffer {
+	c := RingBufferConfig{
+		MaxPreReading: size / 4,
+	}
+	if len(cfg) > 0 {
+		c = cfg[0]
+	}
+
 	lk := &sync.Mutex{}
 	return &RingBuffer{
 		buf:           make([]byte, size),
 		src:           src,
-		maxPerRead:    size / 4,
+		maxPreRead:    c.MaxPreReading,
 		waitReading:   sync.NewCond(lk),
 		waitComsuming: sync.NewCond(lk),
 	}
@@ -67,10 +78,10 @@ func (r *RingBuffer) Read(p []byte) (n int, err error) {
 	r.waitReading.L.Unlock()
 
 	if readPos < writePos {
-		maxRead := math2.Min(r.maxPerRead, writePos-readPos)
+		maxRead := math2.Min(r.maxPreRead, writePos-readPos)
 		n = copy(p, r.buf[readPos:readPos+maxRead])
 	} else {
-		maxRead := math2.Min(r.maxPerRead, len(r.buf)-readPos)
+		maxRead := math2.Min(r.maxPreRead, len(r.buf)-readPos)
 		n = copy(p, r.buf[readPos:readPos+maxRead])
 	}
 
@@ -121,14 +132,14 @@ func (r *RingBuffer) reading() {
 			// 同上理，写入数据的时候如果readPos为0，则它的前一格是底层缓冲区的最后一格
 			// 那就不能写入到这一格
 			if readPos == 0 {
-				maxWrite := math2.Min(r.maxPerRead, len(r.buf)-1-writePos)
+				maxWrite := math2.Min(r.maxPreRead, len(r.buf)-1-writePos)
 				n, err = r.src.Read(r.buf[writePos : writePos+maxWrite])
 			} else {
-				maxWrite := math2.Min(r.maxPerRead, len(r.buf)-writePos)
+				maxWrite := math2.Min(r.maxPreRead, len(r.buf)-writePos)
 				n, err = r.src.Read(r.buf[writePos : writePos+maxWrite])
 			}
 		} else {
-			maxWrite := math2.Min(r.maxPerRead, readPos-1-writePos)
+			maxWrite := math2.Min(r.maxPreRead, readPos-1-writePos)
 			n, err = r.src.Read(r.buf[writePos : writePos+maxWrite])
 		}
 

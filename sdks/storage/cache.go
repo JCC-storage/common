@@ -4,7 +4,7 @@ import (
 	"net/url"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
-	myhttp "gitlink.org.cn/cloudream/common/utils/http"
+	"gitlink.org.cn/cloudream/common/utils/http2"
 )
 
 const CacheMovePackagePath = "/cache/movePackage"
@@ -22,7 +22,7 @@ func (c *Client) CacheMovePackage(req CacheMovePackageReq) (*CacheMovePackageRes
 		return nil, err
 	}
 
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	resp, err := http2.PostJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	myhttp "gitlink.org.cn/cloudream/common/utils/http"
+	"gitlink.org.cn/cloudream/common/utils/http2"
 	"gitlink.org.cn/cloudream/common/utils/math2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -19,7 +19,7 @@ func MakeIPFSFilePath(fileHash string) string {
 func ParseJSONResponse[TBody any](resp *http.Response) (TBody, error) {
 	var ret TBody
 	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+	if strings.Contains(contType, http2.ContentTypeJSON) {
 		var err error
 		if ret, err = serder.JSONToObjectStreamEx[TBody](resp.Body); err != nil {
 			return ret, fmt.Errorf("parsing response: %w", err)

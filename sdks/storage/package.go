@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
-	myhttp "gitlink.org.cn/cloudream/common/utils/http"
+	"gitlink.org.cn/cloudream/common/utils/http2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -34,7 +34,7 @@ func (c *PackageService) Get(req PackageGetReq) (*PackageGetResp, error) {
 		return nil, err
 	}
 
-	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+	resp, err := http2.GetForm(url, http2.RequestParam{
 		Query: req,
 	})
 	if err != nil {
@@ -70,7 +70,7 @@ func (c *PackageService) GetByName(req PackageGetByName) (*PackageGetByNameResp,
 		return nil, err
 	}
 
-	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+	resp, err := http2.GetForm(url, http2.RequestParam{
 		Query: req,
 	})
 	if err != nil {
@@ -107,7 +107,7 @@ func (s *PackageService) Create(req PackageCreate) (*PackageCreateResp, error) {
 		return nil, err
 	}
 
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	resp, err := http2.PostJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
@@ -139,7 +139,7 @@ func (c *PackageService) Delete(req PackageDelete) error {
 		return err
 	}
 
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	resp, err := http2.PostJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
@@ -148,7 +148,7 @@ func (c *PackageService) Delete(req PackageDelete) error {
 
 	contType := resp.Header.Get("Content-Type")
 
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+	if strings.Contains(contType, http2.ContentTypeJSON) {
 		var codeResp response[any]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return fmt.Errorf("parsing response: %w", err)
@@ -181,7 +181,7 @@ func (c *PackageService) ListBucketPackages(req PackageListBucketPackages) (*Pac
 		return nil, err
 	}
 
-	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+	resp, err := http2.GetForm(url, http2.RequestParam{
 		Query: req,
 	})
 	if err != nil {
@@ -216,7 +216,7 @@ func (c *PackageService) GetCachedNodes(req PackageGetCachedNodesReq) (*PackageG
 	if err != nil {
 		return nil, err
 	}
-	resp, err := myhttp.GetJSON(url, myhttp.RequestParam{
+	resp, err := http2.GetJSON(url, http2.RequestParam{
 		Query: req,
 	})
 	if err != nil {
@@ -251,7 +251,7 @@ func (c *PackageService) GetLoadedNodes(req PackageGetLoadedNodesReq) (*PackageG
 	if err != nil {
 		return nil, err
 	}
-	resp, err := myhttp.GetJSON(url, myhttp.RequestParam{
+	resp, err := http2.GetJSON(url, http2.RequestParam{
 		Query: req,
 	})
 	if err != nil {

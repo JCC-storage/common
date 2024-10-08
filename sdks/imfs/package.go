@@ -5,7 +5,7 @@ import (
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
 	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
-	myhttp "gitlink.org.cn/cloudream/common/utils/http"
+	"gitlink.org.cn/cloudream/common/utils/http2"
 )
 
 const PackageGetWithObjectsPath = "/package/getWithObjects"
@@ -25,14 +25,14 @@ func (c *Client) PackageGetWithObjects(req PackageGetWithObjectsInfos) (*Package
 		return nil, err
 	}
 
-	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+	resp, err := http2.GetForm(url, http2.RequestParam{
 		Query: req,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	jsonResp, err := myhttp.ParseJSONResponse[response[PackageGetWithObjectsResp]](resp)
+	jsonResp, err := http2.ParseJSONResponse[response[PackageGetWithObjectsResp]](resp)
 	if err != nil {
 		return nil, err
 	}
