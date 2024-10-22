@@ -1,7 +1,6 @@
 package ops
 
 import (
-	"context"
 	"fmt"
 
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/dag"
@@ -13,8 +12,8 @@ type Store struct {
 	Key string
 }
 
-func (o *Store) Execute(ctx context.Context, e *exec.Executor) error {
-	err := e.BindVars(ctx, o.Var)
+func (o *Store) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
+	err := e.BindVars(ctx.Context, o.Var)
 	if err != nil {
 		return err
 	}

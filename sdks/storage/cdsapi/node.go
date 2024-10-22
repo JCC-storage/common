@@ -1,20 +1,21 @@
-package cdssdk
+package cdsapi
 
 import (
 	"net/url"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
+	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
 	"gitlink.org.cn/cloudream/common/utils/http2"
 )
 
 var NodeGetNodesPath = "/node/getNodes"
 
 type NodeGetNodesReq struct {
-	NodeIDs []NodeID `json:"nodeIDs"`
+	NodeIDs []cdssdk.NodeID `json:"nodeIDs"`
 }
 
 type NodeGetNodesResp struct {
-	Nodes []Node `json:"nodes"`
+	Nodes []cdssdk.Node `json:"nodes"`
 }
 
 func (c *Client) NodeGetNodes(req NodeGetNodesReq) (*NodeGetNodesResp, error) {

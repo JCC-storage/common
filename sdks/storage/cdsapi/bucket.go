@@ -1,9 +1,10 @@
-package cdssdk
+package cdsapi
 
 import (
 	"net/url"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
+	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
 	"gitlink.org.cn/cloudream/common/utils/http2"
 )
 
@@ -18,11 +19,11 @@ func (c *Client) Bucket() *BucketService {
 const BucketGetByNamePath = "/bucket/getByName"
 
 type BucketGetByName struct {
-	UserID UserID `json:"userID" form:"userID" binding:"required"`
-	Name   string `json:"name" form:"name" binding:"required"`
+	UserID cdssdk.UserID `json:"userID" form:"userID" binding:"required"`
+	Name   string        `json:"name" form:"name" binding:"required"`
 }
 type BucketGetByNameResp struct {
-	Bucket Bucket `json:"bucket"`
+	Bucket cdssdk.Bucket `json:"bucket"`
 }
 
 func (c *BucketService) GetByName(req BucketGetByName) (*BucketGetByNameResp, error) {
@@ -53,12 +54,12 @@ func (c *BucketService) GetByName(req BucketGetByName) (*BucketGetByNameResp, er
 const BucketCreatePath = "/bucket/create"
 
 type BucketCreate struct {
-	UserID UserID `json:"userID" binding:"required"`
-	Name   string `json:"name" binding:"required"`
+	UserID cdssdk.UserID `json:"userID" binding:"required"`
+	Name   string        `json:"name" binding:"required"`
 }
 
 type BucketCreateResp struct {
-	Bucket Bucket `json:"bucket"`
+	Bucket cdssdk.Bucket `json:"bucket"`
 }
 
 func (c *BucketService) Create(req BucketCreate) (*BucketCreateResp, error) {
@@ -89,8 +90,8 @@ func (c *BucketService) Create(req BucketCreate) (*BucketCreateResp, error) {
 const BucketDeletePath = "/bucket/delete"
 
 type BucketDelete struct {
-	UserID   UserID   `json:"userID" binding:"required"`
-	BucketID BucketID `json:"bucketID" binding:"required"`
+	UserID   cdssdk.UserID   `json:"userID" binding:"required"`
+	BucketID cdssdk.BucketID `json:"bucketID" binding:"required"`
 }
 
 type BucketDeleteResp struct{}
@@ -123,11 +124,11 @@ func (c *BucketService) Delete(req BucketDelete) error {
 const BucketListUserBucketsPath = "/bucket/listUserBuckets"
 
 type BucketListUserBucketsReq struct {
-	UserID UserID `form:"userID" json:"userID" binding:"required"`
+	UserID cdssdk.UserID `form:"userID" json:"userID" binding:"required"`
 }
 
 type BucketListUserBucketsResp struct {
-	Buckets []Bucket `json:"buckets"`
+	Buckets []cdssdk.Bucket `json:"buckets"`
 }
 
 func (c *BucketService) ListUserBuckets(req BucketListUserBucketsReq) (*BucketListUserBucketsResp, error) {

@@ -1,18 +1,19 @@
-package cdssdk
+package cdsapi
 
 import (
 	"net/url"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
+	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
 	"gitlink.org.cn/cloudream/common/utils/http2"
 )
 
 const CacheMovePackagePath = "/cache/movePackage"
 
 type CacheMovePackageReq struct {
-	UserID    UserID    `json:"userID"`
-	PackageID PackageID `json:"packageID"`
-	NodeID    NodeID    `json:"nodeID"`
+	UserID    cdssdk.UserID    `json:"userID"`
+	PackageID cdssdk.PackageID `json:"packageID"`
+	NodeID    cdssdk.NodeID    `json:"nodeID"`
 }
 type CacheMovePackageResp struct{}
 

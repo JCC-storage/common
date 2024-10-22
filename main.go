@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
+	"gitlink.org.cn/cloudream/common/sdks/storage/cdsapi"
 )
 
 func main() {
@@ -16,7 +16,7 @@ func main() {
 }
 
 func test1(url string) {
-	cli := cdssdk.NewClient(&cdssdk.Config{
+	cli := cdsapi.NewClient(&cdsapi.Config{
 		URL: url,
 	})
 
@@ -39,7 +39,7 @@ func test1(url string) {
 	}
 
 	startTime := time.Now()
-	obj, err := cli.Object().Download(cdssdk.ObjectDownload{
+	obj, err := cli.Object().Download(cdsapi.ObjectDownload{
 		UserID:   1,
 		ObjectID: 470790,
 		Offset:   0,
@@ -67,11 +67,11 @@ func test1(url string) {
 }
 
 func test2(url string) {
-	cli := cdssdk.NewClient(&cdssdk.Config{
+	cli := cdsapi.NewClient(&cdsapi.Config{
 		URL: url,
 	})
 
-	obj, err := cli.Object().Download(cdssdk.ObjectDownload{
+	obj, err := cli.Object().Download(cdsapi.ObjectDownload{
 		UserID:   1,
 		ObjectID: 27151,
 		Offset:   0,
@@ -92,4 +92,3 @@ func test2(url string) {
 
 	io.Copy(f, obj.File)
 }
-

@@ -1,4 +1,4 @@
-package cdssdk
+package cdsapi
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
+	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
 	"gitlink.org.cn/cloudream/common/utils/http2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -21,11 +22,11 @@ func (c *Client) Package() *PackageService {
 const PackageGetPath = "/package/get"
 
 type PackageGetReq struct {
-	UserID    UserID    `form:"userID" json:"userID" binding:"required"`
-	PackageID PackageID `form:"packageID" json:"packageID" binding:"required"`
+	UserID    cdssdk.UserID    `form:"userID" json:"userID" binding:"required"`
+	PackageID cdssdk.PackageID `form:"packageID" json:"packageID" binding:"required"`
 }
 type PackageGetResp struct {
-	Package
+	cdssdk.Package
 }
 
 func (c *PackageService) Get(req PackageGetReq) (*PackageGetResp, error) {
@@ -56,12 +57,12 @@ func (c *PackageService) Get(req PackageGetReq) (*PackageGetResp, error) {
 const PackageGetByNamePath = "/package/getByName"
 
 type PackageGetByName struct {
-	UserID      UserID `form:"userID" json:"userID" binding:"required"`
-	BucketName  string `form:"bucketName" json:"bucketName" binding:"required"`
-	PackageName string `form:"packageName" json:"packageName" binding:"required"`
+	UserID      cdssdk.UserID `form:"userID" json:"userID" binding:"required"`
+	BucketName  string        `form:"bucketName" json:"bucketName" binding:"required"`
+	PackageName string        `form:"packageName" json:"packageName" binding:"required"`
 }
 type PackageGetByNameResp struct {
-	Package Package `json:"package"`
+	Package cdssdk.Package `json:"package"`
 }
 
 func (c *PackageService) GetByName(req PackageGetByName) (*PackageGetByNameResp, error) {
@@ -92,13 +93,13 @@ func (c *PackageService) GetByName(req PackageGetByName) (*PackageGetByNameResp,
 const PackageCreatePath = "/package/create"
 
 type PackageCreate struct {
-	UserID   UserID   `json:"userID"`
-	BucketID BucketID `json:"bucketID"`
-	Name     string   `json:"name"`
+	UserID   cdssdk.UserID   `json:"userID"`
+	BucketID cdssdk.BucketID `json:"bucketID"`
+	Name     string          `json:"name"`
 }
 
 type PackageCreateResp struct {
-	Package Package `json:"package"`
+	Package cdssdk.Package `json:"package"`
 }
 
 func (s *PackageService) Create(req PackageCreate) (*PackageCreateResp, error) {
@@ -129,8 +130,8 @@ func (s *PackageService) Create(req PackageCreate) (*PackageCreateResp, error) {
 const PackageDeletePath = "/package/delete"
 
 type PackageDelete struct {
-	UserID    UserID    `json:"userID" binding:"required"`
-	PackageID PackageID `json:"packageID" binding:"required"`
+	UserID    cdssdk.UserID    `json:"userID" binding:"required"`
+	PackageID cdssdk.PackageID `json:"packageID" binding:"required"`
 }
 
 func (c *PackageService) Delete(req PackageDelete) error {
@@ -167,12 +168,12 @@ func (c *PackageService) Delete(req PackageDelete) error {
 const PackageListBucketPackagesPath = "/package/listBucketPackages"
 
 type PackageListBucketPackages struct {
-	UserID   UserID   `form:"userID" json:"userID" binding:"required"`
-	BucketID BucketID `form:"bucketID" json:"bucketID" binding:"required"`
+	UserID   cdssdk.UserID   `form:"userID" json:"userID" binding:"required"`
+	BucketID cdssdk.BucketID `form:"bucketID" json:"bucketID" binding:"required"`
 }
 
 type PackageListBucketPackagesResp struct {
-	Packages []Package `json:"packages"`
+	Packages []cdssdk.Package `json:"packages"`
 }
 
 func (c *PackageService) ListBucketPackages(req PackageListBucketPackages) (*PackageListBucketPackagesResp, error) {
@@ -203,12 +204,12 @@ func (c *PackageService) ListBucketPackages(req PackageListBucketPackages) (*Pac
 const PackageGetCachedNodesPath = "/package/getCachedNodes"
 
 type PackageGetCachedNodesReq struct {
-	PackageID PackageID `form:"packageID" json:"packageID" binding:"required"`
-	UserID    UserID    `form:"userID" json:"userID" binding:"required"`
+	PackageID cdssdk.PackageID `form:"packageID" json:"packageID" binding:"required"`
+	UserID    cdssdk.UserID    `form:"userID" json:"userID" binding:"required"`
 }
 
 type PackageGetCachedNodesResp struct {
-	PackageCachingInfo
+	cdssdk.PackageCachingInfo
 }
 
 func (c *PackageService) GetCachedNodes(req PackageGetCachedNodesReq) (*PackageGetCachedNodesResp, error) {
@@ -238,12 +239,12 @@ func (c *PackageService) GetCachedNodes(req PackageGetCachedNodesReq) (*PackageG
 const PackageGetLoadedNodesPath = "/package/getLoadedNodes"
 
 type PackageGetLoadedNodesReq struct {
-	PackageID PackageID `form:"packageID" json:"packageID" binding:"required"`
-	UserID    UserID    `form:"userID" json:"userID" binding:"required"`
+	PackageID cdssdk.PackageID `form:"packageID" json:"packageID" binding:"required"`
+	UserID    cdssdk.UserID    `form:"userID" json:"userID" binding:"required"`
 }
 
 type PackageGetLoadedNodesResp struct {
-	NodeIDs []NodeID `json:"nodeIDs"`
+	NodeIDs []cdssdk.NodeID `json:"nodeIDs"`
 }
 
 func (c *PackageService) GetLoadedNodes(req PackageGetLoadedNodesReq) (*PackageGetLoadedNodesResp, error) {

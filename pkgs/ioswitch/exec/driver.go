@@ -14,7 +14,7 @@ type Driver struct {
 	planID     PlanID
 	planBlder  *PlanBuilder
 	callback   *future.SetValueFuture[map[string]any]
-	ctx        context.Context
+	ctx        *ExecContext
 	cancel     context.CancelFunc
 	driverExec *Executor
 }
@@ -32,7 +32,7 @@ func (e *Driver) BeginWriteRanged(str io.ReadCloser, handle *DriverWriteStream) 
 }
 
 func (e *Driver) BeginRead(handle *DriverReadStream) (io.ReadCloser, error) {
-	err := e.driverExec.BindVars(e.ctx, handle.Var)
+	err := e.driverExec.BindVars(e.ctx.Context, handle.Var)
 	if err != nil {
 		return nil, fmt.Errorf("bind vars: %w", err)
 	}
@@ -74,7 +74,7 @@ func (e *Driver) execute() {
 			}
 			defer cli.Close()
 
-			err = cli.ExecutePlan(e.ctx, plan)
+			err = cli.ExecutePlan(e.ctx.Context, plan)
 			if err != nil {
 				e.stopWith(fmt.Errorf("execute plan at worker %v: %w", p.Worker, err))
 				return

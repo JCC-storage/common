@@ -1,4 +1,4 @@
-package cdssdk
+package cdsapi
 
 import (
 	"bytes"
@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlink.org.cn/cloudream/common/pkgs/iterator"
+	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
 )
 
 func Test_PackageGet(t *testing.T) {
@@ -76,7 +77,7 @@ func Test_Object(t *testing.T) {
 			fileData[i] = byte(i)
 		}
 
-		nodeAff := NodeID(2)
+		nodeAff := cdssdk.NodeID(2)
 
 		pkgName := uuid.NewString()
 		createResp, err := cli.Package().Create(PackageCreate{

@@ -1,4 +1,4 @@
-package cdssdk
+package cdsapi
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
+	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
 	"gitlink.org.cn/cloudream/common/utils/http2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -13,9 +14,9 @@ import (
 const StorageLoadPackagePath = "/storage/loadPackage"
 
 type StorageLoadPackageReq struct {
-	UserID    UserID    `json:"userID" binding:"required"`
-	PackageID PackageID `json:"packageID" binding:"required"`
-	StorageID StorageID `json:"storageID" binding:"required"`
+	UserID    cdssdk.UserID    `json:"userID" binding:"required"`
+	PackageID cdssdk.PackageID `json:"packageID" binding:"required"`
+	StorageID cdssdk.StorageID `json:"storageID" binding:"required"`
 }
 type StorageLoadPackageResp struct {
 	FullPath    string `json:"fullPath"` // TODO 临时保留给中期测试的前端使用，后续会删除
@@ -52,16 +53,16 @@ func (c *Client) StorageLoadPackage(req StorageLoadPackageReq) (*StorageLoadPack
 const StorageCreatePackagePath = "/storage/createPackage"
 
 type StorageCreatePackageReq struct {
-	UserID       UserID    `json:"userID" binding:"required"`
-	StorageID    StorageID `json:"storageID" binding:"required"`
-	Path         string    `json:"path" binding:"required"`
-	BucketID     BucketID  `json:"bucketID" binding:"required"`
-	Name         string    `json:"name" binding:"required"`
-	NodeAffinity *NodeID   `json:"nodeAffinity"`
+	UserID       cdssdk.UserID    `json:"userID" binding:"required"`
+	StorageID    cdssdk.StorageID `json:"storageID" binding:"required"`
+	Path         string           `json:"path" binding:"required"`
+	BucketID     cdssdk.BucketID  `json:"bucketID" binding:"required"`
+	Name         string           `json:"name" binding:"required"`
+	NodeAffinity *cdssdk.NodeID   `json:"nodeAffinity"`
 }
 
 type StorageCreatePackageResp struct {
-	PackageID PackageID `json:"packageID"`
+	PackageID cdssdk.PackageID `json:"packageID"`
 }
 
 func (c *Client) StorageCreatePackage(req StorageCreatePackageReq) (*StorageCreatePackageResp, error) {
@@ -97,11 +98,11 @@ func (c *Client) StorageCreatePackage(req StorageCreatePackageReq) (*StorageCrea
 const StorageGetPath = "/storage/get"
 
 type StorageGet struct {
-	UserID    UserID    `form:"userID" json:"userID" binding:"required"`
-	StorageID StorageID `form:"storageID" json:"storageID" binding:"required"`
+	UserID    cdssdk.UserID    `form:"userID" json:"userID" binding:"required"`
+	StorageID cdssdk.StorageID `form:"storageID" json:"storageID" binding:"required"`
 }
 type StorageGetResp struct {
-	Storage
+	cdssdk.Storage
 }
 
 func (c *Client) StorageGet(req StorageGet) (*StorageGetResp, error) {

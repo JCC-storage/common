@@ -1,17 +1,18 @@
-package cdssdk
+package cdsapi
 
 import (
 	"bytes"
 	"fmt"
-	"gitlink.org.cn/cloudream/common/consts/errorcode"
-	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/exec"
-	"gitlink.org.cn/cloudream/common/utils/http2"
-	"gitlink.org.cn/cloudream/common/utils/serder"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"gitlink.org.cn/cloudream/common/consts/errorcode"
+	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/exec"
+	"gitlink.org.cn/cloudream/common/utils/http2"
+	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
 const GetStreamPath = "/hubIO/getStream"

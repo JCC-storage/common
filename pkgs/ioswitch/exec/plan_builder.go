@@ -76,8 +76,10 @@ func (b *PlanBuilder) NewSignalVar() *SignalVar {
 	return v
 }
 
-func (b *PlanBuilder) Execute() *Driver {
-	ctx, cancel := context.WithCancel(context.Background())
+func (b *PlanBuilder) Execute(ctx *ExecContext) *Driver {
+	c, cancel := context.WithCancel(ctx.Context)
+	ctx.Context = c
+
 	planID := genRandomPlanID()
 
 	execPlan := Plan{

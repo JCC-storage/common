@@ -38,12 +38,14 @@ func (s *Executor) Plan() *Plan {
 	return &s.plan
 }
 
-func (s *Executor) Run(ctx context.Context) (map[string]any, error) {
-	ctx2, cancel := context.WithCancel(ctx)
+func (s *Executor) Run(ctx *ExecContext) (map[string]any, error) {
+	c, cancel := context.WithCancel(ctx.Context)
+	ctx.Context = c
+
 	defer cancel()
 
 	err := sync2.ParallelDo(s.plan.Ops, func(o Op, idx int) error {
-		err := o.Execute(ctx2, s)
+		err := o.Execute(ctx, s)
 
 		s.lock.Lock()
 		defer s.lock.Unlock()

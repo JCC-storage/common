@@ -1,7 +1,6 @@
 package ops
 
 import (
-	"context"
 	"fmt"
 	"io"
 
@@ -24,8 +23,8 @@ type SendStream struct {
 	Worker exec.WorkerInfo `json:"worker"`
 }
 
-func (o *SendStream) Execute(ctx context.Context, e *exec.Executor) error {
-	err := e.BindVars(ctx, o.Input)
+func (o *SendStream) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
+	err := e.BindVars(ctx.Context, o.Input)
 	if err != nil {
 		return err
 	}
@@ -38,7 +37,7 @@ func (o *SendStream) Execute(ctx context.Context, e *exec.Executor) error {
 	defer cli.Close()
 
 	// 发送后流的ID不同
-	err = cli.SendStream(ctx, e.Plan().ID, o.Send, o.Input.Stream)
+	err = cli.SendStream(ctx.Context, e.Plan().ID, o.Send, o.Input.Stream)
 	if err != nil {
 		return fmt.Errorf("sending stream: %w", err)
 	}
@@ -57,14 +56,14 @@ type GetStream struct {
 	Worker exec.WorkerInfo `json:"worker"`
 }
 
-func (o *GetStream) Execute(ctx context.Context, e *exec.Executor) error {
+func (o *GetStream) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
 	cli, err := o.Worker.NewClient()
 	if err != nil {
 		return fmt.Errorf("new worker %v client: %w", o.Worker, err)
 	}
 	defer cli.Close()
 
-	str, err := cli.GetStream(ctx, e.Plan().ID, o.Target, o.Signal)
+	str, err := cli.GetStream(ctx.Context, e.Plan().ID, o.Target, o.Signal)
 	if err != nil {
 		return fmt.Errorf("getting stream: %w", err)
 	}
@@ -76,7 +75,7 @@ func (o *GetStream) Execute(ctx context.Context, e *exec.Executor) error {
 	})
 	e.PutVars(o.Output)
 
-	return fut.Wait(ctx)
+	return fut.Wait(ctx.Context)
 }
 
 func (o *GetStream) String() string {
@@ -89,8 +88,8 @@ type SendVar struct {
 	Worker exec.WorkerInfo `json:"worker"`
 }
 
-func (o *SendVar) Execute(ctx context.Context, e *exec.Executor) error {
-	err := e.BindVars(ctx, o.Input)
+func (o *SendVar) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
+	err := e.BindVars(ctx.Context, o.Input)
 	if err != nil {
 		return err
 	}
@@ -102,7 +101,7 @@ func (o *SendVar) Execute(ctx context.Context, e *exec.Executor) error {
 	defer cli.Close()
 
 	exec.AssignVar(o.Input, o.Send)
-	err = cli.SendVar(ctx, e.Plan().ID, o.Send)
+	err = cli.SendVar(ctx.Context, e.Plan().ID, o.Send)
 	if err != nil {
 		return fmt.Errorf("sending var: %w", err)
 	}
@@ -121,14 +120,14 @@ type GetVar struct {
 	Worker exec.WorkerInfo `json:"worker"`
 }
 
-func (o *GetVar) Execute(ctx context.Context, e *exec.Executor) error {
+func (o *GetVar) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
 	cli, err := o.Worker.NewClient()
 	if err != nil {
 		return fmt.Errorf("new worker %v client: %w", o.Worker, err)
 	}
 	defer cli.Close()
 
-	err = cli.GetVar(ctx, e.Plan().ID, o.Target, o.Signal)
+	err = cli.GetVar(ctx.Context, e.Plan().ID, o.Target, o.Signal)
 	if err != nil {
 		return fmt.Errorf("getting var: %w", err)
 	}

@@ -1,4 +1,4 @@
-package cdssdk
+package cdsapi
 
 import (
 	"gitlink.org.cn/cloudream/common/sdks"

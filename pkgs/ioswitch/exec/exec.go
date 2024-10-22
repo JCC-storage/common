@@ -1,8 +1,6 @@
 package exec
 
 import (
-	"context"
-
 	"gitlink.org.cn/cloudream/common/pkgs/types"
 	"gitlink.org.cn/cloudream/common/utils/reflect2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
@@ -18,7 +16,7 @@ type Plan struct {
 var opUnion = serder.UseTypeUnionExternallyTagged(types.Ref(types.NewTypeUnion[Op]()))
 
 type Op interface {
-	Execute(ctx context.Context, e *Executor) error
+	Execute(ctx *ExecContext, e *Executor) error
 	String() string
 }
 

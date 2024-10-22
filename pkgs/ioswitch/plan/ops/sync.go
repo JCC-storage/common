@@ -1,7 +1,6 @@
 package ops
 
 import (
-	"context"
 	"fmt"
 	"io"
 
@@ -25,8 +24,8 @@ type OnStreamBegin struct {
 	Signal *exec.SignalVar `json:"signal"`
 }
 
-func (o *OnStreamBegin) Execute(ctx context.Context, e *exec.Executor) error {
-	err := e.BindVars(ctx, o.Raw)
+func (o *OnStreamBegin) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
+	err := e.BindVars(ctx.Context, o.Raw)
 	if err != nil {
 		return err
 	}
@@ -67,8 +66,8 @@ func (o *onStreamEnd) Close() error {
 	return o.inner.Close()
 }
 
-func (o *OnStreamEnd) Execute(ctx context.Context, e *exec.Executor) error {
-	err := e.BindVars(ctx, o.Raw)
+func (o *OnStreamEnd) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
+	err := e.BindVars(ctx.Context, o.Raw)
 	if err != nil {
 		return err
 	}
@@ -81,7 +80,7 @@ func (o *OnStreamEnd) Execute(ctx context.Context, e *exec.Executor) error {
 	}
 	e.PutVars(o.New)
 
-	err = cb.Wait(ctx)
+	err = cb.Wait(ctx.Context)
 	if err != nil {
 		return err
 	}
@@ -100,13 +99,13 @@ type HoldUntil struct {
 	Emits []exec.Var        `json:"emits"`
 }
 
-func (w *HoldUntil) Execute(ctx context.Context, e *exec.Executor) error {
-	err := e.BindVars(ctx, w.Holds...)
+func (w *HoldUntil) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
+	err := e.BindVars(ctx.Context, w.Holds...)
 	if err != nil {
 		return err
 	}
 
-	err = exec.BindArrayVars(e, ctx, w.Waits)
+	err = exec.BindArrayVars(e, ctx.Context, w.Waits)
 	if err != nil {
 		return err
 	}
@@ -131,8 +130,8 @@ type HangUntil struct {
 	Op    exec.Op           `json:"op"`
 }
 
-func (h *HangUntil) Execute(ctx context.Context, e *exec.Executor) error {
-	err := exec.BindArrayVars(e, ctx, h.Waits)
+func (h *HangUntil) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
+	err := exec.BindArrayVars(e, ctx.Context, h.Waits)
 	if err != nil {
 		return err
 	}
@@ -149,8 +148,8 @@ type Broadcast struct {
 	Targets []*exec.SignalVar `json:"targets"`
 }
 
-func (b *Broadcast) Execute(ctx context.Context, e *exec.Executor) error {
-	err := e.BindVars(ctx, b.Source)
+func (b *Broadcast) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
+	err := e.BindVars(ctx.Context, b.Source)
 	if err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-package cdssdk
+package cdsapi
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
 	"gitlink.org.cn/cloudream/common/pkgs/iterator"
+	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
 	"gitlink.org.cn/cloudream/common/utils/http2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -32,9 +33,9 @@ type ObjectUpload struct {
 }
 
 type ObjectUploadInfo struct {
-	UserID       UserID    `json:"userID" binding:"required"`
-	PackageID    PackageID `json:"packageID" binding:"required"`
-	NodeAffinity *NodeID   `json:"nodeAffinity"`
+	UserID       cdssdk.UserID    `json:"userID" binding:"required"`
+	PackageID    cdssdk.PackageID `json:"packageID" binding:"required"`
+	NodeAffinity *cdssdk.NodeID   `json:"nodeAffinity"`
 }
 
 type UploadingObject struct {
@@ -48,8 +49,8 @@ type ObjectUploadResp struct {
 	Uploadeds []UploadedObject `json:"uploadeds"`
 }
 type UploadedObject struct {
-	Object *Object `json:"object"`
-	Error  string  `json:"error"`
+	Object *cdssdk.Object `json:"object"`
+	Error  string         `json:"error"`
 }
 
 func (c *ObjectService) Upload(req ObjectUpload) (*ObjectUploadResp, error) {
@@ -99,11 +100,11 @@ func (c *ObjectService) Upload(req ObjectUpload) (*ObjectUploadResp, error) {
 const ObjectDownloadPath = "/object/download"
 
 type ObjectDownload struct {
-	UserID   UserID   `form:"userID" json:"userID" binding:"required"`
-	ObjectID ObjectID `form:"objectID" json:"objectID" binding:"required"`
-	Offset   int64    `form:"offset" json:"offset,omitempty"`
-	Length   *int64   `form:"length" json:"length,omitempty"`
-	PartSize int64    `form:"partSize" json:"partSize,omitempty"`
+	UserID   cdssdk.UserID   `form:"userID" json:"userID" binding:"required"`
+	ObjectID cdssdk.ObjectID `form:"objectID" json:"objectID" binding:"required"`
+	Offset   int64           `form:"offset" json:"offset,omitempty"`
+	Length   *int64          `form:"length" json:"length,omitempty"`
+	PartSize int64           `form:"partSize" json:"partSize,omitempty"`
 }
 type DownloadingObject struct {
 	Path string
@@ -148,21 +149,21 @@ func (c *ObjectService) Download(req ObjectDownload) (*DownloadingObject, error)
 const ObjectUpdateInfoPath = "/object/updateInfo"
 
 type UpdatingObject struct {
-	ObjectID   ObjectID  `json:"objectID" binding:"required"`
-	UpdateTime time.Time `json:"updateTime" binding:"required"`
+	ObjectID   cdssdk.ObjectID `json:"objectID" binding:"required"`
+	UpdateTime time.Time       `json:"updateTime" binding:"required"`
 }
 
-func (u *UpdatingObject) ApplyTo(obj *Object) {
+func (u *UpdatingObject) ApplyTo(obj *cdssdk.Object) {
 	obj.UpdateTime = u.UpdateTime
 }
 
 type ObjectUpdateInfo struct {
-	UserID    UserID           `json:"userID" binding:"required"`
+	UserID    cdssdk.UserID    `json:"userID" binding:"required"`
 	Updatings []UpdatingObject `json:"updatings" binding:"required"`
 }
 
 type ObjectUpdateInfoResp struct {
-	Successes []ObjectID `json:"successes"`
+	Successes []cdssdk.ObjectID `json:"successes"`
 }
 
 func (c *ObjectService) UpdateInfo(req ObjectUpdateInfo) (*ObjectUpdateInfoResp, error) {
@@ -193,23 +194,23 @@ func (c *ObjectService) UpdateInfo(req ObjectUpdateInfo) (*ObjectUpdateInfoResp,
 const ObjectMovePath = "/object/move"
 
 type MovingObject struct {
-	ObjectID  ObjectID  `json:"objectID" binding:"required"`
-	PackageID PackageID `json:"packageID" binding:"required"`
-	Path      string    `json:"path" binding:"required"`
+	ObjectID  cdssdk.ObjectID  `json:"objectID" binding:"required"`
+	PackageID cdssdk.PackageID `json:"packageID" binding:"required"`
+	Path      string           `json:"path" binding:"required"`
 }
 
-func (m *MovingObject) ApplyTo(obj *Object) {
+func (m *MovingObject) ApplyTo(obj *cdssdk.Object) {
 	obj.PackageID = m.PackageID
 	obj.Path = m.Path
 }
 
 type ObjectMove struct {
-	UserID  UserID         `json:"userID" binding:"required"`
+	UserID  cdssdk.UserID  `json:"userID" binding:"required"`
 	Movings []MovingObject `json:"movings" binding:"required"`
 }
 
 type ObjectMoveResp struct {
-	Successes []ObjectID `json:"successes"`
+	Successes []cdssdk.ObjectID `json:"successes"`
 }
 
 func (c *ObjectService) Move(req ObjectMove) (*ObjectMoveResp, error) {
@@ -240,8 +241,8 @@ func (c *ObjectService) Move(req ObjectMove) (*ObjectMoveResp, error) {
 const ObjectDeletePath = "/object/delete"
 
 type ObjectDelete struct {
-	UserID    UserID     `json:"userID" binding:"required"`
-	ObjectIDs []ObjectID `json:"objectIDs" binding:"required"`
+	UserID    cdssdk.UserID     `json:"userID" binding:"required"`
+	ObjectIDs []cdssdk.ObjectID `json:"objectIDs" binding:"required"`
 }
 
 type ObjectDeleteResp struct{}
@@ -274,11 +275,11 @@ func (c *ObjectService) Delete(req ObjectDelete) error {
 const ObjectGetPackageObjectsPath = "/object/getPackageObjects"
 
 type ObjectGetPackageObjects struct {
-	UserID    UserID    `form:"userID" json:"userID" binding:"required"`
-	PackageID PackageID `form:"packageID" json:"packageID" binding:"required"`
+	UserID    cdssdk.UserID    `form:"userID" json:"userID" binding:"required"`
+	PackageID cdssdk.PackageID `form:"packageID" json:"packageID" binding:"required"`
 }
 type ObjectGetPackageObjectsResp struct {
-	Objects []Object `json:"objects"`
+	Objects []cdssdk.Object `json:"objects"`
 }
 
 func (c *ObjectService) GetPackageObjects(req ObjectGetPackageObjects) (*ObjectGetPackageObjectsResp, error) {

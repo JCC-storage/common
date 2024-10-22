@@ -1,7 +1,6 @@
 package ops
 
 import (
-	"context"
 	"fmt"
 	"io"
 
@@ -17,8 +16,8 @@ type DropStream struct {
 	Input *exec.StreamVar `json:"input"`
 }
 
-func (o *DropStream) Execute(ctx context.Context, e *exec.Executor) error {
-	err := e.BindVars(ctx, o.Input)
+func (o *DropStream) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
+	err := e.BindVars(ctx.Context, o.Input)
 	if err != nil {
 		return err
 	}
