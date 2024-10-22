@@ -183,15 +183,43 @@ type Object struct {
 }
 
 type Node struct {
-	NodeID           NodeID     `db:"NodeID" json:"nodeID"`
-	Name             string     `db:"Name" json:"name"`
-	LocalIP          string     `db:"LocalIP" json:"localIP"`
-	ExternalIP       string     `db:"ExternalIP" json:"externalIP"`
-	LocalGRPCPort    int        `db:"LocalGRPCPort" json:"localGRPCPort"`
-	ExternalGRPCPort int        `db:"ExternalGRPCPort" json:"externalGRPCPort"`
-	LocationID       LocationID `db:"LocationID" json:"locationID"`
-	State            string     `db:"State" json:"state"`
-	LastReportTime   *time.Time `db:"LastReportTime" json:"lastReportTime"`
+	NodeID           NodeID          `gorm:"column:NodeID;type:varchar(255)" json:"nodeID"`
+	Name             string          `gorm:"column:Name;type:varchar(255)" json:"name"`
+	LocalIP          string          `gorm:"column:LocalIP;type:varchar(255)" json:"localIP"`
+	ExternalIP       string          `gorm:"column:ExternalIP;type:varchar(255)" json:"externalIP"`
+	LocalGRPCPort    int             `gorm:"column:LocalGRPCPort;type:int" json:"localGRPCPort"`
+	ExternalGRPCPort int             `gorm:"column:ExternalGRPCPort;type:int" json:"externalGRPCPort"`
+	LocationID       LocationID      `gorm:"column:LocationID;type:varchar(255)" json:"locationID"`
+	State            string          `gorm:"column:State;type:varchar(255)" json:"state"`
+	LastReportTime   *time.Time      `gorm:"column:LastReportTime;type:timestamp" json:"lastReportTime"`
+	Address          NodeAddressInfo `gorm:"column:Address;type:json;serializer:union" json:"address"`
+}
+
+type NodeAddressInfo interface {
+}
+
+var NodeAddressUnion = types.NewTypeUnion[NodeAddressInfo](
+	(*GRPCAddressInfo)(nil),
+	(*HttpAddressInfo)(nil),
+)
+
+var _ = serder.UseTypeUnionInternallyTagged(&NodeAddressUnion, "type")
+
+type GRPCAddressInfo struct {
+	serder.Metadata  `union:"GRPC"`
+	Type             string `json:"type"`
+	LocalIP          string `json:"localIP"`
+	ExternalIP       string `json:"externalIP"`
+	LocalGRPCPort    int    `json:"localGRPCPort"`
+	ExternalGRPCPort int    `json:"externalGRPCPort"`
+}
+
+type HttpAddressInfo struct {
+	serder.Metadata `union:"HTTP"`
+	Type            string `json:"type"`
+	LocalIP         string `json:"localIP"`
+	ExternalIP      string `json:"externalIP"`
+	Port            int    `json:"port"`
 }
 
 func (n Node) String() string {
