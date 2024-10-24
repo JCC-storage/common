@@ -2,6 +2,7 @@ package mq
 
 import (
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/streadway/amqp"
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
 	"gitlink.org.cn/cloudream/common/pkgs/logger"
-	myreflect "gitlink.org.cn/cloudream/common/utils/reflect"
+	"gitlink.org.cn/cloudream/common/utils/reflect2"
 )
 
 const (
@@ -22,12 +23,12 @@ const (
 var ErrWaitResponseTimeout = fmt.Errorf("wait response timeout")
 
 type CodeMessageError struct {
-	code    string
-	message string
+	Code    string
+	Message string
 }
 
 func (e *CodeMessageError) Error() string {
-	return fmt.Sprintf("code: %s, message: %s", e.code, e.message)
+	return fmt.Sprintf("code: %s, message: %s", e.Code, e.Message)
 }
 
 type SendOption struct {
@@ -70,7 +71,14 @@ type RabbitMQTransport struct {
 }
 
 func NewRabbitMQTransport(url string, key string, exchange string) (*RabbitMQTransport, error) {
-	connection, err := amqp.Dial(url)
+	config := amqp.Config{
+		Dial: func(network, addr string) (net.Conn, error) {
+			return net.DialTimeout(network, addr, 60*time.Second) // 设置连接超时时间为 60 秒
+		},
+	}
+	connection, err := amqp.DialConfig(url, config)
+
+	//connection, err := amqp.Dial(url)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to %s: %w", url, err)
 	}
@@ -315,16 +323,16 @@ func Request[TSvc any, TReq MessageBody, TResp MessageBody](_ func(svc TSvc, msg
 	errCode, errMsg := resp.GetCodeMessage()
 	if errCode != errorcode.OK {
 		return defRet, &CodeMessageError{
-			code:    errCode,
-			message: errMsg,
+			Code:    errCode,
+			Message: errMsg,
 		}
 	}
 
 	respBody, ok := resp.Body.(TResp)
 	if !ok {
 		return defRet, fmt.Errorf("expect a %s body, but got %s",
-			myreflect.ElemTypeOf[TResp]().Name(),
-			myreflect.TypeOfValue(resp.Body).Name())
+			reflect2.ElemTypeOf[TResp]().Name(),
+			reflect2.TypeOfValue(resp.Body).Name())
 	}
 
 	return respBody, nil

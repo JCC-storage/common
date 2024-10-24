@@ -2,6 +2,7 @@ package mq
 
 import (
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/streadway/amqp"
@@ -77,7 +78,14 @@ type RabbitMQServer struct {
 }
 
 func NewRabbitMQServer(url string, queueName string, onMessage MessageHandlerFn) (*RabbitMQServer, error) {
-	connection, err := amqp.Dial(url)
+	config := amqp.Config{
+		Dial: func(network, addr string) (net.Conn, error) {
+			return net.DialTimeout(network, addr, 60*time.Second) // 设置连接超时时间为 60 秒
+		},
+	}
+	connection, err := amqp.DialConfig(url, config)
+
+	//connection, err := amqp.Dial(url)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to %s: %w", url, err)
 	}

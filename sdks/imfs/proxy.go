@@ -5,34 +5,34 @@ import (
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
 	schsdk "gitlink.org.cn/cloudream/common/sdks/scheduler"
-	myhttp "gitlink.org.cn/cloudream/common/utils/http"
+	"gitlink.org.cn/cloudream/common/utils/http2"
 )
 
-const ProxyGetJobIDPath = "/proxy/getJobID"
+const ProxyGetServiceInfoPath = "/proxy/getServiceInfo"
 
-type ProxyGetJobID struct {
+type ProxyGetServiceInfo struct {
 	ServiceName string          `json:"serviceName"`
 	JobSetID    schsdk.JobSetID `json:"jobSetID"`
 }
 
-type ProxyGetJobIDResp struct {
+type ProxyGetServiceInfoResp struct {
 	LocalJobID string `json:"localJobID"`
 }
 
-func (c *Client) ProxyGetJobID(req ProxyGetJobID) (*ProxyGetJobIDResp, error) {
-	url, err := url.JoinPath(c.baseURL, ProxyGetJobIDPath)
+func (c *Client) ProxyGetServiceInfo(req ProxyGetServiceInfo) (*ProxyGetServiceInfoResp, error) {
+	url, err := url.JoinPath(c.baseURL, ProxyGetServiceInfoPath)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+	resp, err := http2.GetForm(url, http2.RequestParam{
 		Query: req,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	jsonResp, err := myhttp.ParseJSONResponse[response[ProxyGetJobIDResp]](resp)
+	jsonResp, err := http2.ParseJSONResponse[response[ProxyGetServiceInfoResp]](resp)
 	if err != nil {
 		return nil, err
 	}

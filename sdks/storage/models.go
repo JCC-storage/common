@@ -37,6 +37,7 @@ var RedundancyUnion = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTyp
 	(*NoneRedundancy)(nil),
 	(*RepRedundancy)(nil),
 	(*ECRedundancy)(nil),
+	(*LRCRedundancy)(nil),
 )), "type")
 
 type NoneRedundancy struct {
@@ -71,7 +72,7 @@ func (b *RepRedundancy) Value() (driver.Value, error) {
 	return serder.ObjectToJSONEx[Redundancy](b)
 }
 
-var DefaultECRedundancy = *NewECRedundancy(3, 5, 1024*1024*5)
+var DefaultECRedundancy = *NewECRedundancy(3, 6, 1024*1024*5)
 
 type ECRedundancy struct {
 	serder.Metadata `union:"ec"`
@@ -91,6 +92,71 @@ func NewECRedundancy(k int, n int, chunkSize int) *ECRedundancy {
 }
 func (b *ECRedundancy) Value() (driver.Value, error) {
 	return serder.ObjectToJSONEx[Redundancy](b)
+}
+
+func (b *ECRedundancy) StripSize() int64 {
+	return int64(b.ChunkSize) * int64(b.K)
+}
+
+var DefaultLRCRedundancy = *NewLRCRedundancy(2, 4, []int{2}, 1024*1024*5)
+
+type LRCRedundancy struct {
+	serder.Metadata `union:"lrc"`
+	Type            string `json:"type"`
+	K               int    `json:"k"`
+	N               int    `json:"n"`
+	Groups          []int  `json:"groups"`
+	ChunkSize       int    `json:"chunkSize"`
+}
+
+func NewLRCRedundancy(k int, n int, groups []int, chunkSize int) *LRCRedundancy {
+	return &LRCRedundancy{
+		Type:      "lrc",
+		K:         k,
+		N:         n,
+		Groups:    groups,
+		ChunkSize: chunkSize,
+	}
+}
+func (b *LRCRedundancy) Value() (driver.Value, error) {
+	return serder.ObjectToJSONEx[Redundancy](b)
+}
+
+// 判断指定块属于哪个组。如果都不属于，则返回-1。
+func (b *LRCRedundancy) FindGroup(idx int) int {
+	if idx >= b.N-len(b.Groups) {
+		return idx - (b.N - len(b.Groups))
+	}
+
+	for i, group := range b.Groups {
+		if idx < group {
+			return i
+		}
+		idx -= group
+	}
+
+	return -1
+}
+
+// M = N - len(Groups)，即数据块+校验块的总数，不包括组校验块。
+func (b *LRCRedundancy) M() int {
+	return b.N - len(b.Groups)
+}
+
+func (b *LRCRedundancy) GetGroupElements(grp int) []int {
+	var idxes []int
+
+	grpStart := 0
+	for i := 0; i < grp; i++ {
+		grpStart += b.Groups[i]
+	}
+
+	for i := 0; i < b.Groups[grp]; i++ {
+		idxes = append(idxes, grpStart+i)
+	}
+
+	idxes = append(idxes, b.N-len(b.Groups)+grp)
+	return idxes
 }
 
 const (
@@ -117,21 +183,53 @@ type Object struct {
 }
 
 type Node struct {
-	NodeID           NodeID     `db:"NodeID" json:"nodeID"`
-	Name             string     `db:"Name" json:"name"`
-	LocalIP          string     `db:"LocalIP" json:"localIP"`
-	ExternalIP       string     `db:"ExternalIP" json:"externalIP"`
-	LocalGRPCPort    int        `db:"LocalGRPCPort" json:"localGRPCPort"`
-	ExternalGRPCPort int        `db:"ExternalGRPCPort" json:"externalGRPCPort"`
-	LocationID       LocationID `db:"LocationID" json:"locationID"`
-	State            string     `db:"State" json:"state"`
-	LastReportTime   *time.Time `db:"LastReportTime" json:"lastReportTime"`
+	NodeID           NodeID          `gorm:"column:NodeID;type:varchar(255)" json:"nodeID"`
+	Name             string          `gorm:"column:Name;type:varchar(255)" json:"name"`
+	LocalIP          string          `gorm:"column:LocalIP;type:varchar(255)" json:"localIP"`
+	ExternalIP       string          `gorm:"column:ExternalIP;type:varchar(255)" json:"externalIP"`
+	LocalGRPCPort    int             `gorm:"column:LocalGRPCPort;type:int" json:"localGRPCPort"`
+	ExternalGRPCPort int             `gorm:"column:ExternalGRPCPort;type:int" json:"externalGRPCPort"`
+	LocationID       LocationID      `gorm:"column:LocationID;type:varchar(255)" json:"locationID"`
+	State            string          `gorm:"column:State;type:varchar(255)" json:"state"`
+	LastReportTime   *time.Time      `gorm:"column:LastReportTime;type:timestamp" json:"lastReportTime"`
+	Address          NodeAddressInfo `gorm:"column:Address;type:json;serializer:union" json:"address"`
+}
+
+type NodeAddressInfo interface {
+}
+
+var NodeAddressUnion = types.NewTypeUnion[NodeAddressInfo](
+	(*GRPCAddressInfo)(nil),
+	(*HttpAddressInfo)(nil),
+)
+
+var _ = serder.UseTypeUnionInternallyTagged(&NodeAddressUnion, "type")
+
+type GRPCAddressInfo struct {
+	serder.Metadata  `union:"GRPC"`
+	Type             string `json:"type"`
+	LocalIP          string `json:"localIP"`
+	ExternalIP       string `json:"externalIP"`
+	LocalGRPCPort    int    `json:"localGRPCPort"`
+	ExternalGRPCPort int    `json:"externalGRPCPort"`
+}
+
+type HttpAddressInfo struct {
+	serder.Metadata `union:"HTTP"`
+	Type            string `json:"type"`
+	LocalIP         string `json:"localIP"`
+	ExternalIP      string `json:"externalIP"`
+	Port            int    `json:"port"`
+}
+
+func (n Node) String() string {
+	return fmt.Sprintf("%v(%v)", n.Name, n.NodeID)
 }
 
 type PinnedObject struct {
-	ObjectID   ObjectID  `db:"ObjectID" json:"objectID"`
-	NodeID     NodeID    `db:"NodeID" json:"nodeID"`
-	CreateTime time.Time `db:"CreateTime" json:"createTime"`
+	ObjectID   ObjectID  `gorm:"column:ObjectID; primaryKey" json:"objectID"`
+	StorageID  StorageID `gorm:"column:StorageID; primaryKey" json:"storageID"`
+	CreateTime time.Time `gorm:"column:CreateTime" json:"createTime"`
 }
 
 type Bucket struct {

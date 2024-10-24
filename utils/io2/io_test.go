@@ -70,7 +70,7 @@ func Test_Join(t *testing.T) {
 
 func Test_Length(t *testing.T) {
 	Convey("非强制，长度刚好", t, func() {
-		str := Length(bytes.NewReader([]byte{1, 2, 3}), 3)
+		str := Length(io.NopCloser(bytes.NewReader([]byte{1, 2, 3})), 3)
 		buf := make([]byte, 9)
 		rd, err := io.ReadFull(str, buf)
 		So(err, ShouldEqual, io.ErrUnexpectedEOF)
@@ -78,7 +78,7 @@ func Test_Length(t *testing.T) {
 	})
 
 	Convey("非强制，长度小于设定", t, func() {
-		str := Length(bytes.NewReader([]byte{1, 2}), 3)
+		str := Length(io.NopCloser(bytes.NewBuffer([]byte{1, 2})), 3)
 
 		buf := make([]byte, 2)
 		rd, err := io.ReadFull(str, buf)
@@ -92,7 +92,7 @@ func Test_Length(t *testing.T) {
 	})
 
 	Convey("非强制，长度大于设定", t, func() {
-		str := Length(bytes.NewReader([]byte{1, 2, 3, 4}), 3)
+		str := Length(io.NopCloser(bytes.NewReader([]byte{1, 2, 3, 4})), 3)
 
 		buf := make([]byte, 3)
 		rd, err := io.ReadFull(str, buf)
@@ -106,7 +106,7 @@ func Test_Length(t *testing.T) {
 	})
 
 	Convey("强制，长度小于设定", t, func() {
-		str := MustLength(bytes.NewReader([]byte{1, 2}), 3)
+		str := MustLength(io.NopCloser(bytes.NewReader([]byte{1, 2})), 3)
 
 		buf := make([]byte, 2)
 		_, err := io.ReadFull(str, buf)

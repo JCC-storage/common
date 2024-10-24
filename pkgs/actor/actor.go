@@ -126,7 +126,7 @@ func WaitValue[T any](ctx context.Context, c *CommandChannel, cmd func() (T, err
 		fut.SetComplete(val, err)
 	})
 
-	return fut.WaitValue(ctx)
+	return fut.Wait(ctx)
 }
 
 func WaitValue2[T1 any, T2 any](ctx context.Context, c *CommandChannel, cmd func() (T1, T2, error)) (T1, T2, error) {
@@ -137,5 +137,5 @@ func WaitValue2[T1 any, T2 any](ctx context.Context, c *CommandChannel, cmd func
 		fut.SetComplete(val1, val2, err)
 	})
 
-	return fut.WaitValue(ctx)
+	return fut.Wait(ctx)
 }

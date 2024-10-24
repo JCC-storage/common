@@ -1,122 +1,47 @@
 package cdssdk
 
 import (
-	"fmt"
-	"net/url"
-	"strings"
-
-	"gitlink.org.cn/cloudream/common/consts/errorcode"
-	myhttp "gitlink.org.cn/cloudream/common/utils/http"
+	"gitlink.org.cn/cloudream/common/pkgs/types"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
-type StorageLoadPackageReq struct {
-	UserID    UserID    `json:"userID"`
-	PackageID PackageID `json:"packageID"`
-	StorageID StorageID `json:"storageID"`
-}
-type StorageLoadPackageResp struct {
-	FullPath string `json:"fullPath"`
+// 存储服务地址
+type StorageAddress interface {
+	GetType() string
+	// 输出调试用的字符串，不要包含敏感信息
+	String() string
 }
 
-func (c *Client) StorageLoadPackage(req StorageLoadPackageReq) (*StorageLoadPackageResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/storage/loadPackage")
-	if err != nil {
-		return nil, err
-	}
+var _ = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[StorageAddress](
+	(*LocalStorageAddress)(nil),
+)), "type")
 
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
-		Body: req,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	codeResp, err := ParseJSONResponse[response[StorageLoadPackageResp]](resp)
-	if err != nil {
-		return nil, err
-	}
-
-	if codeResp.Code == errorcode.OK {
-		return &codeResp.Data, nil
-	}
-
-	return nil, codeResp.ToError()
+type LocalStorageAddress struct {
+	serder.Metadata `union:"Local"`
 }
 
-type StorageCreatePackageReq struct {
-	UserID    UserID    `json:"userID"`
-	StorageID StorageID `json:"storageID"`
-	Path      string    `json:"path"`
-	BucketID  BucketID  `json:"bucketID"`
-	Name      string    `json:"name"`
+func (a *LocalStorageAddress) GetType() string {
+	return "Local"
 }
 
-type StorageCreatePackageResp struct {
-	PackageID PackageID `json:"packageID"`
+func (a *LocalStorageAddress) String() string {
+	return "Local"
 }
 
-func (c *Client) StorageCreatePackage(req StorageCreatePackageReq) (*StorageCreatePackageResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/storage/createPackage")
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
-		Body: req,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
-		var codeResp response[StorageCreatePackageResp]
-		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
-			return nil, fmt.Errorf("parsing response: %w", err)
-		}
-
-		if codeResp.Code == errorcode.OK {
-			return &codeResp.Data, nil
-		}
-
-		return nil, codeResp.ToError()
-	}
-
-	return nil, fmt.Errorf("unknow response content type: %s", contType)
+type Storage struct {
+	StorageID StorageID `json:"storageID" gorm:"column:StorageID; primaryKey; autoIncrement;"`
+	Name      string    `json:"name" gorm:"column:Name; not null"`
+	// 存储服务的地址，包含鉴权所需数据
+	Address StorageAddress `json:"address" gorm:"column:Address; type:json; not null; serializer:union"`
+	// 存储服务拥有的特别功能
+	Features []StorageFeature `json:"features" gorm:"column:Features; type:json; serializer:union"`
 }
 
-type StorageGetInfoReq struct {
-	UserID    UserID    `json:"userID"`
-	StorageID StorageID `json:"storageID"`
-}
-type StorageGetInfoResp struct {
-	Name      string `json:"name"`
-	NodeID    NodeID `json:"nodeID"`
-	Directory string `json:"directory"`
-}
-
-func (c *Client) StorageGetInfo(req StorageGetInfoReq) (*StorageGetInfoResp, error) {
-	url, err := url.JoinPath(c.baseURL, "/storage/getInfo")
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
-		Query: req,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	codeResp, err := ParseJSONResponse[response[StorageGetInfoResp]](resp)
-	if err != nil {
-		return nil, err
-	}
-
-	if codeResp.Code == errorcode.OK {
-		return &codeResp.Data, nil
-	}
-
-	return nil, codeResp.ToError()
+// 共享存储服务的配置数据
+type SharedStorage struct {
+	StorageID StorageID `json:"storageID" gorm:"column:StorageID; primaryKey"`
+	// 调度文件时保存文件的根路径
+	LoadBase string `json:"loadBase" gorm:"column:LoadBase; not null"`
+	// 回源数据时数据存放位置的根路径
+	DataReturnBase string `json:"dataReturnBase" gorm:"column:DataReturnBase; not null"`
 }

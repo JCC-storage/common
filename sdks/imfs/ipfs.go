@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	myhttp "gitlink.org.cn/cloudream/common/utils/http"
+	"gitlink.org.cn/cloudream/common/utils/http2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -24,7 +24,7 @@ func (c *Client) IPFSRead(req IPFSRead) (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	resp, err := myhttp.GetForm(url, myhttp.RequestParam{
+	resp, err := http2.GetForm(url, http2.RequestParam{
 		Query: req,
 	})
 	if err != nil {
@@ -33,7 +33,7 @@ func (c *Client) IPFSRead(req IPFSRead) (io.ReadCloser, error) {
 
 	contType := resp.Header.Get("Content-Type")
 
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+	if strings.Contains(contType, http2.ContentTypeJSON) {
 		var codeResp response[any]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
@@ -42,7 +42,7 @@ func (c *Client) IPFSRead(req IPFSRead) (io.ReadCloser, error) {
 		return nil, codeResp.ToError()
 	}
 
-	if strings.Contains(contType, myhttp.ContentTypeOctetStream) {
+	if strings.Contains(contType, http2.ContentTypeOctetStream) {
 		return resp.Body, nil
 	}
 

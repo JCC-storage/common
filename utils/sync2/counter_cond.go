@@ -32,7 +32,9 @@ func (c *CounterCond) Wait() bool {
 }
 
 func (c *CounterCond) Release() {
+	c.cond.L.Lock()
 	c.count++
+	c.cond.L.Unlock()
 	c.cond.Signal()
 }
 

@@ -7,7 +7,7 @@ import (
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
 	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
-	myhttp "gitlink.org.cn/cloudream/common/utils/http"
+	"gitlink.org.cn/cloudream/common/utils/http2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -26,7 +26,7 @@ func (c *Client) JobSetSumbit(req JobSetSumbitReq) (*JobSetSumbitResp, error) {
 		return nil, err
 	}
 
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	resp, err := http2.PostJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
@@ -34,7 +34,7 @@ func (c *Client) JobSetSumbit(req JobSetSumbitReq) (*JobSetSumbitResp, error) {
 	}
 
 	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+	if strings.Contains(contType, http2.ContentTypeJSON) {
 		var codeResp response[JobSetSumbitResp]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)
@@ -63,7 +63,7 @@ func (c *Client) JobSetLocalFileUploaded(req JobSetLocalFileUploadedReq) error {
 		return err
 	}
 
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	resp, err := http2.PostJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
@@ -71,7 +71,7 @@ func (c *Client) JobSetLocalFileUploaded(req JobSetLocalFileUploadedReq) error {
 	}
 
 	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+	if strings.Contains(contType, http2.ContentTypeJSON) {
 		var codeResp response[any]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return fmt.Errorf("parsing response: %w", err)
@@ -101,7 +101,7 @@ func (c *Client) JobSetGetServiceList(req JobSetGetServiceListReq) (*JobSetGetSe
 		return nil, err
 	}
 
-	resp, err := myhttp.GetJSON(url, myhttp.RequestParam{
+	resp, err := http2.GetJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
@@ -109,7 +109,7 @@ func (c *Client) JobSetGetServiceList(req JobSetGetServiceListReq) (*JobSetGetSe
 	}
 
 	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+	if strings.Contains(contType, http2.ContentTypeJSON) {
 		var codeResp response[JobSetGetServiceListResp]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
 			return nil, fmt.Errorf("parsing response: %w", err)

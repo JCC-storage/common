@@ -8,7 +8,7 @@ import (
 
 	"gitlink.org.cn/cloudream/common/sdks"
 	schsdk "gitlink.org.cn/cloudream/common/sdks/scheduler"
-	myhttp "gitlink.org.cn/cloudream/common/utils/http"
+	"gitlink.org.cn/cloudream/common/utils/http2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -31,7 +31,7 @@ func (c *Client) UploadImage(req UploadImageReq) (*UploadImageResp, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	resp, err := http2.PostJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
@@ -39,7 +39,7 @@ func (c *Client) UploadImage(req UploadImageReq) (*UploadImageResp, error) {
 	}
 
 	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, myhttp.ContentTypeJSON) {
+	if strings.Contains(contType, http2.ContentTypeJSON) {
 
 		var codeResp response[UploadImageResp]
 		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
@@ -71,12 +71,12 @@ func (c *Client) GetParticipants() (*GetParticipantsResp, error) {
 	if err != nil {
 		return nil, err
 	}
-	rawResp, err := myhttp.GetJSON(url, myhttp.RequestParam{})
+	rawResp, err := http2.GetJSON(url, http2.RequestParam{})
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := myhttp.ParseJSONResponse[Resp](rawResp)
+	resp, err := http2.ParseJSONResponse[Resp](rawResp)
 	if err != nil {
 		return nil, err
 	}
@@ -112,14 +112,14 @@ func (c *Client) GetImageList(req GetImageListReq) (*GetImageListResp, error) {
 	if err != nil {
 		return nil, err
 	}
-	rawResp, err := myhttp.GetJSON(url, myhttp.RequestParam{
+	rawResp, err := http2.GetJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := myhttp.ParseJSONResponse[Resp](rawResp)
+	resp, err := http2.ParseJSONResponse[Resp](rawResp)
 	if err != nil {
 		return nil, err
 	}
@@ -148,14 +148,14 @@ func (c *Client) DeleteImage(req DeleteImageReq) error {
 	if err != nil {
 		return err
 	}
-	rawResp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	rawResp, err := http2.PostJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
 		return err
 	}
 
-	resp, err := myhttp.ParseJSONResponse[Resp](rawResp)
+	resp, err := http2.ParseJSONResponse[Resp](rawResp)
 	if err != nil {
 		return err
 	}
@@ -191,14 +191,14 @@ func (c *Client) SubmitTask(req SubmitTaskReq) (*SubmitTaskResp, error) {
 	if err != nil {
 		return nil, err
 	}
-	rawResp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	rawResp, err := http2.PostJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := myhttp.ParseJSONResponse[Resp](rawResp)
+	resp, err := http2.ParseJSONResponse[Resp](rawResp)
 	if err != nil {
 		return nil, err
 	}
@@ -241,14 +241,14 @@ func (c *Client) GetTask(req GetTaskReq) (*GetTaskResp, error) {
 	if err != nil {
 		return nil, err
 	}
-	rawResp, err := myhttp.GetJSON(url, myhttp.RequestParam{
+	rawResp, err := http2.GetJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := myhttp.ParseJSONResponse[Resp](rawResp)
+	resp, err := http2.ParseJSONResponse[Resp](rawResp)
 	if err != nil {
 		return nil, err
 	}
@@ -280,14 +280,14 @@ func (c *Client) DeleteTask(req DeleteTaskReq) error {
 	if err != nil {
 		return err
 	}
-	rawResp, err := myhttp.PostJSON(url, myhttp.RequestParam{
+	rawResp, err := http2.PostJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
 		return err
 	}
 
-	resp, err := myhttp.ParseJSONResponse[Resp](rawResp)
+	resp, err := http2.ParseJSONResponse[Resp](rawResp)
 	if err != nil {
 		return err
 	}
@@ -318,14 +318,14 @@ func (c *Client) GetResourceSpecs(req GetImageListReq) (*GetResourceSpecsResp, e
 	if err != nil {
 		return nil, err
 	}
-	rawResp, err := myhttp.GetJSON(url, myhttp.RequestParam{
+	rawResp, err := http2.GetJSON(url, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := myhttp.ParseJSONResponse[Resp](rawResp)
+	resp, err := http2.ParseJSONResponse[Resp](rawResp)
 	if err != nil {
 		return nil, err
 	}

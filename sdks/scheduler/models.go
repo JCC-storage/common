@@ -7,13 +7,20 @@ import (
 )
 
 const (
-	JobTypeNormal   = "Normal"
-	JobTypeResource = "Resource"
+	JobTypeNormal         = "Normal"
+	JobTypeResource       = "Resource"
+	JobTypeInstance       = "Instance"
+	JobTypeFinetuning     = "Finetuning"
+	JobTypeDataPreprocess = "DataPreprocess"
 
 	FileInfoTypePackage   = "Package"
 	FileInfoTypeLocalFile = "LocalFile"
 	FileInfoTypeResource  = "Resource"
 	FileInfoTypeImage     = "Image"
+
+	MemoryUtilization = "MemoryUtilization"
+	GPUUtilization    = "GPUUtilization"
+	CPUUtilization    = "CPUUtilization"
 )
 
 type JobID string
@@ -25,6 +32,12 @@ type ImageID int64
 // 计算中心ID
 type CCID int64
 
+type ModelID string
+type ModelName string
+type ECSInstanceID string
+type NodeID int64
+type Address string
+
 type JobSetInfo struct {
 	Jobs []JobInfo `json:"jobs"`
 }
@@ -35,7 +48,12 @@ type JobInfo interface {
 
 var JobInfoTypeUnion = types.NewTypeUnion[JobInfo](
 	(*NormalJobInfo)(nil),
-	(*ResourceJobInfo)(nil),
+	(*DataReturnJobInfo)(nil),
+	(*MultiInstanceJobInfo)(nil),
+	(*InstanceJobInfo)(nil),
+	(*UpdateMultiInstanceJobInfo)(nil),
+	(*FinetuningJobInfo)(nil),
+	(*DataPreprocessJobInfo)(nil),
 )
 var _ = serder.UseTypeUnionInternallyTagged(&JobInfoTypeUnion, "type")
 
@@ -50,6 +68,30 @@ func (i *JobInfoBase) GetLocalJobID() string {
 type NormalJobInfo struct {
 	serder.Metadata `union:"Normal"`
 	JobInfoBase
+	Type         string           `json:"type"`
+	Files        JobFilesInfo     `json:"files"`
+	Runtime      JobRuntimeInfo   `json:"runtime"`
+	Resources    JobResourcesInfo `json:"resources"`
+	Services     JobServicesInfo  `json:"services"`
+	ModelJobInfo ModelJobInfo     `json:"modelJobInfo"`
+}
+
+// FinetuningJobInfo 模型微调
+type FinetuningJobInfo struct {
+	serder.Metadata `union:"Finetuning"`
+	JobInfoBase
+	Type         string           `json:"type"`
+	Files        JobFilesInfo     `json:"files"`
+	Runtime      JobRuntimeInfo   `json:"runtime"`
+	Resources    JobResourcesInfo `json:"resources"`
+	Services     JobServicesInfo  `json:"services"`
+	ModelJobInfo ModelJobInfo     `json:"modelJobInfo"`
+}
+
+// DataPreprocessJobInfo 数据预处理
+type DataPreprocessJobInfo struct {
+	serder.Metadata `union:"DataPreprocess"`
+	JobInfoBase
 	Type      string           `json:"type"`
 	Files     JobFilesInfo     `json:"files"`
 	Runtime   JobRuntimeInfo   `json:"runtime"`
@@ -57,12 +99,55 @@ type NormalJobInfo struct {
 	Services  JobServicesInfo  `json:"services"`
 }
 
-type ResourceJobInfo struct {
-	serder.Metadata `union:"Resource"`
+type DataReturnJobInfo struct {
+	serder.Metadata `union:"DataReturn"`
 	JobInfoBase
 	Type             string          `json:"type"`
 	BucketID         cdssdk.BucketID `json:"bucketID"`
 	TargetLocalJobID string          `json:"targetLocalJobID"`
+}
+
+// MultiInstanceJobInfo 多实例(推理任务)
+type MultiInstanceJobInfo struct {
+	serder.Metadata `union:"MultiInstance"`
+	JobInfoBase
+	Type         string           `json:"type"`
+	Files        JobFilesInfo     `json:"files"`
+	Runtime      JobRuntimeInfo   `json:"runtime"`
+	Resources    JobResourcesInfo `json:"resources"`
+	ModelJobInfo ModelJobInfo     `json:"modelJobInfo"`
+}
+
+// UpdateMultiInstanceJobInfo 更新模型
+type UpdateMultiInstanceJobInfo struct {
+	serder.Metadata `union:"UpdateModel"`
+	JobInfoBase
+	Type                  string         `json:"type"`
+	Files                 JobFilesInfo   `json:"files"`
+	Runtime               JobRuntimeInfo `json:"runtime"`
+	MultiInstanceJobSetID JobSetID       `json:"multiInstanceJobSetID"`
+	UpdateType            string         `json:"updateType"`
+	SubJobs               []JobID        `json:"subJobs"`
+	Operate               string         `json:"operate"`
+}
+
+type ModelJobInfo struct {
+	Type            string    `json:"type"`
+	ModelID         ModelID   `json:"modelID"`
+	CustomModelName ModelName `json:"customModelName"`
+	Command         string    `json:"command"`
+}
+
+// InstanceJobInfo 单实例(推理任务)
+type InstanceJobInfo struct {
+	serder.Metadata `union:"Instance"`
+	JobInfoBase
+	Type         string           `json:"type"`
+	LocalJobID   string           `json:"multiInstJobID"`
+	Files        JobFilesInfo     `json:"files"`
+	Runtime      JobRuntimeInfo   `json:"runtime"`
+	Resources    JobResourcesInfo `json:"resources"`
+	ModelJobInfo ModelJobInfo     `json:"modelJobInfo"`
 }
 
 type JobFilesInfo struct {
@@ -78,7 +163,7 @@ type JobFileInfo interface {
 var FileInfoTypeUnion = types.NewTypeUnion[JobFileInfo](
 	(*PackageJobFileInfo)(nil),
 	(*LocalJobFileInfo)(nil),
-	(*ResourceJobFileInfo)(nil),
+	(*DataReturnJobFileInfo)(nil),
 	(*ImageJobFileInfo)(nil),
 )
 var _ = serder.UseTypeUnionInternallyTagged(&FileInfoTypeUnion, "type")
@@ -101,11 +186,11 @@ type LocalJobFileInfo struct {
 	LocalPath string `json:"localPath"`
 }
 
-type ResourceJobFileInfo struct {
-	serder.Metadata `union:"Resource"`
+type DataReturnJobFileInfo struct {
+	serder.Metadata `union:"DataReturn"`
 	JobFileInfoBase
-	Type               string `json:"type"`
-	ResourceLocalJobID string `json:"resourceLocalJobID"`
+	Type                 string `json:"type"`
+	DataReturnLocalJobID string `json:"dataReturnLocalJobID"`
 }
 
 type ImageJobFileInfo struct {
@@ -140,6 +225,10 @@ type JobSetFilesUploadScheme struct {
 	LocalFileSchemes []LocalFileUploadScheme `json:"localFileUploadSchemes"`
 }
 
+type JobFilesUploadScheme struct {
+	LocalFileSchemes []LocalFileUploadScheme `json:"localFileUploadSchemes"`
+}
+
 type LocalFileUploadScheme struct {
 	LocalPath         string         `json:"localPath"`
 	UploadToCDSNodeID *cdssdk.NodeID `json:"uploadToCDSNodeID"`
@@ -159,4 +248,60 @@ type JobSetServiceInfo struct {
 	Port       int64          `json:"port"`
 	CDSNodeID  *cdssdk.NodeID `json:"cdsNodeID"`
 	LocalJobID string         `json:"localJobID"`
+}
+
+type Bootstrap interface {
+	GetBootstrapType() string
+}
+
+type DirectBootstrap struct {
+	serder.Metadata `union:"Direct"`
+	Type            string `json:"type"`
+}
+
+type NoEnvBootstrap struct {
+	serder.Metadata `union:"NoEnv"`
+	Type            string           `json:"type"`
+	ScriptPackageID cdssdk.PackageID `json:"scriptPackageID"`
+	ScriptFileName  string           `json:"scriptFileName"`
+}
+
+var BootstrapTypeUnion = types.NewTypeUnion[Bootstrap](
+	(*DirectBootstrap)(nil),
+	(*NoEnvBootstrap)(nil),
+)
+
+var _ = serder.UseTypeUnionInternallyTagged(&BootstrapTypeUnion, "type")
+
+func (b *DirectBootstrap) GetBootstrapType() string {
+	return b.Type
+}
+
+func (b *NoEnvBootstrap) GetBootstrapType() string {
+	return b.Type
+}
+
+const (
+	JobDataInEnv     = "SCH_DATA_IN"
+	JobDataOutEnv    = "SCH_DATA_OUT"
+	FinetuningOutEnv = "FINETUNING_OUT"
+	AccessPath       = "ACCESS_PATH"
+)
+
+type Rclone struct {
+	CDSRcloneID       string `json:"cds_rcloneID"`
+	CDSRcloneConfigID string `json:"cds_rcloneConfigID"`
+}
+
+type InferencePlatform struct {
+	PlatformName        string `json:"platformName"`
+	ApiBaseUrl          string `json:"apiBaseUrl"`
+	ApiKey              string `json:"apiKey"`
+	ApiProxy            string `json:"apiProxy"`
+	LlmModel            string `json:"llmModel"`
+	EmbedModel          string `json:"embedModel"`
+	ChunkMaxLength      string `json:"chunkMaxLength"`
+	StartChunkThreshold string `json:"startChunkThreshold"`
+	SimilarityThreshold string `json:"similarityThreshold"`
+	EntriesPerFile      string `json:"entriesPerFile"`
 }
