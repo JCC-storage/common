@@ -227,9 +227,9 @@ func (n Node) String() string {
 }
 
 type PinnedObject struct {
-	ObjectID   ObjectID  `db:"ObjectID" json:"objectID"`
-	NodeID     NodeID    `db:"NodeID" json:"nodeID"`
-	CreateTime time.Time `db:"CreateTime" json:"createTime"`
+	ObjectID   ObjectID  `gorm:"column:ObjectID; primaryKey" json:"objectID"`
+	StorageID  StorageID `gorm:"column:StorageID; primaryKey" json:"storageID"`
+	CreateTime time.Time `gorm:"column:CreateTime" json:"createTime"`
 }
 
 type Bucket struct {
@@ -270,45 +270,4 @@ type CodeError struct {
 
 func (e *CodeError) Error() string {
 	return fmt.Sprintf("code: %s, message: %s", e.Code, e.Message)
-}
-
-type StorageAddress interface {
-	GetType() string
-	// 输出调试用的字符串，不要包含敏感信息
-	String() string
-}
-
-type Feature interface {
-	GetType() string
-}
-
-type Storage struct {
-	StorageID StorageID `json:"storageID" gorm:"column:StorageID; primaryKey; autoIncrement;"`
-	Name      string    `json:"name" gorm:"column:Name; not null"`
-	// 存储服务的地址，包含鉴权所需数据
-	Address StorageAddress `json:"address" gorm:"column:Address; type:json; not null; serializer:union"`
-	// 存储服务拥有的特别功能
-	Features []Feature `json:"features" gorm:"column:Features; type:json; serializer:union"`
-}
-
-type ShardStoreConfig interface {
-	GetType() string
-}
-
-type ShardStorage struct {
-	StorageID StorageID `json:"storageID" gorm:"column:StorageID; primaryKey"`
-	// 完全管理此存储服务的Hub的ID
-	MasterHub NodeID `json:"masterHub" gorm:"column:MasterHub; not null"`
-	// Shard存储空间在存储服务的目录
-	Root string `json:"root" gorm:"column:Root; not null"`
-	// ShardStore配置数据
-	Config ShardStoreConfig `json:"config" gorm:"column:Config; type:json; not null; serializer:union"`
-}
-
-type SharedStorage struct {
-	StorageID StorageID `json:"storageID" gorm:"column:StorageID; primaryKey"`
-	// 调度文件时保存文件的根路径
-	LoadBase string `json:"loadBase" gorm:"column:LoadBase; not null"`
-	// 回源数据时数据存放位置的根路径
-	DataReturnBase string `json:"dataReturnBase" gorm:"column:DataReturnBase; not null"`
 }

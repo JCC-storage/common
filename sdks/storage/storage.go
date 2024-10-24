@@ -1,0 +1,47 @@
+package cdssdk
+
+import (
+	"gitlink.org.cn/cloudream/common/pkgs/types"
+	"gitlink.org.cn/cloudream/common/utils/serder"
+)
+
+// 存储服务地址
+type StorageAddress interface {
+	GetType() string
+	// 输出调试用的字符串，不要包含敏感信息
+	String() string
+}
+
+var _ = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[StorageAddress](
+	(*LocalStorageAddress)(nil),
+)), "type")
+
+type LocalStorageAddress struct {
+	serder.Metadata `union:"Local"`
+}
+
+func (a *LocalStorageAddress) GetType() string {
+	return "Local"
+}
+
+func (a *LocalStorageAddress) String() string {
+	return "Local"
+}
+
+type Storage struct {
+	StorageID StorageID `json:"storageID" gorm:"column:StorageID; primaryKey; autoIncrement;"`
+	Name      string    `json:"name" gorm:"column:Name; not null"`
+	// 存储服务的地址，包含鉴权所需数据
+	Address StorageAddress `json:"address" gorm:"column:Address; type:json; not null; serializer:union"`
+	// 存储服务拥有的特别功能
+	Features []StorageFeature `json:"features" gorm:"column:Features; type:json; serializer:union"`
+}
+
+// 共享存储服务的配置数据
+type SharedStorage struct {
+	StorageID StorageID `json:"storageID" gorm:"column:StorageID; primaryKey"`
+	// 调度文件时保存文件的根路径
+	LoadBase string `json:"loadBase" gorm:"column:LoadBase; not null"`
+	// 回源数据时数据存放位置的根路径
+	DataReturnBase string `json:"dataReturnBase" gorm:"column:DataReturnBase; not null"`
+}
