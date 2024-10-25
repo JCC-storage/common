@@ -7,7 +7,6 @@ import (
 type Graph struct {
 	Nodes     []Node
 	isWalking bool
-	nextVarID int
 }
 
 func NewGraph() *Graph {
@@ -48,28 +47,8 @@ func (g *Graph) Walk(cb func(node Node) bool) {
 	g.Nodes = lo2.RemoveAllDefault(g.Nodes)
 }
 
-func (g *Graph) NewStreamVar() *StreamVar {
-	str := &StreamVar{
-		VarBase: VarBase{
-			id: g.genVarID(),
-		},
-	}
-	return str
-}
-
-func (g *Graph) NewValueVar(valType ValueVarType) *ValueVar {
-	val := &ValueVar{
-		VarBase: VarBase{
-			id: g.genVarID(),
-		},
-		Type: valType,
-	}
-	return val
-}
-
-func (g *Graph) genVarID() int {
-	g.nextVarID++
-	return g.nextVarID
+func (g *Graph) NewVar() *Var {
+	return &Var{}
 }
 
 func AddNode[N Node](graph *Graph, typ N) N {

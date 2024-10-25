@@ -21,27 +21,25 @@ type Driver struct {
 
 // 开始写入一个流。此函数会将输入视为一个完整的流，因此会给流包装一个Range来获取只需要的部分。
 func (e *Driver) BeginWrite(str io.ReadCloser, handle *DriverWriteStream) {
-	handle.Var.Stream = io2.NewRange(str, handle.RangeHint.Offset, handle.RangeHint.Length)
-	e.driverExec.PutVars(handle.Var)
+	e.driverExec.PutVar(handle.ID, &StreamValue{Stream: io2.NewRange(str, handle.RangeHint.Offset, handle.RangeHint.Length)})
 }
 
 // 开始写入一个流。此函数默认输入流已经是Handle的RangeHint锁描述的范围，因此不会做任何其他处理
 func (e *Driver) BeginWriteRanged(str io.ReadCloser, handle *DriverWriteStream) {
-	handle.Var.Stream = str
-	e.driverExec.PutVars(handle.Var)
+	e.driverExec.PutVar(handle.ID, &StreamValue{Stream: str})
 }
 
 func (e *Driver) BeginRead(handle *DriverReadStream) (io.ReadCloser, error) {
-	err := e.driverExec.BindVars(e.ctx.Context, handle.Var)
+	str, err := BindVar[*StreamValue](e.driverExec, e.ctx.Context, handle.ID)
 	if err != nil {
 		return nil, fmt.Errorf("bind vars: %w", err)
 	}
 
-	return handle.Var.Stream, nil
+	return str.Stream, nil
 }
 
 func (e *Driver) Signal(signal *DriverSignalVar) {
-	e.driverExec.PutVars(signal.Var)
+	e.driverExec.PutVar(signal.ID, &SignalValue{})
 }
 
 func (e *Driver) Wait(ctx context.Context) (map[string]any, error) {
@@ -99,14 +97,15 @@ func (e *Driver) stopWith(err error) {
 }
 
 type DriverWriteStream struct {
-	Var       *StreamVar
+	ID        VarID
 	RangeHint *Range
 }
 
 type DriverReadStream struct {
-	Var *StreamVar
+	ID VarID
 }
 
 type DriverSignalVar struct {
-	Var *SignalVar
+	ID     VarID
+	Signal SignalValue
 }

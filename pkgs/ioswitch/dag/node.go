@@ -50,78 +50,77 @@ type Node interface {
 	Graph() *Graph
 	SetGraph(graph *Graph)
 	Env() *NodeEnv
-	InputStreams() *InputSlots[*StreamVar]
-	OutputStreams() *OutputSlots[*StreamVar]
-	InputValues() *InputSlots[*ValueVar]
-	OutputValues() *OutputSlots[*ValueVar]
+	InputStreams() *InputSlots
+	OutputStreams() *OutputSlots
+	InputValues() *InputSlots
+	OutputValues() *OutputSlots
 	GenerateOp() (exec.Op, error)
 	// String() string
 }
 
-type VarSlots[T Var] []T
+type VarSlots []*Var
 
-func (s *VarSlots[T]) Len() int {
+func (s *VarSlots) Len() int {
 	return len(*s)
 }
 
-func (s *VarSlots[T]) Get(idx int) T {
+func (s *VarSlots) Get(idx int) *Var {
 	return (*s)[idx]
 }
 
-func (s *VarSlots[T]) Set(idx int, val T) T {
+func (s *VarSlots) Set(idx int, val *Var) *Var {
 	old := (*s)[idx]
 	(*s)[idx] = val
 	return old
 }
 
-func (s *VarSlots[T]) Append(val T) int {
+func (s *VarSlots) Append(val *Var) int {
 	*s = append(*s, val)
 	return s.Len() - 1
 }
 
-func (s *VarSlots[T]) RemoveAt(idx int) {
+func (s *VarSlots) RemoveAt(idx int) {
 	(*s) = lo2.RemoveAt(*s, idx)
 }
 
-func (s *VarSlots[T]) Resize(size int) {
+func (s *VarSlots) Resize(size int) {
 	if s.Len() < size {
-		*s = append(*s, make([]T, size-s.Len())...)
+		*s = append(*s, make([]*Var, size-s.Len())...)
 	} else if s.Len() > size {
 		*s = (*s)[:size]
 	}
 }
 
-func (s *VarSlots[T]) SetRawArray(arr []T) {
+func (s *VarSlots) SetRawArray(arr []*Var) {
 	*s = arr
 }
 
-func (s *VarSlots[T]) RawArray() []T {
+func (s *VarSlots) RawArray() []*Var {
 	return *s
 }
 
-type InputSlots[T Var] struct {
-	VarSlots[T]
+type InputSlots struct {
+	VarSlots
 }
 
-func (s *InputSlots[T]) EnsureSize(cnt int) {
+func (s *InputSlots) EnsureSize(cnt int) {
 	if s.Len() < cnt {
-		s.VarSlots = append(s.VarSlots, make([]T, cnt-s.Len())...)
+		s.VarSlots = append(s.VarSlots, make([]*Var, cnt-s.Len())...)
 	}
 }
 
-func (s *InputSlots[T]) EnlargeOne() int {
-	var t T
-	s.Append(t)
+func (s *InputSlots) EnlargeOne() int {
+	s.Append(nil)
 	return s.Len() - 1
 }
 
-type OutputSlots[T Var] struct {
-	VarSlots[T]
+type OutputSlots struct {
+	VarSlots
 }
 
-func (s *OutputSlots[T]) Setup(my Node, v T, slotIdx int) {
+func (s *OutputSlots) Setup(my Node, v *Var, slotIdx int) {
 	if s.Len() <= slotIdx {
-		s.VarSlots = append(s.VarSlots, make([]T, slotIdx-s.Len()+1)...)
+		s.VarSlots = append(s.VarSlots, make([]*Var, slotIdx-s.Len()+1)...)
 	}
 
 	s.Set(slotIdx, v)
@@ -131,7 +130,7 @@ func (s *OutputSlots[T]) Setup(my Node, v T, slotIdx int) {
 	}
 }
 
-func (s *OutputSlots[T]) SetupNew(my Node, v T) {
+func (s *OutputSlots) SetupNew(my Node, v *Var) {
 	s.Append(v)
 	*v.From() = EndPoint{
 		Node:      my,
@@ -139,21 +138,17 @@ func (s *OutputSlots[T]) SetupNew(my Node, v T) {
 	}
 }
 
-type Slot[T Var] struct {
-	Var   T
+type Slot struct {
+	Var   *Var
 	Index int
 }
 
-type StreamSlot = Slot[*StreamVar]
-
-type ValueSlot = Slot[*ValueVar]
-
 type NodeBase struct {
 	env           NodeEnv
-	inputStreams  InputSlots[*StreamVar]
-	outputStreams OutputSlots[*StreamVar]
-	inputValues   InputSlots[*ValueVar]
-	outputValues  OutputSlots[*ValueVar]
+	inputStreams  InputSlots
+	outputStreams OutputSlots
+	inputValues   InputSlots
+	outputValues  OutputSlots
 	graph         *Graph
 }
 
@@ -169,18 +164,18 @@ func (n *NodeBase) Env() *NodeEnv {
 	return &n.env
 }
 
-func (n *NodeBase) InputStreams() *InputSlots[*StreamVar] {
+func (n *NodeBase) InputStreams() *InputSlots {
 	return &n.inputStreams
 }
 
-func (n *NodeBase) OutputStreams() *OutputSlots[*StreamVar] {
+func (n *NodeBase) OutputStreams() *OutputSlots {
 	return &n.outputStreams
 }
 
-func (n *NodeBase) InputValues() *InputSlots[*ValueVar] {
+func (n *NodeBase) InputValues() *InputSlots {
 	return &n.inputValues
 }
 
-func (n *NodeBase) OutputValues() *OutputSlots[*ValueVar] {
+func (n *NodeBase) OutputValues() *OutputSlots {
 	return &n.outputValues
 }

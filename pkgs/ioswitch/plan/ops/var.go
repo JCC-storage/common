@@ -9,11 +9,12 @@ func init() {
 }
 
 type ConstVar struct {
-	Var *exec.StringVar `json:"var"`
+	ID    exec.VarID    `json:"id"`
+	Value exec.VarValue `json:"value"`
 }
 
 func (o *ConstVar) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
-	e.PutVars(o.Var)
+	e.PutVar(o.ID, o.Value)
 	return nil
 }
 
