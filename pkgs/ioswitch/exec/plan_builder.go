@@ -9,13 +9,14 @@ import (
 )
 
 type PlanBuilder struct {
-	Vars        []Var
+	NextVarID   VarID
 	WorkerPlans []*WorkerPlanBuilder
 	DriverPlan  DriverPlanBuilder
 }
 
 func NewPlanBuilder() *PlanBuilder {
 	bld := &PlanBuilder{
+		NextVarID:  VarID(1),
 		DriverPlan: DriverPlanBuilder{},
 	}
 
@@ -41,39 +42,11 @@ func (b *PlanBuilder) AtWorker(worker WorkerInfo) *WorkerPlanBuilder {
 	return p
 }
 
-func (b *PlanBuilder) NewStreamVar() *StreamVar {
-	v := &StreamVar{
-		ID: VarID(len(b.Vars)),
-	}
-	b.Vars = append(b.Vars, v)
+func (b *PlanBuilder) NewVar() VarID {
+	id := b.NextVarID
+	b.NextVarID++
 
-	return v
-}
-
-func (b *PlanBuilder) NewIntVar() *IntVar {
-	v := &IntVar{
-		ID: VarID(len(b.Vars)),
-	}
-	b.Vars = append(b.Vars, v)
-
-	return v
-}
-
-func (b *PlanBuilder) NewStringVar() *StringVar {
-	v := &StringVar{
-		ID: VarID(len(b.Vars)),
-	}
-	b.Vars = append(b.Vars, v)
-
-	return v
-}
-func (b *PlanBuilder) NewSignalVar() *SignalVar {
-	v := &SignalVar{
-		ID: VarID(len(b.Vars)),
-	}
-	b.Vars = append(b.Vars, v)
-
-	return v
+	return id
 }
 
 func (b *PlanBuilder) Execute(ctx *ExecContext) *Driver {

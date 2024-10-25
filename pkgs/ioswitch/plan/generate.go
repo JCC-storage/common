@@ -1,8 +1,6 @@
 package plan
 
 import (
-	"fmt"
-
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/dag"
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/exec"
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/plan/ops"
@@ -122,57 +120,41 @@ func buildPlan(graph *dag.Graph, blder *exec.PlanBuilder) error {
 		for i := 0; i < node.OutputStreams().Len(); i++ {
 			out := node.OutputStreams().Get(i)
 
-			if out.Var != nil {
+			if out.VarID > 0 {
 				continue
 			}
 
-			out.Var = blder.NewStreamVar()
+			out.VarID = blder.NewVar()
 		}
 
 		for i := 0; i < node.InputStreams().Len(); i++ {
 			in := node.InputStreams().Get(i)
 
-			if in.Var != nil {
+			if in.VarID > 0 {
 				continue
 			}
 
-			in.Var = blder.NewStreamVar()
+			in.VarID = blder.NewVar()
 		}
 
 		for i := 0; i < node.OutputValues().Len(); i++ {
 			out := node.OutputValues().Get(i)
 
-			if out.Var != nil {
+			if out.VarID > 0 {
 				continue
 			}
 
-			switch out.Type {
-			case dag.StringValueVar:
-				out.Var = blder.NewStringVar()
-			case dag.SignalValueVar:
-				out.Var = blder.NewSignalVar()
-			default:
-				retErr = fmt.Errorf("unsupported value var type: %v", out.Type)
-				return false
-			}
+			out.VarID = blder.NewVar()
 		}
 
 		for i := 0; i < node.InputValues().Len(); i++ {
 			in := node.InputValues().Get(i)
 
-			if in.Var != nil {
+			if in.VarID > 0 {
 				continue
 			}
 
-			switch in.Type {
-			case dag.StringValueVar:
-				in.Var = blder.NewStringVar()
-			case dag.SignalValueVar:
-				in.Var = blder.NewSignalVar()
-			default:
-				retErr = fmt.Errorf("unsupported value var type: %v", in.Type)
-				return false
-			}
+			in.VarID = blder.NewVar()
 		}
 
 		op, err := node.GenerateOp()

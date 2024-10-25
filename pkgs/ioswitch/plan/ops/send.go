@@ -18,17 +18,17 @@ func init() {
 }
 
 type SendStream struct {
-	Input  *exec.StreamVar `json:"input"`
-	Send   *exec.StreamVar `json:"send"`
+	Input  exec.VarID      `json:"input"`
+	Send   exec.VarID      `json:"send"`
 	Worker exec.WorkerInfo `json:"worker"`
 }
 
 func (o *SendStream) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
-	err := e.BindVars(ctx.Context, o.Input)
+	inputStr, err := exec.BindVar[*exec.StreamValue](e, ctx.Context, o.Input)
 	if err != nil {
 		return err
 	}
-	defer o.Input.Stream.Close()
+	defer inputStr.Stream.Close()
 
 	cli, err := o.Worker.NewClient()
 	if err != nil {
@@ -37,7 +37,7 @@ func (o *SendStream) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
 	defer cli.Close()
 
 	// 发送后流的ID不同
-	err = cli.SendStream(ctx.Context, e.Plan().ID, o.Send, o.Input.Stream)
+	err = cli.SendStream(ctx.Context, e.Plan().ID, o.Send, inputStr.Stream)
 	if err != nil {
 		return fmt.Errorf("sending stream: %w", err)
 	}
@@ -46,14 +46,14 @@ func (o *SendStream) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
 }
 
 func (o *SendStream) String() string {
-	return fmt.Sprintf("SendStream %v->%v@%v", o.Input.ID, o.Send.ID, o.Worker)
+	return fmt.Sprintf("SendStream %v->%v@%v", o.Input, o.Send, o.Worker)
 }
 
 type GetStream struct {
-	Signal *exec.SignalVar `json:"signal"`
-	Target *exec.StreamVar `json:"target"`
-	Output *exec.StreamVar `json:"output"`
-	Worker exec.WorkerInfo `json:"worker"`
+	Signal exec.VarPack[*exec.SignalValue] `json:"signal"`
+	Target exec.VarID                      `json:"target"`
+	Output exec.VarID                      `json:"output"`
+	Worker exec.WorkerInfo                 `json:"worker"`
 }
 
 func (o *GetStream) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
@@ -63,33 +63,33 @@ func (o *GetStream) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
 	}
 	defer cli.Close()
 
-	str, err := cli.GetStream(ctx.Context, e.Plan().ID, o.Target, o.Signal)
+	str, err := cli.GetStream(ctx.Context, e.Plan().ID, o.Target, o.Signal.ID, o.Signal.Value)
 	if err != nil {
 		return fmt.Errorf("getting stream: %w", err)
 	}
 
 	fut := future.NewSetVoid()
 	// 获取后送到本地的流ID是不同的
-	o.Output.Stream = io2.AfterReadClosedOnce(str, func(closer io.ReadCloser) {
+	str = io2.AfterReadClosedOnce(str, func(closer io.ReadCloser) {
 		fut.SetVoid()
 	})
-	e.PutVars(o.Output)
+	e.PutVar(o.Output, &exec.StreamValue{Stream: str})
 
 	return fut.Wait(ctx.Context)
 }
 
 func (o *GetStream) String() string {
-	return fmt.Sprintf("GetStream %v(S:%v)<-%v@%v", o.Output.ID, o.Signal.ID, o.Target.ID, o.Worker)
+	return fmt.Sprintf("GetStream %v(S:%v)<-%v@%v", o.Output, o.Signal.ID, o.Target, o.Worker)
 }
 
 type SendVar struct {
-	Input  exec.Var        `json:"input"`
-	Send   exec.Var        `json:"send"`
+	Input  exec.VarID      `json:"input"`
+	Send   exec.VarID      `json:"send"`
 	Worker exec.WorkerInfo `json:"worker"`
 }
 
 func (o *SendVar) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
-	err := e.BindVars(ctx.Context, o.Input)
+	input, err := e.BindVar(ctx.Context, o.Input)
 	if err != nil {
 		return err
 	}
@@ -100,8 +100,7 @@ func (o *SendVar) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
 	}
 	defer cli.Close()
 
-	exec.AssignVar(o.Input, o.Send)
-	err = cli.SendVar(ctx.Context, e.Plan().ID, o.Send)
+	err = cli.SendVar(ctx.Context, e.Plan().ID, o.Send, input)
 	if err != nil {
 		return fmt.Errorf("sending var: %w", err)
 	}
@@ -110,14 +109,14 @@ func (o *SendVar) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
 }
 
 func (o *SendVar) String() string {
-	return fmt.Sprintf("SendVar %v->%v@%v", o.Input.GetID(), o.Send.GetID(), o.Worker)
+	return fmt.Sprintf("SendVar %v->%v@%v", o.Input, o.Send, o.Worker)
 }
 
 type GetVar struct {
-	Signal *exec.SignalVar `json:"signal"`
-	Target exec.Var        `json:"target"`
-	Output exec.Var        `json:"output"`
-	Worker exec.WorkerInfo `json:"worker"`
+	Signal exec.VarPack[*exec.SignalValue] `json:"signal"`
+	Target exec.VarID                      `json:"target"`
+	Output exec.VarID                      `json:"output"`
+	Worker exec.WorkerInfo                 `json:"worker"`
 }
 
 func (o *GetVar) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
@@ -127,18 +126,18 @@ func (o *GetVar) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
 	}
 	defer cli.Close()
 
-	err = cli.GetVar(ctx.Context, e.Plan().ID, o.Target, o.Signal)
+	get, err := cli.GetVar(ctx.Context, e.Plan().ID, o.Target, o.Signal.ID, o.Signal.Value)
 	if err != nil {
 		return fmt.Errorf("getting var: %w", err)
 	}
-	exec.AssignVar(o.Target, o.Output)
-	e.PutVars(o.Output)
+
+	e.PutVar(o.Output, get)
 
 	return nil
 }
 
 func (o *GetVar) String() string {
-	return fmt.Sprintf("GetVar %v(S:%v)<-%v@%v", o.Output.GetID(), o.Signal.ID, o.Target.GetID(), o.Worker)
+	return fmt.Sprintf("GetVar %v(S:%v)<-%v@%v", o.Output, o.Signal.ID, o.Target, o.Worker)
 }
 
 type SendStreamNode struct {
@@ -154,18 +153,18 @@ func (b *GraphNodeBuilder) NewSendStream(to exec.WorkerInfo) *SendStreamNode {
 	return node
 }
 
-func (t *SendStreamNode) Send(v *dag.StreamVar) *dag.StreamVar {
+func (t *SendStreamNode) Send(v *dag.Var) *dag.Var {
 	t.InputStreams().EnsureSize(1)
 	v.Connect(t, 0)
-	output := t.Graph().NewStreamVar()
+	output := t.Graph().NewVar()
 	t.OutputStreams().Setup(t, output, 0)
 	return output
 }
 
 func (t *SendStreamNode) GenerateOp() (exec.Op, error) {
 	return &SendStream{
-		Input:  t.InputStreams().Get(0).Var,
-		Send:   t.OutputStreams().Get(0).Var,
+		Input:  t.InputStreams().Get(0).VarID,
+		Send:   t.OutputStreams().Get(0).VarID,
 		Worker: t.ToWorker,
 	}, nil
 }
@@ -187,18 +186,18 @@ func (b *GraphNodeBuilder) NewSendValue(to exec.WorkerInfo) *SendValueNode {
 	return node
 }
 
-func (t *SendValueNode) Send(v *dag.ValueVar) *dag.ValueVar {
+func (t *SendValueNode) Send(v *dag.Var) *dag.Var {
 	t.InputValues().EnsureSize(1)
 	v.Connect(t, 0)
-	output := t.Graph().NewValueVar(v.Type)
+	output := t.Graph().NewVar()
 	t.OutputValues().Setup(t, output, 0)
 	return output
 }
 
 func (t *SendValueNode) GenerateOp() (exec.Op, error) {
 	return &SendVar{
-		Input:  t.InputValues().Get(0).Var,
-		Send:   t.OutputValues().Get(0).Var,
+		Input:  t.InputValues().Get(0).VarID,
+		Send:   t.OutputValues().Get(0).VarID,
 		Worker: t.ToWorker,
 	}, nil
 }
@@ -217,27 +216,27 @@ func (b *GraphNodeBuilder) NewGetStream(from exec.WorkerInfo) *GetStreamNode {
 		FromWorker: from,
 	}
 	b.AddNode(node)
-	node.OutputValues().Setup(node, node.Graph().NewValueVar(dag.SignalValueVar), 0)
+	node.OutputValues().Setup(node, node.Graph().NewVar(), 0)
 	return node
 }
 
-func (t *GetStreamNode) Get(v *dag.StreamVar) *dag.StreamVar {
+func (t *GetStreamNode) Get(v *dag.Var) *dag.Var {
 	t.InputStreams().EnsureSize(1)
 	v.Connect(t, 0)
-	output := t.Graph().NewStreamVar()
+	output := t.Graph().NewVar()
 	t.OutputStreams().Setup(t, output, 0)
 	return output
 }
 
-func (t *GetStreamNode) SignalVar() *dag.ValueVar {
+func (t *GetStreamNode) SignalVar() *dag.Var {
 	return t.OutputValues().Get(0)
 }
 
 func (t *GetStreamNode) GenerateOp() (exec.Op, error) {
 	return &GetStream{
-		Signal: t.OutputValues().Get(0).Var.(*exec.SignalVar),
-		Output: t.OutputStreams().Get(0).Var,
-		Target: t.InputStreams().Get(0).Var,
+		Signal: exec.NewSignal(t.OutputValues().Get(0).VarID),
+		Output: t.OutputStreams().Get(0).VarID,
+		Target: t.InputStreams().Get(0).VarID,
 		Worker: t.FromWorker,
 	}, nil
 }
@@ -256,27 +255,27 @@ func (b *GraphNodeBuilder) NewGetValue(from exec.WorkerInfo) *GetValueNode {
 		FromWorker: from,
 	}
 	b.AddNode(node)
-	node.OutputValues().Setup(node, node.Graph().NewValueVar(dag.SignalValueVar), 0)
+	node.OutputValues().Setup(node, node.Graph().NewVar(), 0)
 	return node
 }
 
-func (t *GetValueNode) Get(v *dag.ValueVar) *dag.ValueVar {
+func (t *GetValueNode) Get(v *dag.Var) *dag.Var {
 	t.InputValues().EnsureSize(1)
 	v.Connect(t, 0)
-	output := t.Graph().NewValueVar(v.Type)
+	output := t.Graph().NewVar()
 	t.OutputValues().Setup(t, output, 1)
 	return output
 }
 
-func (t *GetValueNode) SignalVar() *dag.ValueVar {
+func (t *GetValueNode) SignalVar() *dag.Var {
 	return t.OutputValues().Get(0)
 }
 
 func (t *GetValueNode) GenerateOp() (exec.Op, error) {
 	return &GetVar{
-		Signal: t.OutputValues().Get(0).Var.(*exec.SignalVar),
-		Output: t.OutputValues().Get(1).Var,
-		Target: t.InputValues().Get(0).Var,
+		Signal: exec.NewSignal(t.OutputValues().Get(0).VarID),
+		Output: t.OutputValues().Get(1).VarID,
+		Target: t.InputValues().Get(0).VarID,
 		Worker: t.FromWorker,
 	}, nil
 }

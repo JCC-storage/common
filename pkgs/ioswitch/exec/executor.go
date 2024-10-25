@@ -10,16 +10,15 @@ import (
 	"gitlink.org.cn/cloudream/common/utils/sync2"
 )
 
-type bindingVars struct {
-	Waittings []Var
-	Bindeds   []Var
-	Callback  *future.SetVoidFuture
+type binding struct {
+	ID       VarID
+	Callback *future.SetValueFuture[VarValue]
 }
 
 type Executor struct {
 	plan     Plan
 	vars     map[VarID]Var
-	bindings []*bindingVars
+	bindings []*binding
 	lock     sync.Mutex
 	store    map[string]any
 }
@@ -64,81 +63,44 @@ func (s *Executor) Run(ctx *ExecContext) (map[string]any, error) {
 	return s.store, nil
 }
 
-func (s *Executor) BindVars(ctx context.Context, vs ...Var) error {
+func (s *Executor) BindVar(ctx context.Context, id VarID) (VarValue, error) {
 	s.lock.Lock()
 
-	callback := future.NewSetVoid()
-	binding := &bindingVars{
-		Callback: callback,
+	gv, ok := s.vars[id]
+	if ok {
+		delete(s.vars, id)
+		s.lock.Unlock()
+		return gv.Value, nil
 	}
 
-	for _, v := range vs {
-		v2 := s.vars[v.GetID()]
-		if v2 == nil {
-			binding.Waittings = append(binding.Waittings, v)
+	callback := future.NewSetValue[VarValue]()
+	s.bindings = append(s.bindings, &binding{
+		ID:       id,
+		Callback: callback,
+	})
+
+	s.lock.Unlock()
+	return callback.Wait(ctx)
+}
+
+func (s *Executor) PutVar(id VarID, value VarValue) *Executor {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	for ib, b := range s.bindings {
+		if b.ID != id {
 			continue
 		}
 
-		if err := AssignVar(v2, v); err != nil {
-			s.lock.Unlock()
-			return fmt.Errorf("assign var %v to %v: %w", v2.GetID(), v.GetID(), err)
-		}
+		b.Callback.SetValue(value)
+		s.bindings = lo2.RemoveAt(s.bindings, ib)
 
-		binding.Bindeds = append(binding.Bindeds, v)
+		return s
 	}
 
-	if len(binding.Waittings) == 0 {
-		s.lock.Unlock()
-		return nil
-	}
-
-	s.bindings = append(s.bindings, binding)
-	s.lock.Unlock()
-
-	err := callback.Wait(ctx)
-
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	s.bindings = lo2.Remove(s.bindings, binding)
-
-	return err
-}
-
-func (s *Executor) PutVars(vs ...Var) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-loop:
-	for _, v := range vs {
-		for ib, b := range s.bindings {
-			for iw, w := range b.Waittings {
-				if w.GetID() != v.GetID() {
-					continue
-				}
-
-				if err := AssignVar(v, w); err != nil {
-					b.Callback.SetError(fmt.Errorf("assign var %v to %v: %w", v.GetID(), w.GetID(), err))
-					// 绑定类型不对，说明生成的执行计划有问题，怎么处理都可以，因为最终会执行失败
-					continue loop
-				}
-
-				b.Bindeds = append(b.Bindeds, w)
-				b.Waittings = lo2.RemoveAt(b.Waittings, iw)
-				if len(b.Waittings) == 0 {
-					b.Callback.SetVoid()
-					s.bindings = lo2.RemoveAt(s.bindings, ib)
-				}
-
-				// 绑定成功，继续最外层循环
-				continue loop
-			}
-
-		}
-
-		// 如果没有绑定，则直接放入变量表中
-		s.vars[v.GetID()] = v
-	}
+	// 如果没有绑定，则直接放入变量表中
+	s.vars[id] = Var{ID: id, Value: value}
+	return s
 }
 
 func (s *Executor) Store(key string, val any) {
@@ -148,20 +110,43 @@ func (s *Executor) Store(key string, val any) {
 	s.store[key] = val
 }
 
-func BindArrayVars[T Var](sw *Executor, ctx context.Context, vs []T) error {
-	var vs2 []Var
-	for _, v := range vs {
-		vs2 = append(vs2, v)
+func BindVar[T VarValue](e *Executor, ctx context.Context, id VarID) (T, error) {
+	v, err := e.BindVar(ctx, id)
+	if err != nil {
+		var def T
+		return def, err
 	}
 
-	return sw.BindVars(ctx, vs2...)
+	ret, ok := v.(T)
+	if !ok {
+		var def T
+		return def, fmt.Errorf("binded var %v is %T, not %T", id, v, def)
+	}
+
+	return ret, nil
 }
 
-func PutArrayVars[T Var](sw *Executor, vs []T) {
-	var vs2 []Var
-	for _, v := range vs {
-		vs2 = append(vs2, v)
-	}
+func BindArray[T VarValue](e *Executor, ctx context.Context, ids []VarID) ([]T, error) {
+	ret := make([]T, len(ids))
+	for i := range ids {
+		v, err := e.BindVar(ctx, ids[i])
+		if err != nil {
+			return nil, err
+		}
 
-	sw.PutVars(vs2...)
+		v2, ok := v.(T)
+		if !ok {
+			var def T
+			return nil, fmt.Errorf("binded var %v is %T, not %T", ids[i], v, def)
+		}
+
+		ret[i] = v2
+	}
+	return ret, nil
+}
+
+func PutArray[T VarValue](e *Executor, ids []VarID, values []T) {
+	for i := range ids {
+		e.PutVar(ids[i], values[i])
+	}
 }

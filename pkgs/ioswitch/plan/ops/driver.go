@@ -16,20 +16,20 @@ func (b *GraphNodeBuilder) NewFromDriver(handle *exec.DriverWriteStream) *FromDr
 	}
 	b.AddNode(node)
 
-	node.OutputStreams().SetupNew(node, b.NewStreamVar())
+	node.OutputStreams().SetupNew(node, b.NewVar())
 
 	return node
 }
 
-func (t *FromDriverNode) Output() dag.StreamSlot {
-	return dag.StreamSlot{
+func (t *FromDriverNode) Output() dag.Slot {
+	return dag.Slot{
 		Var:   t.OutputStreams().Get(0),
 		Index: 0,
 	}
 }
 
 func (t *FromDriverNode) GenerateOp() (exec.Op, error) {
-	t.Handle.Var = t.OutputStreams().Get(0).Var
+	t.Handle.ID = t.OutputStreams().Get(0).VarID
 	return nil, nil
 }
 
@@ -52,20 +52,20 @@ func (b *GraphNodeBuilder) NewToDriver(handle *exec.DriverReadStream) *ToDriverN
 	return node
 }
 
-func (t *ToDriverNode) SetInput(v *dag.StreamVar) {
+func (t *ToDriverNode) SetInput(v *dag.Var) {
 	t.InputStreams().EnsureSize(1)
 	v.Connect(t, 0)
 }
 
-func (t *ToDriverNode) Input() dag.StreamSlot {
-	return dag.StreamSlot{
+func (t *ToDriverNode) Input() dag.Slot {
+	return dag.Slot{
 		Var:   t.InputStreams().Get(0),
 		Index: 0,
 	}
 }
 
 func (t *ToDriverNode) GenerateOp() (exec.Op, error) {
-	t.Handle.Var = t.InputStreams().Get(0).Var
+	t.Handle.ID = t.InputStreams().Get(0).VarID
 	return nil, nil
 }
 

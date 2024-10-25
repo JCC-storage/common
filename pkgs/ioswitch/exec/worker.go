@@ -95,9 +95,12 @@ type WorkerInfo interface {
 
 type WorkerClient interface {
 	ExecutePlan(ctx context.Context, plan Plan) error
-	SendStream(ctx context.Context, planID PlanID, v *StreamVar, str io.ReadCloser) error
-	SendVar(ctx context.Context, planID PlanID, v Var) error
-	GetStream(ctx context.Context, planID PlanID, v *StreamVar, signal *SignalVar) (io.ReadCloser, error)
-	GetVar(ctx context.Context, planID PlanID, v Var, signal *SignalVar) error
+
+	SendStream(ctx context.Context, planID PlanID, id VarID, stream io.ReadCloser) error
+	SendVar(ctx context.Context, planID PlanID, id VarID, value VarValue) error
+
+	GetStream(ctx context.Context, planID PlanID, streamID VarID, signalID VarID, signal VarValue) (io.ReadCloser, error)
+	GetVar(ctx context.Context, planID PlanID, varID VarID, signalID VarID, signal VarValue) (VarValue, error)
+
 	Close() error
 }

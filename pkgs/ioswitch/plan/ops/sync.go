@@ -19,30 +19,29 @@ func init() {
 }
 
 type OnStreamBegin struct {
-	Raw    *exec.StreamVar `json:"raw"`
-	New    *exec.StreamVar `json:"new"`
-	Signal *exec.SignalVar `json:"signal"`
+	Raw    exec.VarID     `json:"raw"`
+	New    exec.VarID     `json:"new"`
+	Signal exec.SignalVar `json:"signal"`
 }
 
 func (o *OnStreamBegin) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
-	err := e.BindVars(ctx.Context, o.Raw)
+	raw, err := exec.BindVar[*exec.StreamValue](e, ctx.Context, o.Raw)
 	if err != nil {
 		return err
 	}
 
-	o.New.Stream = o.Raw.Stream
-
-	e.PutVars(o.New, o.Signal)
+	e.PutVar(o.New, &exec.StreamValue{Stream: raw.Stream}).
+		PutVar(o.Signal.ID, o.Signal.Value)
 	return nil
 }
 
 func (o *OnStreamBegin) String() string {
-	return fmt.Sprintf("OnStreamBegin %v->%v S:%v", o.Raw.ID, o.New.ID, o.Signal.ID)
+	return fmt.Sprintf("OnStreamBegin %v->%v S:%v", o.Raw, o.New, o.Signal.ID)
 }
 
 type OnStreamEnd struct {
-	Raw    *exec.StreamVar `json:"raw"`
-	New    *exec.StreamVar `json:"new"`
+	Raw    exec.VarID      `json:"raw"`
+	New    exec.VarID      `json:"new"`
 	Signal *exec.SignalVar `json:"signal"`
 }
 
@@ -67,57 +66,49 @@ func (o *onStreamEnd) Close() error {
 }
 
 func (o *OnStreamEnd) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
-	err := e.BindVars(ctx.Context, o.Raw)
+	raw, err := exec.BindVar[*exec.StreamValue](e, ctx.Context, o.Raw)
 	if err != nil {
 		return err
 	}
 
 	cb := future.NewSetVoid()
 
-	o.New.Stream = &onStreamEnd{
-		inner:    o.Raw.Stream,
+	e.PutVar(o.New, &exec.StreamValue{Stream: &onStreamEnd{
+		inner:    raw.Stream,
 		callback: cb,
-	}
-	e.PutVars(o.New)
+	}})
 
 	err = cb.Wait(ctx.Context)
 	if err != nil {
 		return err
 	}
 
-	e.PutVars(o.Signal)
+	e.PutVar(o.Signal.ID, o.Signal.Value)
 	return nil
 }
 
 func (o *OnStreamEnd) String() string {
-	return fmt.Sprintf("OnStreamEnd %v->%v S:%v", o.Raw.ID, o.New.ID, o.Signal.ID)
+	return fmt.Sprintf("OnStreamEnd %v->%v S:%v", o.Raw, o.New, o.Signal.ID)
 }
 
 type HoldUntil struct {
-	Waits []*exec.SignalVar `json:"waits"`
-	Holds []exec.Var        `json:"holds"`
-	Emits []exec.Var        `json:"emits"`
+	Waits []exec.VarID `json:"waits"`
+	Holds []exec.VarID `json:"holds"`
+	Emits []exec.VarID `json:"emits"`
 }
 
 func (w *HoldUntil) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
-	err := e.BindVars(ctx.Context, w.Holds...)
+	holds, err := exec.BindArray[exec.VarValue](e, ctx.Context, w.Holds)
 	if err != nil {
 		return err
 	}
 
-	err = exec.BindArrayVars(e, ctx.Context, w.Waits)
+	_, err = exec.BindArray[exec.VarValue](e, ctx.Context, w.Waits)
 	if err != nil {
 		return err
 	}
 
-	for i := 0; i < len(w.Holds); i++ {
-		err := exec.AssignVar(w.Holds[i], w.Emits[i])
-		if err != nil {
-			return err
-		}
-	}
-
-	e.PutVars(w.Emits...)
+	exec.PutArray(e, w.Emits, holds)
 	return nil
 }
 
@@ -126,12 +117,12 @@ func (w *HoldUntil) String() string {
 }
 
 type HangUntil struct {
-	Waits []*exec.SignalVar `json:"waits"`
-	Op    exec.Op           `json:"op"`
+	Waits []exec.VarID `json:"waits"`
+	Op    exec.Op      `json:"op"`
 }
 
 func (h *HangUntil) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
-	err := exec.BindArrayVars(e, ctx.Context, h.Waits)
+	_, err := exec.BindArray[exec.VarValue](e, ctx.Context, h.Waits)
 	if err != nil {
 		return err
 	}
@@ -144,17 +135,22 @@ func (h *HangUntil) String() string {
 }
 
 type Broadcast struct {
-	Source  *exec.SignalVar   `json:"source"`
-	Targets []*exec.SignalVar `json:"targets"`
+	Source  exec.VarID   `json:"source"`
+	Targets []exec.VarID `json:"targets"`
 }
 
 func (b *Broadcast) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
-	err := e.BindVars(ctx.Context, b.Source)
+	src, err := exec.BindVar[*exec.SignalValue](e, ctx.Context, b.Source)
 	if err != nil {
 		return err
 	}
 
-	exec.PutArrayVars(e, b.Targets)
+	targets := make([]exec.VarValue, len(b.Targets))
+	for i := 0; i < len(b.Targets); i++ {
+		targets[i] = src.Clone()
+	}
+
+	exec.PutArray(e, b.Targets, targets)
 	return nil
 }
 
@@ -172,38 +168,38 @@ func (b *GraphNodeBuilder) NewHoldUntil() *HoldUntilNode {
 	return node
 }
 
-func (t *HoldUntilNode) SetSignal(s *dag.ValueVar) {
+func (t *HoldUntilNode) SetSignal(s *dag.Var) {
 	t.InputValues().EnsureSize(1)
 	s.Connect(t, 0)
 }
 
-func (t *HoldUntilNode) HoldStream(str *dag.StreamVar) *dag.StreamVar {
+func (t *HoldUntilNode) HoldStream(str *dag.Var) *dag.Var {
 	str.Connect(t, t.InputStreams().EnlargeOne())
-	output := t.Graph().NewStreamVar()
+	output := t.Graph().NewVar()
 	t.OutputStreams().SetupNew(t, output)
 	return output
 }
 
-func (t *HoldUntilNode) HoldVar(v *dag.ValueVar) *dag.ValueVar {
+func (t *HoldUntilNode) HoldVar(v *dag.Var) *dag.Var {
 	v.Connect(t, t.InputValues().EnlargeOne())
-	output := t.Graph().NewValueVar(v.Type)
+	output := t.Graph().NewVar()
 	t.OutputValues().SetupNew(t, output)
 	return output
 }
 
 func (t *HoldUntilNode) GenerateOp() (exec.Op, error) {
 	o := &HoldUntil{
-		Waits: []*exec.SignalVar{t.InputValues().Get(0).Var.(*exec.SignalVar)},
+		Waits: []exec.VarID{t.InputValues().Get(0).VarID},
 	}
 
 	for i := 0; i < t.OutputValues().Len(); i++ {
-		o.Holds = append(o.Holds, t.InputValues().Get(i+1).Var)
-		o.Emits = append(o.Emits, t.OutputValues().Get(i).Var)
+		o.Holds = append(o.Holds, t.InputValues().Get(i+1).VarID)
+		o.Emits = append(o.Emits, t.OutputValues().Get(i).VarID)
 	}
 
 	for i := 0; i < t.OutputStreams().Len(); i++ {
-		o.Holds = append(o.Holds, t.InputStreams().Get(i).Var)
-		o.Emits = append(o.Emits, t.OutputStreams().Get(i).Var)
+		o.Holds = append(o.Holds, t.InputStreams().Get(i).VarID)
+		o.Emits = append(o.Emits, t.OutputStreams().Get(i).VarID)
 	}
 
 	return o, nil

@@ -13,19 +13,19 @@ func init() {
 }
 
 type DropStream struct {
-	Input *exec.StreamVar `json:"input"`
+	Input exec.VarID `json:"input"`
 }
 
 func (o *DropStream) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
-	err := e.BindVars(ctx.Context, o.Input)
+	str, err := exec.BindVar[*exec.StreamValue](e, ctx.Context, o.Input)
 	if err != nil {
 		return err
 	}
-	defer o.Input.Stream.Close()
+	defer str.Stream.Close()
 
 	for {
 		buf := make([]byte, 1024*8)
-		_, err = o.Input.Stream.Read(buf)
+		_, err = str.Stream.Read(buf)
 		if err == io.EOF {
 			return nil
 		}
@@ -36,7 +36,7 @@ func (o *DropStream) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
 }
 
 func (o *DropStream) String() string {
-	return fmt.Sprintf("DropStream %v", o.Input.ID)
+	return fmt.Sprintf("DropStream %v", o.Input)
 }
 
 type DropNode struct {
@@ -49,14 +49,14 @@ func (b *GraphNodeBuilder) NewDropStream() *DropNode {
 	return node
 }
 
-func (t *DropNode) SetInput(v *dag.StreamVar) {
+func (t *DropNode) SetInput(v *dag.Var) {
 	t.InputStreams().EnsureSize(1)
 	v.Connect(t, 0)
 }
 
 func (t *DropNode) GenerateOp() (exec.Op, error) {
 	return &DropStream{
-		Input: t.InputStreams().Get(0).Var,
+		Input: t.InputStreams().Get(0).VarID,
 	}, nil
 }
 

@@ -15,24 +15,28 @@ import (
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
+// TODO2 重新梳理代码
+
 const GetStreamPath = "/hubIO/getStream"
 
 type GetStreamReq struct {
-	PlanID exec.PlanID     `json:"planID"`
-	VarID  exec.VarID      `json:"varID"`
-	Signal *exec.SignalVar `json:"signal"`
+	PlanID   exec.PlanID   `json:"planID"`
+	VarID    exec.VarID    `json:"varID"`
+	SignalID exec.VarID    `json:"signalID"`
+	Signal   exec.VarValue `json:"signal"`
 }
 
-func (c *Client) GetStream(planID exec.PlanID, id exec.VarID, signal *exec.SignalVar) (io.ReadCloser, error) {
+func (c *Client) GetStream(planID exec.PlanID, id exec.VarID, signalID exec.VarID, signal exec.VarValue) (io.ReadCloser, error) {
 	targetUrl, err := url.JoinPath(c.baseURL, GetStreamPath)
 	if err != nil {
 		return nil, err
 	}
 
 	req := &GetStreamReq{
-		PlanID: planID,
-		VarID:  id,
-		Signal: signal,
+		PlanID:   planID,
+		VarID:    id,
+		SignalID: signalID,
+		Signal:   signal,
 	}
 
 	resp, err := http2.GetJSON(targetUrl, http2.RequestParam{
@@ -154,19 +158,21 @@ func (c *Client) ExecuteIOPlan(plan exec.Plan) error {
 const SendVarPath = "/hubIO/sendVar"
 
 type SendVarReq struct {
-	PlanID exec.PlanID `json:"planID"`
-	Var    exec.Var    `json:"var"`
+	PlanID   exec.PlanID   `json:"planID"`
+	VarID    exec.VarID    `json:"varID"`
+	VarValue exec.VarValue `json:"varValue"`
 }
 
-func (c *Client) SendVar(id exec.PlanID, v exec.Var) error {
+func (c *Client) SendVar(planID exec.PlanID, id exec.VarID, value exec.VarValue) error {
 	targetUrl, err := url.JoinPath(c.baseURL, SendVarPath)
 	if err != nil {
 		return err
 	}
 
 	req := &SendVarReq{
-		PlanID: id,
-		Var:    v,
+		PlanID:   planID,
+		VarID:    id,
+		VarValue: value,
 	}
 
 	resp, err := http2.PostJSON(targetUrl, http2.RequestParam{
@@ -196,35 +202,38 @@ func (c *Client) SendVar(id exec.PlanID, v exec.Var) error {
 const GetVarPath = "/hubIO/getVar"
 
 type GetVarReq struct {
-	PlanID exec.PlanID     `json:"planID"`
-	Var    exec.Var        `json:"var"`
-	Signal *exec.SignalVar `json:"signal"`
+	PlanID   exec.PlanID   `json:"planID"`
+	VarID    exec.VarID    `json:"varID"`
+	SignalID exec.VarID    `json:"signalID"`
+	Signal   exec.VarValue `json:"signal"`
 }
 
-func (c *Client) GetVar(id exec.PlanID, v exec.Var, signal *exec.SignalVar) error {
+func (c *Client) GetVar(id exec.PlanID, varID exec.VarID, singalID exec.VarID, signal exec.VarValue) (exec.VarValue, error) {
 	targetUrl, err := url.JoinPath(c.baseURL, GetVarPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	req := &GetVarReq{
-		PlanID: id,
-		Var:    v,
-		Signal: signal,
+		PlanID:   id,
+		VarID:    varID,
+		SignalID: singalID,
+		Signal:   signal,
 	}
 
 	resp, err := http2.GetJSON(targetUrl, http2.RequestParam{
 		Body: req,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
+
+	body, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		// 读取错误信息
-		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
-		return fmt.Errorf("error response from server: %s", string(body))
+		return nil, fmt.Errorf("error response from server: %s", string(body))
 	}
 
 	return nil
