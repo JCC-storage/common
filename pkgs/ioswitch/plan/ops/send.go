@@ -50,10 +50,10 @@ func (o *SendStream) String() string {
 }
 
 type GetStream struct {
-	Signal exec.VarPack[*exec.SignalValue] `json:"signal"`
-	Target exec.VarID                      `json:"target"`
-	Output exec.VarID                      `json:"output"`
-	Worker exec.WorkerInfo                 `json:"worker"`
+	Signal exec.SignalVar  `json:"signal"`
+	Target exec.VarID      `json:"target"`
+	Output exec.VarID      `json:"output"`
+	Worker exec.WorkerInfo `json:"worker"`
 }
 
 func (o *GetStream) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
@@ -113,10 +113,10 @@ func (o *SendVar) String() string {
 }
 
 type GetVar struct {
-	Signal exec.VarPack[*exec.SignalValue] `json:"signal"`
-	Target exec.VarID                      `json:"target"`
-	Output exec.VarID                      `json:"output"`
-	Worker exec.WorkerInfo                 `json:"worker"`
+	Signal exec.SignalVar  `json:"signal"`
+	Target exec.VarID      `json:"target"`
+	Output exec.VarID      `json:"output"`
+	Worker exec.WorkerInfo `json:"worker"`
 }
 
 func (o *GetVar) Execute(ctx *exec.ExecContext, e *exec.Executor) error {
@@ -234,7 +234,7 @@ func (t *GetStreamNode) SignalVar() *dag.Var {
 
 func (t *GetStreamNode) GenerateOp() (exec.Op, error) {
 	return &GetStream{
-		Signal: exec.NewSignal(t.OutputValues().Get(0).VarID),
+		Signal: exec.NewSignalVar(t.OutputValues().Get(0).VarID),
 		Output: t.OutputStreams().Get(0).VarID,
 		Target: t.InputStreams().Get(0).VarID,
 		Worker: t.FromWorker,
@@ -273,7 +273,7 @@ func (t *GetValueNode) SignalVar() *dag.Var {
 
 func (t *GetValueNode) GenerateOp() (exec.Op, error) {
 	return &GetVar{
-		Signal: exec.NewSignal(t.OutputValues().Get(0).VarID),
+		Signal: exec.NewSignalVar(t.OutputValues().Get(0).VarID),
 		Output: t.OutputValues().Get(1).VarID,
 		Target: t.InputValues().Get(0).VarID,
 		Worker: t.FromWorker,
