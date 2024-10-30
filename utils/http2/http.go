@@ -32,7 +32,7 @@ var defaultClient = http.DefaultClient
 type RequestParam struct {
 	Header any
 	Query  any
-	Body   any
+	Body   any // 如果是[]byte，则直接作为请求体，否则会被序列化等处理
 }
 
 func GetJSON(url string, param RequestParam) (*http.Response, error) {
@@ -114,45 +114,6 @@ func PostJSON(url string, param RequestParam) (*http.Response, error) {
 
 	if err = prepareJSONBody(req, param.Body); err != nil {
 		return nil, err
-	}
-
-	return defaultClient.Do(req)
-}
-
-func PostJSONRow(url string, param RequestParam) (*http.Response, error) {
-	req, err := http.NewRequest(http.MethodPost, url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = prepareQuery(req, param.Query); err != nil {
-		return nil, err
-	}
-
-	if err = prepareHeader(req, param.Header); err != nil {
-		return nil, err
-	}
-
-	//if err = prepareJSONBody(req, param.Body); err != nil {
-	//	return nil, err
-	//}
-
-	setHeader(req.Header, "Content-Type", ContentTypeJSON)
-
-	if param.Body == nil {
-		return nil, nil
-	}
-
-	switch body := param.Body.(type) {
-	case nil:
-	case string:
-		req.ContentLength = int64(len(body))
-		req.Body = io.NopCloser(bytes.NewReader([]byte(body)))
-	case []byte:
-		req.ContentLength = int64(len(body))
-		req.Body = io.NopCloser(bytes.NewReader(body))
-	default:
-		return nil, fmt.Errorf("body error")
 	}
 
 	return defaultClient.Do(req)
@@ -528,17 +489,22 @@ func prepareHeader(req *http.Request, header any) error {
 func prepareJSONBody(req *http.Request, body any) error {
 	setHeader(req.Header, "Content-Type", ContentTypeJSON)
 
-	if body == nil {
+	switch body := body.(type) {
+	case nil:
 		return nil
+	case []byte:
+		req.ContentLength = int64(len(body))
+		req.Body = io.NopCloser(bytes.NewReader(body))
+	default:
+		data, err := serder.ObjectToJSON(body)
+		if err != nil {
+			return err
+		}
+
+		req.ContentLength = int64(len(data))
+		req.Body = io.NopCloser(bytes.NewReader(data))
 	}
 
-	data, err := serder.ObjectToJSON(body)
-	if err != nil {
-		return err
-	}
-
-	req.ContentLength = int64(len(data))
-	req.Body = io.NopCloser(bytes.NewReader(data))
 	return nil
 }
 

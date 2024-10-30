@@ -13,7 +13,7 @@ import (
 type Driver struct {
 	planID     PlanID
 	planBlder  *PlanBuilder
-	callback   *future.SetValueFuture[map[string]any]
+	callback   *future.SetValueFuture[map[string]VarValue]
 	ctx        *ExecContext
 	cancel     context.CancelFunc
 	driverExec *Executor
@@ -42,7 +42,7 @@ func (e *Driver) Signal(signal *DriverSignalVar) {
 	e.driverExec.PutVar(signal.ID, &SignalValue{})
 }
 
-func (e *Driver) Wait(ctx context.Context) (map[string]any, error) {
+func (e *Driver) Wait(ctx context.Context) (map[string]VarValue, error) {
 	stored, err := e.callback.Wait(ctx)
 	if err != nil {
 		return nil, err

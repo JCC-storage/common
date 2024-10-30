@@ -15,19 +15,24 @@ type binding struct {
 	Callback *future.SetValueFuture[VarValue]
 }
 
+type freeVar struct {
+	ID    VarID
+	Value VarValue
+}
+
 type Executor struct {
 	plan     Plan
-	vars     map[VarID]Var
+	vars     map[VarID]freeVar
 	bindings []*binding
 	lock     sync.Mutex
-	store    map[string]any
+	store    map[string]VarValue
 }
 
 func NewExecutor(plan Plan) *Executor {
 	planning := Executor{
 		plan:  plan,
-		vars:  make(map[VarID]Var),
-		store: make(map[string]any),
+		vars:  make(map[VarID]freeVar),
+		store: make(map[string]VarValue),
 	}
 
 	return &planning
@@ -37,7 +42,7 @@ func (s *Executor) Plan() *Plan {
 	return &s.plan
 }
 
-func (s *Executor) Run(ctx *ExecContext) (map[string]any, error) {
+func (s *Executor) Run(ctx *ExecContext) (map[string]VarValue, error) {
 	c, cancel := context.WithCancel(ctx.Context)
 	ctx.Context = c
 
@@ -99,11 +104,11 @@ func (s *Executor) PutVar(id VarID, value VarValue) *Executor {
 	}
 
 	// 如果没有绑定，则直接放入变量表中
-	s.vars[id] = Var{ID: id, Value: value}
+	s.vars[id] = freeVar{ID: id, Value: value}
 	return s
 }
 
-func (s *Executor) Store(key string, val any) {
+func (s *Executor) Store(key string, val VarValue) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 

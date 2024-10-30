@@ -63,7 +63,7 @@ func (b *PlanBuilder) Execute(ctx *ExecContext) *Driver {
 	exec := Driver{
 		planID:     planID,
 		planBlder:  b,
-		callback:   future.NewSetValue[map[string]any](),
+		callback:   future.NewSetValue[map[string]VarValue](),
 		ctx:        ctx,
 		cancel:     cancel,
 		driverExec: NewExecutor(execPlan),

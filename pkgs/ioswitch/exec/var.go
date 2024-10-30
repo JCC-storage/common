@@ -10,21 +10,9 @@ import (
 
 type VarID int
 
-type Var struct {
-	ID    VarID    `json:"id"`
-	Value VarValue `json:"value"`
-}
-
-type VarPack[T VarValue] struct {
+type Var[T VarValue] struct {
 	ID    VarID `json:"id"`
 	Value T     `json:"value"`
-}
-
-func (v *VarPack[T]) ToAny() AnyVar {
-	return AnyVar{
-		ID:    v.ID,
-		Value: v.Value,
-	}
 }
 
 // 变量的值
@@ -42,15 +30,6 @@ func UseVarValue[T VarValue]() {
 	valueUnion.Add(reflect2.TypeOf[T]())
 }
 
-type AnyVar = VarPack[VarValue]
-
-func V(id VarID, value VarValue) AnyVar {
-	return AnyVar{
-		ID:    id,
-		Value: value,
-	}
-}
-
 type StreamValue struct {
 	Stream io.ReadCloser `json:"-"`
 }
@@ -60,15 +39,24 @@ func (v *StreamValue) Clone() VarValue {
 	panic("StreamValue should not be cloned")
 }
 
+type StreamVar = Var[*StreamValue]
+
+func NewStreamVar(id VarID, stream io.ReadCloser) StreamVar {
+	return StreamVar{
+		ID:    id,
+		Value: &StreamValue{Stream: stream},
+	}
+}
+
 type SignalValue struct{}
 
 func (o *SignalValue) Clone() VarValue {
 	return &SignalValue{}
 }
 
-type SignalVar = VarPack[*SignalValue]
+type SignalVar = Var[*SignalValue]
 
-func NewSignal(id VarID) SignalVar {
+func NewSignalVar(id VarID) SignalVar {
 	return SignalVar{
 		ID:    id,
 		Value: &SignalValue{},
@@ -81,4 +69,13 @@ type StringValue struct {
 
 func (o *StringValue) Clone() VarValue {
 	return &StringValue{Value: o.Value}
+}
+
+type StringVar = Var[*StringValue]
+
+func NewStringVar(id VarID, value string) StringVar {
+	return StringVar{
+		ID:    id,
+		Value: &StringValue{Value: value},
+	}
 }

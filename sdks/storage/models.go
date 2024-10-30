@@ -27,6 +27,9 @@ type StorageID int64
 
 type LocationID int64
 
+// 文件的SHA256哈希值，全大写的16进制字符串格式
+type FileHash string
+
 /// TODO 将分散在各处的公共结构体定义集中到这里来
 
 type Redundancy interface {
@@ -176,7 +179,7 @@ type Object struct {
 	PackageID  PackageID  `db:"PackageID" json:"packageID"`
 	Path       string     `db:"Path" json:"path"`
 	Size       int64      `db:"Size" json:"size,string"`
-	FileHash   string     `db:"FileHash" json:"fileHash"`
+	FileHash   FileHash   `db:"FileHash" json:"fileHash"`
 	Redundancy Redundancy `db:"Redundancy" json:"redundancy"`
 	CreateTime time.Time  `db:"CreateTime" json:"createTime"`
 	UpdateTime time.Time  `db:"UpdateTime" json:"updateTime"`
@@ -245,21 +248,21 @@ type NodeConnectivity struct {
 	TestTime   time.Time `db:"TestTime" json:"testTime"`
 }
 
-type NodePackageCachingInfo struct {
-	NodeID      NodeID `json:"nodeID"`
-	FileSize    int64  `json:"fileSize"`
-	ObjectCount int64  `json:"objectCount"`
+type StoragePackageCachingInfo struct {
+	StorageID   StorageID `json:"storageID"`
+	FileSize    int64     `json:"fileSize"`
+	ObjectCount int64     `json:"objectCount"`
 }
 
 type PackageCachingInfo struct {
-	NodeInfos   []NodePackageCachingInfo `json:"nodeInfos"`
-	PackageSize int64                    `json:"packageSize"`
+	StorageInfos []StoragePackageCachingInfo `json:"stgInfos"`
+	PackageSize  int64                       `json:"packageSize"`
 }
 
-func NewPackageCachingInfo(nodeInfos []NodePackageCachingInfo, packageSize int64) PackageCachingInfo {
+func NewPackageCachingInfo(stgInfos []StoragePackageCachingInfo, packageSize int64) PackageCachingInfo {
 	return PackageCachingInfo{
-		NodeInfos:   nodeInfos,
-		PackageSize: packageSize,
+		StorageInfos: stgInfos,
+		PackageSize:  packageSize,
 	}
 }
 

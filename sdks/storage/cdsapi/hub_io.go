@@ -1,11 +1,8 @@
 package cdsapi
 
 import (
-	"bytes"
 	"fmt"
 	"io"
-	"mime/multipart"
-	"net/http"
 	"net/url"
 	"strings"
 
@@ -26,31 +23,32 @@ type GetStreamReq struct {
 	Signal   exec.VarValue `json:"signal"`
 }
 
-func (c *Client) GetStream(planID exec.PlanID, id exec.VarID, signalID exec.VarID, signal exec.VarValue) (io.ReadCloser, error) {
+func (c *Client) GetStream(req GetStreamReq) (io.ReadCloser, error) {
 	targetUrl, err := url.JoinPath(c.baseURL, GetStreamPath)
 	if err != nil {
 		return nil, err
 	}
 
-	req := &GetStreamReq{
-		PlanID:   planID,
-		VarID:    id,
-		SignalID: signalID,
-		Signal:   signal,
+	body, err := serder.ObjectToJSONEx(req)
+	if err != nil {
+		return nil, fmt.Errorf("request to json: %w", err)
 	}
 
 	resp, err := http2.GetJSON(targetUrl, http2.RequestParam{
-		Body: req,
+		Body: body,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		// 读取错误信息
-		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		return nil, fmt.Errorf("error response from server: %s", string(body))
+	contType := resp.Header.Get("Content-Type")
+	if strings.Contains(contType, http2.ContentTypeJSON) {
+		var codeResp response[any]
+		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
+			return nil, fmt.Errorf("parsing response: %w", err)
+		}
+
+		return nil, codeResp.ToError()
 	}
 
 	return resp.Body, nil
@@ -59,60 +57,54 @@ func (c *Client) GetStream(planID exec.PlanID, id exec.VarID, signalID exec.VarI
 const SendStreamPath = "/hubIO/sendStream"
 
 type SendStreamReq struct {
-	PlanID exec.PlanID   `json:"planID"`
-	VarID  exec.VarID    `json:"varID"`
-	Stream io.ReadCloser `json:"stream"`
+	SendStreamInfo
+	Stream io.ReadCloser `json:"-"`
+}
+type SendStreamInfo struct {
+	PlanID exec.PlanID `json:"planID"`
+	VarID  exec.VarID  `json:"varID"`
 }
 
-func (c *Client) SendStream(planID exec.PlanID, varID exec.VarID, str io.Reader) error {
-	targetUrl, err := url.JoinPath(c.baseURL, SendStreamPath)
-	if err != nil {
-		return err
-	}
+func (c *Client) SendStream(req SendStreamReq) error {
+	// targetUrl, err := url.JoinPath(c.baseURL, SendStreamPath)
+	// if err != nil {
+	// 	return err
+	// }
 
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
+	// infoJSON, err := serder.ObjectToJSON(req)
+	// if err != nil {
+	// 	return fmt.Errorf("info to json: %w", err)
+	// }
 
-	_ = writer.WriteField("plan_id", string(planID))
-	_ = writer.WriteField("var_id", string(rune(varID)))
-	fileWriter, err := writer.CreateFormFile("file", "data")
-	if err != nil {
-		return fmt.Errorf("creating form file: %w", err)
-	}
+	// resp, err := http2.PostMultiPart(targetUrl, http2.MultiPartRequestParam{
+	// 	Form: map[string]string{"info": string(infoJSON)},
+	// 	Files: iterator.Array(&http2.IterMultiPartFile{
+	// 		FieldName: "stream",
+	// 		FileName:  "stream",
+	// 		File:      req.Stream,
+	// 	}),
+	// })
+	// if err != nil {
+	// 	return err
+	// }
 
-	// 将读取的数据写入 multipart 的文件部分
-	_, err = io.Copy(fileWriter, str)
-	if err != nil {
-		return fmt.Errorf("copying stream data: %w", err)
-	}
+	// contType := resp.Header.Get("Content-Type")
+	// if strings.Contains(contType, http2.ContentTypeJSON) {
+	// 	var err error
+	// 	var codeResp response[ObjectUploadResp]
+	// 	if codeResp, err = serder.JSONToObjectStreamEx[response[ObjectUploadResp]](resp.Body); err != nil {
+	// 		return fmt.Errorf("parsing response: %w", err)
+	// 	}
 
-	// 关闭 writer 以结束 multipart
-	err = writer.Close()
-	if err != nil {
-		return fmt.Errorf("closing writer: %w", err)
-	}
+	// 	if codeResp.Code == errorcode.OK {
+	// 		return nil
+	// 	}
 
-	// 创建 HTTP 请求
-	req, err := http.NewRequest("POST", targetUrl, body)
-	if err != nil {
-		return fmt.Errorf("creating HTTP request: %w", err)
-	}
-	req.Header.Set("Content-Type", writer.FormDataContentType())
+	// 	return codeResp.ToError()
+	// }
 
-	// 发送请求
-	cli := http.Client{}
-	resp, err := cli.Do(req)
-	if err != nil {
-		return fmt.Errorf("sending HTTP request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// 检查响应状态码
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("server returned non-200 status: %d", resp.StatusCode)
-	}
-
-	return nil
+	// return fmt.Errorf("unknow response content type: %s", contType)
+	return fmt.Errorf("not implemented")
 }
 
 const ExecuteIOPlanPath = "/hubIO/executeIOPlan"
@@ -121,38 +113,34 @@ type ExecuteIOPlanReq struct {
 	Plan exec.Plan `json:"plan"`
 }
 
-func (c *Client) ExecuteIOPlan(plan exec.Plan) error {
+func (c *Client) ExecuteIOPlan(req ExecuteIOPlanReq) error {
 	targetUrl, err := url.JoinPath(c.baseURL, ExecuteIOPlanPath)
 	if err != nil {
 		return err
 	}
 
-	req := &ExecuteIOPlanReq{
-		Plan: plan,
+	body, err := serder.ObjectToJSONEx(req)
+	if err != nil {
+		return fmt.Errorf("request to json: %w", err)
 	}
 
 	resp, err := http2.PostJSON(targetUrl, http2.RequestParam{
-		Body: req,
+		Body: body,
 	})
 	if err != nil {
 		return err
 	}
 
-	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, http2.ContentTypeJSON) {
-		var codeResp response[any]
-		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
-			return fmt.Errorf("parsing response: %w", err)
-		}
-
-		if codeResp.Code == errorcode.OK {
-			return nil
-		}
-
-		return codeResp.ToError()
+	codeResp, err := ParseJSONResponse[response[any]](resp)
+	if err != nil {
+		return err
 	}
 
-	return fmt.Errorf("unknow response content type: %s", contType)
+	if codeResp.Code == errorcode.OK {
+		return nil
+	}
+
+	return codeResp.ToError()
 }
 
 const SendVarPath = "/hubIO/sendVar"
@@ -163,40 +151,34 @@ type SendVarReq struct {
 	VarValue exec.VarValue `json:"varValue"`
 }
 
-func (c *Client) SendVar(planID exec.PlanID, id exec.VarID, value exec.VarValue) error {
+func (c *Client) SendVar(req SendVarReq) error {
 	targetUrl, err := url.JoinPath(c.baseURL, SendVarPath)
 	if err != nil {
 		return err
 	}
 
-	req := &SendVarReq{
-		PlanID:   planID,
-		VarID:    id,
-		VarValue: value,
+	body, err := serder.ObjectToJSONEx(req)
+	if err != nil {
+		return fmt.Errorf("request to json: %w", err)
 	}
 
 	resp, err := http2.PostJSON(targetUrl, http2.RequestParam{
-		Body: req,
+		Body: body,
 	})
 	if err != nil {
 		return err
 	}
 
-	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, http2.ContentTypeJSON) {
-		var codeResp response[any]
-		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
-			return fmt.Errorf("parsing response: %w", err)
-		}
-
-		if codeResp.Code == errorcode.OK {
-			return nil
-		}
-
-		return codeResp.ToError()
+	jsonResp, err := ParseJSONResponse[response[any]](resp)
+	if err != nil {
+		return err
 	}
 
-	return fmt.Errorf("unknow response content type: %s", contType)
+	if jsonResp.Code == errorcode.OK {
+		return nil
+	}
+
+	return jsonResp.ToError()
 }
 
 const GetVarPath = "/hubIO/getVar"
@@ -208,33 +190,36 @@ type GetVarReq struct {
 	Signal   exec.VarValue `json:"signal"`
 }
 
-func (c *Client) GetVar(id exec.PlanID, varID exec.VarID, singalID exec.VarID, signal exec.VarValue) (exec.VarValue, error) {
+type GetVarResp struct {
+	Value exec.VarValue `json:"value"`
+}
+
+func (c *Client) GetVar(req GetVarReq) (*GetVarResp, error) {
 	targetUrl, err := url.JoinPath(c.baseURL, GetVarPath)
 	if err != nil {
 		return nil, err
 	}
 
-	req := &GetVarReq{
-		PlanID:   id,
-		VarID:    varID,
-		SignalID: singalID,
-		Signal:   signal,
+	body, err := serder.ObjectToJSONEx(req)
+	if err != nil {
+		return nil, fmt.Errorf("request to json: %w", err)
 	}
 
 	resp, err := http2.GetJSON(targetUrl, http2.RequestParam{
-		Body: req,
+		Body: body,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	body, _ := io.ReadAll(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		// 读取错误信息
-		resp.Body.Close()
-		return nil, fmt.Errorf("error response from server: %s", string(body))
+	jsonResp, err := ParseJSONResponse[response[GetVarResp]](resp)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	if jsonResp.Code == errorcode.OK {
+		return &jsonResp.Data, nil
+	}
+
+	return nil, jsonResp.ToError()
 }
