@@ -31,9 +31,7 @@ func DefaultLoad(modeulName string, defCfg interface{}) error {
 
 	// TODO 可以考虑根据环境变量读取不同的配置
 	// filepath.Join用于将多个路径组合成一个路径
-	fmt.Printf(execPath)
-	//configFilePath := filepath.Join(filepath.Dir(execPath), "..", "confs", fmt.Sprintf("%s.config.json", modeulName))
-	configFilePath := filepath.Join("D:\\Work\\Codes\\workspace\\workspace\\storage\\common\\assets\\confs\\", fmt.Sprintf("%s.config.json", modeulName))
+	configFilePath := filepath.Join(filepath.Dir(execPath), "..", "confs", fmt.Sprintf("%s.config.json", modeulName))
 	return Load(configFilePath, defCfg)
 }
 

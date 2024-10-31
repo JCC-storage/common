@@ -13,7 +13,7 @@ const CacheMovePackagePath = "/cache/movePackage"
 type CacheMovePackageReq struct {
 	UserID    cdssdk.UserID    `json:"userID"`
 	PackageID cdssdk.PackageID `json:"packageID"`
-	NodeID    cdssdk.NodeID    `json:"nodeID"`
+	StorageID cdssdk.StorageID `json:"storageID"`
 }
 type CacheMovePackageResp struct{}
 

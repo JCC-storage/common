@@ -217,7 +217,7 @@ func Test_Cache(t *testing.T) {
 		_, err = cli.CacheMovePackage(CacheMovePackageReq{
 			UserID:    1,
 			PackageID: createResp.Package.PackageID,
-			NodeID:    1,
+			StorageID: 1,
 		})
 		So(err, ShouldBeNil)
 
@@ -234,14 +234,14 @@ func Test_GetNodeInfos(t *testing.T) {
 		cli := NewClient(&Config{
 			URL: "http://localhost:7890",
 		})
-		resp1, err := cli.Package().GetCachedNodes(PackageGetCachedNodesReq{
+		resp1, err := cli.Package().GetCachedStorages(PackageGetCachedStoragesReq{
 			PackageID: 11,
 			UserID:    1,
 		})
 		So(err, ShouldBeNil)
 		fmt.Printf("resp1: %v\n", resp1)
 
-		resp2, err := cli.Package().GetLoadedNodes(PackageGetLoadedNodesReq{
+		resp2, err := cli.Package().GetLoadedStorages(PackageGetLoadedStoragesReq{
 			PackageID: 11,
 			UserID:    1,
 		})

@@ -26,6 +26,10 @@ type ShardStorage struct {
 	Config ShardStoreConfig `json:"config" gorm:"column:Config; type:json; not null; serializer:union"`
 }
 
+func (ShardStorage) TableName() string {
+	return "ShardStorage"
+}
+
 type LocalShardStorage struct {
 	serder.Metadata `union:"Local"`
 	Root            string `json:"root"`
