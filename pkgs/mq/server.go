@@ -141,6 +141,7 @@ func (s *RabbitMQServer) Start() *sync2.UnboundChannel[RabbitMQLogEvent] {
 
 				time.Sleep(time.Duration(s.config.RetryInterval) * time.Millisecond)
 				channel = s.openChannel(ch)
+				continue
 			}
 
 			reqMsg, err := Deserialize(rawReq.Body)

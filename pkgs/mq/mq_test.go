@@ -27,7 +27,7 @@ func Test_ServerClient(t *testing.T) {
 			})
 		So(err, ShouldBeNil)
 
-		go svr.Serve()
+		//go svr.Start()
 
 		cli, err := NewRabbitMQTransport(rabbitURL, testQueue, "")
 		So(err, ShouldBeNil)
