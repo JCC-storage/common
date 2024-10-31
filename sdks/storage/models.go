@@ -168,34 +168,42 @@ const (
 )
 
 type Package struct {
-	PackageID PackageID `db:"PackageID" json:"packageID"`
-	Name      string    `db:"Name" json:"name"`
-	BucketID  BucketID  `db:"BucketID" json:"bucketID"`
-	State     string    `db:"State" json:"state"`
+	PackageID PackageID `gorm:"column:PackageID; primaryKey; autoIncrement" json:"packageID"`
+	Name      string    `gorm:"column:Name" json:"name"`
+	BucketID  BucketID  `gorm:"column:BucketID" json:"bucketID"`
+	State     string    `gorm:"column:State" json:"state"`
+}
+
+func (Package) TableName() string {
+	return "Package"
 }
 
 type Object struct {
-	ObjectID   ObjectID   `db:"ObjectID" json:"objectID"`
-	PackageID  PackageID  `db:"PackageID" json:"packageID"`
-	Path       string     `db:"Path" json:"path"`
-	Size       int64      `db:"Size" json:"size,string"`
-	FileHash   FileHash   `db:"FileHash" json:"fileHash"`
-	Redundancy Redundancy `db:"Redundancy" json:"redundancy"`
-	CreateTime time.Time  `db:"CreateTime" json:"createTime"`
-	UpdateTime time.Time  `db:"UpdateTime" json:"updateTime"`
+	ObjectID   ObjectID   `gorm:"column:ObjectID; primaryKey; autoIncrement" json:"objectID"`
+	PackageID  PackageID  `gorm:"column:PackageID; index: PackagePath, unique;" json:"packageID"`
+	Path       string     `gorm:"column:Path; index: PackagePath, unique;" json:"path"`
+	Size       int64      `gorm:"column:Size" json:"size,string"`
+	FileHash   FileHash   `gorm:"column:FileHash" json:"fileHash"`
+	Redundancy Redundancy `gorm:"column:Redundancy; type: json; serializer:union" json:"redundancy"`
+	CreateTime time.Time  `gorm:"column:CreateTime" json:"createTime"`
+	UpdateTime time.Time  `gorm:"column:UpdateTime" json:"updateTime"`
+}
+
+func (Object) TableName() string {
+	return "Object"
 }
 
 type Node struct {
-	NodeID           NodeID          `gorm:"column:NodeID;type:varchar(255)" json:"nodeID"`
-	Name             string          `gorm:"column:Name;type:varchar(255)" json:"name"`
-	LocalIP          string          `gorm:"column:LocalIP;type:varchar(255)" json:"localIP"`
-	ExternalIP       string          `gorm:"column:ExternalIP;type:varchar(255)" json:"externalIP"`
-	LocalGRPCPort    int             `gorm:"column:LocalGRPCPort;type:int" json:"localGRPCPort"`
-	ExternalGRPCPort int             `gorm:"column:ExternalGRPCPort;type:int" json:"externalGRPCPort"`
-	LocationID       LocationID      `gorm:"column:LocationID;type:varchar(255)" json:"locationID"`
-	State            string          `gorm:"column:State;type:varchar(255)" json:"state"`
-	LastReportTime   *time.Time      `gorm:"column:LastReportTime;type:timestamp" json:"lastReportTime"`
-	Address          NodeAddressInfo `gorm:"column:Address;type:json;serializer:union" json:"address"`
+	NodeID         NodeID          `gorm:"column:NodeID; primaryKey; autoIncrement" json:"nodeID"`
+	Name           string          `gorm:"column:Name;type:varchar(255); not null" json:"name"`
+	Address        NodeAddressInfo `gorm:"column:Address; type:json; serializer:union" json:"address"`
+	LocationID     LocationID      `gorm:"column:LocationID;" json:"locationID"`
+	State          string          `gorm:"column:State;" json:"state"`
+	LastReportTime *time.Time      `gorm:"column:LastReportTime;" json:"lastReportTime"`
+}
+
+func (Node) TableName() string {
+	return "Node"
 }
 
 type NodeAddressInfo interface {
@@ -235,17 +243,29 @@ type PinnedObject struct {
 	CreateTime time.Time `gorm:"column:CreateTime" json:"createTime"`
 }
 
+func (PinnedObject) TableName() string {
+	return "PinnedObject"
+}
+
 type Bucket struct {
-	BucketID  BucketID `db:"BucketID" json:"bucketID"`
-	Name      string   `db:"Name" json:"name"`
-	CreatorID UserID   `db:"CreatorID" json:"creatorID"`
+	BucketID  BucketID `gorm:"column:BucketID; primaryKey; autoIncrement" json:"bucketID"`
+	Name      string   `gorm:"column:Name" json:"name"`
+	CreatorID UserID   `gorm:"column:CreatorID" json:"creatorID"`
+}
+
+func (Bucket) TableName() string {
+	return "Bucket"
 }
 
 type NodeConnectivity struct {
-	FromNodeID NodeID    `db:"FromNodeID" json:"fromNodeID"`
-	ToNodeID   NodeID    `db:"ToNodeID" json:"ToNodeID"`
-	Delay      *float32  `db:"Delay" json:"delay"`
-	TestTime   time.Time `db:"TestTime" json:"testTime"`
+	FromNodeID NodeID    `gorm:"column:FromNodeID; primaryKey" json:"fromNodeID"`
+	ToNodeID   NodeID    `gorm:"column:ToNodeID; primaryKey" json:"ToNodeID"`
+	Delay      *float32  `gorm:"column:Delay" json:"delay"`
+	TestTime   time.Time `gorm:"column:TestTime" json:"testTime"`
+}
+
+func (NodeConnectivity) TableName() string {
+	return "NodeConnectivity"
 }
 
 type StoragePackageCachingInfo struct {

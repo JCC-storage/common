@@ -41,6 +41,10 @@ type Storage struct {
 	Features []StorageFeature `json:"features" gorm:"column:Features; type:json; serializer:union"`
 }
 
+func (Storage) TableName() string {
+	return "Storage"
+}
+
 func (s *Storage) String() string {
 	return fmt.Sprintf("%v(%v)", s.Name, s.StorageID)
 }
@@ -52,4 +56,8 @@ type SharedStorage struct {
 	LoadBase string `json:"loadBase" gorm:"column:LoadBase; not null"`
 	// 回源数据时数据存放位置的根路径
 	DataReturnBase string `json:"dataReturnBase" gorm:"column:DataReturnBase; not null"`
+}
+
+func (SharedStorage) TableName() string {
+	return "SharedStorage"
 }

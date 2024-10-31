@@ -201,19 +201,19 @@ func (c *PackageService) ListBucketPackages(req PackageListBucketPackages) (*Pac
 	return nil, codeResp.ToError()
 }
 
-const PackageGetCachedNodesPath = "/package/getCachedNodes"
+const PackageGetCachedStoragesPath = "/package/getCachedStorages"
 
-type PackageGetCachedNodesReq struct {
+type PackageGetCachedStoragesReq struct {
 	PackageID cdssdk.PackageID `form:"packageID" json:"packageID" binding:"required"`
 	UserID    cdssdk.UserID    `form:"userID" json:"userID" binding:"required"`
 }
 
-type PackageGetCachedNodesResp struct {
+type PackageGetCachedStoragesResp struct {
 	cdssdk.PackageCachingInfo
 }
 
-func (c *PackageService) GetCachedNodes(req PackageGetCachedNodesReq) (*PackageGetCachedNodesResp, error) {
-	url, err := url.JoinPath(c.baseURL, PackageGetCachedNodesPath)
+func (c *PackageService) GetCachedStorages(req PackageGetCachedStoragesReq) (*PackageGetCachedStoragesResp, error) {
+	url, err := url.JoinPath(c.baseURL, PackageGetCachedStoragesPath)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +224,7 @@ func (c *PackageService) GetCachedNodes(req PackageGetCachedNodesReq) (*PackageG
 		return nil, err
 	}
 
-	codeResp, err := ParseJSONResponse[response[PackageGetCachedNodesResp]](resp)
+	codeResp, err := ParseJSONResponse[response[PackageGetCachedStoragesResp]](resp)
 	if err != nil {
 		return nil, err
 	}
@@ -236,19 +236,19 @@ func (c *PackageService) GetCachedNodes(req PackageGetCachedNodesReq) (*PackageG
 	return nil, codeResp.ToError()
 }
 
-const PackageGetLoadedNodesPath = "/package/getLoadedNodes"
+const PackageGetLoadedStoragesPath = "/package/getLoadedStorages"
 
-type PackageGetLoadedNodesReq struct {
+type PackageGetLoadedStoragesReq struct {
 	PackageID cdssdk.PackageID `form:"packageID" json:"packageID" binding:"required"`
 	UserID    cdssdk.UserID    `form:"userID" json:"userID" binding:"required"`
 }
 
-type PackageGetLoadedNodesResp struct {
-	NodeIDs []cdssdk.NodeID `json:"nodeIDs"`
+type PackageGetLoadedStoragesResp struct {
+	StorageIDs []cdssdk.StorageID `json:"storageIDs"`
 }
 
-func (c *PackageService) GetLoadedNodes(req PackageGetLoadedNodesReq) (*PackageGetLoadedNodesResp, error) {
-	url, err := url.JoinPath(c.baseURL, PackageGetLoadedNodesPath)
+func (c *PackageService) GetLoadedStorages(req PackageGetLoadedStoragesReq) (*PackageGetLoadedStoragesResp, error) {
+	url, err := url.JoinPath(c.baseURL, PackageGetLoadedStoragesPath)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +259,7 @@ func (c *PackageService) GetLoadedNodes(req PackageGetLoadedNodesReq) (*PackageG
 		return nil, err
 	}
 
-	codeResp, err := ParseJSONResponse[response[PackageGetLoadedNodesResp]](resp)
+	codeResp, err := ParseJSONResponse[response[PackageGetLoadedStoragesResp]](resp)
 	if err != nil {
 		return nil, err
 	}

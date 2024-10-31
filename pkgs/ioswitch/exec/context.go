@@ -35,7 +35,7 @@ func (c *ExecContext) SetValue(key any, value any) {
 	c.Values[key] = value
 }
 
-func ValueByType[T any](ctx *ExecContext) (T, error) {
+func GetValueByType[T any](ctx *ExecContext) (T, error) {
 	var ret T
 
 	value, err := ctx.Value(reflect2.TypeOf[T]())
@@ -49,4 +49,8 @@ func ValueByType[T any](ctx *ExecContext) (T, error) {
 	}
 
 	return ret, nil
+}
+
+func SetValueByType[T any](ctx *ExecContext, value T) {
+	ctx.SetValue(reflect2.TypeOf[T](), value)
 }
