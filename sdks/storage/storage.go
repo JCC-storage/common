@@ -7,29 +7,6 @@ import (
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
-// 存储服务地址
-type StorageAddress interface {
-	GetType() string
-	// 输出调试用的字符串，不要包含敏感信息
-	String() string
-}
-
-var _ = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[StorageAddress](
-	(*LocalStorageAddress)(nil),
-)), "type")
-
-type LocalStorageAddress struct {
-	serder.Metadata `union:"Local"`
-}
-
-func (a *LocalStorageAddress) GetType() string {
-	return "Local"
-}
-
-func (a *LocalStorageAddress) String() string {
-	return "Local"
-}
-
 type Storage struct {
 	StorageID StorageID `json:"storageID" gorm:"column:StorageID; primaryKey; autoIncrement;"`
 	Name      string    `json:"name" gorm:"column:Name; not null"`
@@ -60,4 +37,78 @@ type SharedStorage struct {
 
 func (SharedStorage) TableName() string {
 	return "SharedStorage"
+}
+
+// 存储服务地址
+type StorageAddress interface {
+	GetType() string
+	// 输出调试用的字符串，不要包含敏感信息
+	String() string
+}
+
+var _ = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[StorageAddress](
+	(*LocalStorageAddress)(nil),
+)), "type")
+
+type LocalStorageAddress struct {
+	serder.Metadata `union:"Local"`
+}
+
+func (a *LocalStorageAddress) GetType() string {
+	return "Local"
+}
+
+func (a *LocalStorageAddress) String() string {
+	return "Local"
+}
+
+type OSSAddress struct {
+	serder.Metadata `union:"Local"`
+	Region          string `json:"region"`
+	AK              string `json:"accessKeyId"`
+	SK              string `json:"secretAccessKey"`
+	Endpoint        string `json:"endpoint"`
+	Bucket          string `json:"bucket"`
+}
+
+func (a *OSSAddress) GetType() string {
+	return "OSSAddress"
+}
+
+func (a *OSSAddress) String() string {
+	return "OSSAddress"
+}
+
+type OBSAddress struct {
+	serder.Metadata `union:"Local"`
+	Region          string `json:"region"`
+	AK              string `json:"accessKeyId"`
+	SK              string `json:"secretAccessKey"`
+	Endpoint        string `json:"endpoint"`
+	Bucket          string `json:"bucket"`
+}
+
+func (a *OBSAddress) GetType() string {
+	return "OBSAddress"
+}
+
+func (a *OBSAddress) String() string {
+	return "OBSAddress"
+}
+
+type COSAddress struct {
+	serder.Metadata `union:"Local"`
+	Region          string `json:"region"`
+	AK              string `json:"accessKeyId"`
+	SK              string `json:"secretAccessKey"`
+	Endpoint        string `json:"endpoint"`
+	Bucket          string `json:"bucket"`
+}
+
+func (a *COSAddress) GetType() string {
+	return "COSAddress"
+}
+
+func (a *COSAddress) String() string {
+	return "COSAddress"
 }
