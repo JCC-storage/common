@@ -19,9 +19,9 @@ var _ = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[ShardSt
 )), "type")
 
 type ShardStorage struct {
-	StorageID StorageID `json:"storageID" gorm:"column:StorageID; primaryKey"`
+	StorageID StorageID `json:"storageID" gorm:"column:StorageID; primaryKey; type:bigint"`
 	// Shard存储空间在存储服务的目录
-	Root string `json:"root" gorm:"column:Root; not null"`
+	Root string `json:"root" gorm:"column:Root; type:varchar(1024); not null"`
 	// ShardStore配置数据
 	Config ShardStoreConfig `json:"config" gorm:"column:Config; type:json; not null; serializer:union"`
 }

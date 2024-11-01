@@ -31,10 +31,10 @@ func (a *LocalStorageAddress) String() string {
 }
 
 type Storage struct {
-	StorageID StorageID `json:"storageID" gorm:"column:StorageID; primaryKey; autoIncrement;"`
-	Name      string    `json:"name" gorm:"column:Name; not null"`
+	StorageID StorageID `json:"storageID" gorm:"column:StorageID; primaryKey; type:bigint; autoIncrement;"`
+	Name      string    `json:"name" gorm:"column:Name; type:varchar(256); not null"`
 	// 完全管理此存储服务的Hub的ID
-	MasterHub NodeID `json:"masterHub" gorm:"column:MasterHub; not null"`
+	MasterHub NodeID `json:"masterHub" gorm:"column:MasterHub; type:bigint; not null"`
 	// 存储服务的地址，包含鉴权所需数据
 	Address StorageAddress `json:"address" gorm:"column:Address; type:json; not null; serializer:union"`
 	// 存储服务拥有的特别功能
@@ -51,11 +51,11 @@ func (s *Storage) String() string {
 
 // 共享存储服务的配置数据
 type SharedStorage struct {
-	StorageID StorageID `json:"storageID" gorm:"column:StorageID; primaryKey"`
+	StorageID StorageID `json:"storageID" gorm:"column:StorageID; primaryKey; type:bigint"`
 	// 调度文件时保存文件的根路径
-	LoadBase string `json:"loadBase" gorm:"column:LoadBase; not null"`
+	LoadBase string `json:"loadBase" gorm:"column:LoadBase; type:varchar(1024); not null"`
 	// 回源数据时数据存放位置的根路径
-	DataReturnBase string `json:"dataReturnBase" gorm:"column:DataReturnBase; not null"`
+	DataReturnBase string `json:"dataReturnBase" gorm:"column:DataReturnBase; type:varchar(1024); not null"`
 }
 
 func (SharedStorage) TableName() string {

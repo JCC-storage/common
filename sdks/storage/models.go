@@ -168,10 +168,10 @@ const (
 )
 
 type Package struct {
-	PackageID PackageID `gorm:"column:PackageID; primaryKey; autoIncrement" json:"packageID"`
-	Name      string    `gorm:"column:Name" json:"name"`
-	BucketID  BucketID  `gorm:"column:BucketID" json:"bucketID"`
-	State     string    `gorm:"column:State" json:"state"`
+	PackageID PackageID `gorm:"column:PackageID; primaryKey; type:bigint; autoIncrement" json:"packageID"`
+	Name      string    `gorm:"column:Name; type:varchar(255); not null" json:"name"`
+	BucketID  BucketID  `gorm:"column:BucketID; type:bigint; not null" json:"bucketID"`
+	State     string    `gorm:"column:State; type:varchar(255); not null" json:"state"`
 }
 
 func (Package) TableName() string {
@@ -179,14 +179,14 @@ func (Package) TableName() string {
 }
 
 type Object struct {
-	ObjectID   ObjectID   `gorm:"column:ObjectID; primaryKey; autoIncrement" json:"objectID"`
-	PackageID  PackageID  `gorm:"column:PackageID; index: PackagePath, unique;" json:"packageID"`
-	Path       string     `gorm:"column:Path; index: PackagePath, unique;" json:"path"`
-	Size       int64      `gorm:"column:Size" json:"size,string"`
-	FileHash   FileHash   `gorm:"column:FileHash" json:"fileHash"`
-	Redundancy Redundancy `gorm:"column:Redundancy; type: json; serializer:union" json:"redundancy"`
-	CreateTime time.Time  `gorm:"column:CreateTime" json:"createTime"`
-	UpdateTime time.Time  `gorm:"column:UpdateTime" json:"updateTime"`
+	ObjectID   ObjectID   `json:"objectID"  gorm:"column:ObjectID; primaryKey; type:bigint; autoIncrement" `
+	PackageID  PackageID  `json:"packageID" gorm:"column:PackageID; type:bigint; not null"`
+	Path       string     `json:"path" gorm:"column:Path; type:varchar(1024); not null"`
+	Size       int64      `json:"size,string" gorm:"column:Size; type:bigint; not null"`
+	FileHash   FileHash   `json:"fileHash" gorm:"column:FileHash; type:char(64); not null"`
+	Redundancy Redundancy `json:"redundancy" gorm:"column:Redundancy; type: json; serializer:union"`
+	CreateTime time.Time  `json:"createTime" gorm:"column:CreateTime; type:datetime; not null"`
+	UpdateTime time.Time  `json:"updateTime" gorm:"column:UpdateTime; type:datetime; not null"`
 }
 
 func (Object) TableName() string {
@@ -194,12 +194,12 @@ func (Object) TableName() string {
 }
 
 type Node struct {
-	NodeID         NodeID          `gorm:"column:NodeID; primaryKey; autoIncrement" json:"nodeID"`
-	Name           string          `gorm:"column:Name;type:varchar(255); not null" json:"name"`
+	NodeID         NodeID          `gorm:"column:NodeID; primaryKey; type:bigint; autoIncrement" json:"nodeID"`
+	Name           string          `gorm:"column:Name; type:varchar(255); not null" json:"name"`
 	Address        NodeAddressInfo `gorm:"column:Address; type:json; serializer:union" json:"address"`
-	LocationID     LocationID      `gorm:"column:LocationID;" json:"locationID"`
-	State          string          `gorm:"column:State;" json:"state"`
-	LastReportTime *time.Time      `gorm:"column:LastReportTime;" json:"lastReportTime"`
+	LocationID     LocationID      `gorm:"column:LocationID; type:bigint; not null" json:"locationID"`
+	State          string          `gorm:"column:State; type:varchar(255); not null" json:"state"`
+	LastReportTime *time.Time      `gorm:"column:LastReportTime; type:datetime" json:"lastReportTime"`
 }
 
 func (Node) TableName() string {
@@ -238,9 +238,9 @@ func (n Node) String() string {
 }
 
 type PinnedObject struct {
-	ObjectID   ObjectID  `gorm:"column:ObjectID; primaryKey" json:"objectID"`
-	StorageID  StorageID `gorm:"column:StorageID; primaryKey" json:"storageID"`
-	CreateTime time.Time `gorm:"column:CreateTime" json:"createTime"`
+	ObjectID   ObjectID  `gorm:"column:ObjectID; primaryKey; type:bigint" json:"objectID"`
+	StorageID  StorageID `gorm:"column:StorageID; primaryKey; type:bigint" json:"storageID"`
+	CreateTime time.Time `gorm:"column:CreateTime; type:datetime; not null" json:"createTime"`
 }
 
 func (PinnedObject) TableName() string {
@@ -248,9 +248,9 @@ func (PinnedObject) TableName() string {
 }
 
 type Bucket struct {
-	BucketID  BucketID `gorm:"column:BucketID; primaryKey; autoIncrement" json:"bucketID"`
-	Name      string   `gorm:"column:Name" json:"name"`
-	CreatorID UserID   `gorm:"column:CreatorID" json:"creatorID"`
+	BucketID  BucketID `gorm:"column:BucketID; primaryKey; type:bigint; autoIncrement" json:"bucketID"`
+	Name      string   `gorm:"column:Name; type:varchar(255); not null" json:"name"`
+	CreatorID UserID   `gorm:"column:CreatorID; type:bigint; not null" json:"creatorID"`
 }
 
 func (Bucket) TableName() string {
@@ -258,10 +258,10 @@ func (Bucket) TableName() string {
 }
 
 type NodeConnectivity struct {
-	FromNodeID NodeID    `gorm:"column:FromNodeID; primaryKey" json:"fromNodeID"`
-	ToNodeID   NodeID    `gorm:"column:ToNodeID; primaryKey" json:"ToNodeID"`
-	Delay      *float32  `gorm:"column:Delay" json:"delay"`
-	TestTime   time.Time `gorm:"column:TestTime" json:"testTime"`
+	FromNodeID NodeID    `gorm:"column:FromNodeID; primaryKey; type:bigint" json:"fromNodeID"`
+	ToNodeID   NodeID    `gorm:"column:ToNodeID; primaryKey; type:bigint" json:"ToNodeID"`
+	Delay      *float32  `gorm:"column:Delay; type:float" json:"delay"`
+	TestTime   time.Time `gorm:"column:TestTime; type:datetime" json:"testTime"`
 }
 
 func (NodeConnectivity) TableName() string {
