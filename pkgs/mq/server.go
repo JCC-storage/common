@@ -2,9 +2,10 @@ package mq
 
 import (
 	"fmt"
-	"gitlink.org.cn/cloudream/common/utils/sync2"
 	"net"
 	"time"
+
+	"gitlink.org.cn/cloudream/common/utils/sync2"
 
 	"github.com/streadway/amqp"
 )
@@ -65,6 +66,12 @@ func NewReplyError(err error) ReplyError {
 	}
 }
 
+type ServerExit struct {
+	Error error
+}
+
+type RabbitMQServerEvent interface{}
+
 // 处理消息。会将第一个返回值作为响应回复给客户端，如果为nil，则不回复。
 type MessageHandlerFn func(msg *Message) (*Message, error)
 
@@ -115,10 +122,8 @@ func NewRabbitMQServer(url string, queueName string, onMessage MessageHandlerFn,
 	return srv, nil
 }
 
-type RabbitMQLogEvent interface{}
-
-func (s *RabbitMQServer) Start() *sync2.UnboundChannel[RabbitMQLogEvent] {
-	ch := sync2.NewUnboundChannel[RabbitMQLogEvent]()
+func (s *RabbitMQServer) Start() *sync2.UnboundChannel[RabbitMQServerEvent] {
+	ch := sync2.NewUnboundChannel[RabbitMQServerEvent]()
 
 	channel := s.openChannel(ch)
 	if channel == nil {
@@ -133,8 +138,7 @@ func (s *RabbitMQServer) Start() *sync2.UnboundChannel[RabbitMQLogEvent] {
 		case rawReq, ok := <-channel:
 			if !ok {
 				if retryNum > s.config.RetryNum {
-					ch.Send(fmt.Errorf("maximum number of retries exceeded"))
-					ch.Send(1)
+					ch.Send(ServerExit{Error: fmt.Errorf("maximum number of retries exceeded")})
 					return ch
 				}
 				retryNum++
@@ -158,7 +162,7 @@ func (s *RabbitMQServer) Start() *sync2.UnboundChannel[RabbitMQLogEvent] {
 	}
 }
 
-func (s *RabbitMQServer) openChannel(ch *sync2.UnboundChannel[RabbitMQLogEvent]) <-chan amqp.Delivery {
+func (s *RabbitMQServer) openChannel(ch *sync2.UnboundChannel[RabbitMQServerEvent]) <-chan amqp.Delivery {
 	_, err := s.channel.QueueDeclare(
 		s.queueName,
 		false,
@@ -190,7 +194,7 @@ func (s *RabbitMQServer) openChannel(ch *sync2.UnboundChannel[RabbitMQLogEvent])
 	return channel
 }
 
-func (s *RabbitMQServer) handleMessage(ch *sync2.UnboundChannel[RabbitMQLogEvent], reqMsg *Message, rawReq amqp.Delivery) {
+func (s *RabbitMQServer) handleMessage(ch *sync2.UnboundChannel[RabbitMQServerEvent], reqMsg *Message, rawReq amqp.Delivery) {
 	replyed := make(chan bool)
 	defer close(replyed)
 

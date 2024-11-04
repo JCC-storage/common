@@ -24,7 +24,7 @@ func Test_ServerClient(t *testing.T) {
 				<-time.After(time.Second * 10)
 				reply := MakeAppDataMessage(&Msg{Data: 1})
 				return &reply, nil
-			})
+			}, RabbitMQParam{})
 		So(err, ShouldBeNil)
 
 		//go svr.Start()
