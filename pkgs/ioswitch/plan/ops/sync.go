@@ -170,18 +170,18 @@ func (b *GraphNodeBuilder) NewHoldUntil() *HoldUntilNode {
 
 func (t *HoldUntilNode) SetSignal(s *dag.Var) {
 	t.InputValues().EnsureSize(1)
-	s.Connect(t, 0)
+	s.ValueTo(t, 0)
 }
 
 func (t *HoldUntilNode) HoldStream(str *dag.Var) *dag.Var {
-	str.Connect(t, t.InputStreams().EnlargeOne())
+	str.StreamTo(t, t.InputStreams().EnlargeOne())
 	output := t.Graph().NewVar()
 	t.OutputStreams().SetupNew(t, output)
 	return output
 }
 
 func (t *HoldUntilNode) HoldVar(v *dag.Var) *dag.Var {
-	v.Connect(t, t.InputValues().EnlargeOne())
+	v.ValueTo(t, t.InputValues().EnlargeOne())
 	output := t.Graph().NewVar()
 	t.OutputValues().SetupNew(t, output)
 	return output

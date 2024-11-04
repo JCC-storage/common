@@ -40,7 +40,7 @@ func (b *GraphNodeBuilder) NewStore() *StoreNode {
 func (t *StoreNode) Store(key string, v *dag.Var) {
 	t.Key = key
 	t.InputValues().EnsureSize(1)
-	v.Connect(t, 0)
+	v.ValueTo(t, 0)
 }
 
 func (t *StoreNode) GenerateOp() (exec.Op, error) {

@@ -20,6 +20,7 @@ var _ = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[Storage
 
 type LocalStorageAddress struct {
 	serder.Metadata `union:"Local"`
+	Type            string `json:"type"`
 }
 
 func (a *LocalStorageAddress) GetType() string {

@@ -155,7 +155,7 @@ func (b *GraphNodeBuilder) NewSendStream(to exec.WorkerInfo) *SendStreamNode {
 
 func (t *SendStreamNode) Send(v *dag.Var) *dag.Var {
 	t.InputStreams().EnsureSize(1)
-	v.Connect(t, 0)
+	v.StreamTo(t, 0)
 	output := t.Graph().NewVar()
 	t.OutputStreams().Setup(t, output, 0)
 	return output
@@ -188,7 +188,7 @@ func (b *GraphNodeBuilder) NewSendValue(to exec.WorkerInfo) *SendValueNode {
 
 func (t *SendValueNode) Send(v *dag.Var) *dag.Var {
 	t.InputValues().EnsureSize(1)
-	v.Connect(t, 0)
+	v.ValueTo(t, 0)
 	output := t.Graph().NewVar()
 	t.OutputValues().Setup(t, output, 0)
 	return output
@@ -222,7 +222,7 @@ func (b *GraphNodeBuilder) NewGetStream(from exec.WorkerInfo) *GetStreamNode {
 
 func (t *GetStreamNode) Get(v *dag.Var) *dag.Var {
 	t.InputStreams().EnsureSize(1)
-	v.Connect(t, 0)
+	v.StreamTo(t, 0)
 	output := t.Graph().NewVar()
 	t.OutputStreams().Setup(t, output, 0)
 	return output
@@ -261,7 +261,7 @@ func (b *GraphNodeBuilder) NewGetValue(from exec.WorkerInfo) *GetValueNode {
 
 func (t *GetValueNode) Get(v *dag.Var) *dag.Var {
 	t.InputValues().EnsureSize(1)
-	v.Connect(t, 0)
+	v.ValueTo(t, 0)
 	output := t.Graph().NewVar()
 	t.OutputValues().Setup(t, output, 1)
 	return output

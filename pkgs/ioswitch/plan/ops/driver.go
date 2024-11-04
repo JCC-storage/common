@@ -54,7 +54,7 @@ func (b *GraphNodeBuilder) NewToDriver(handle *exec.DriverReadStream) *ToDriverN
 
 func (t *ToDriverNode) SetInput(v *dag.Var) {
 	t.InputStreams().EnsureSize(1)
-	v.Connect(t, 0)
+	v.StreamTo(t, 0)
 }
 
 func (t *ToDriverNode) Input() dag.Slot {

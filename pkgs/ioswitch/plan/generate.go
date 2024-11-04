@@ -54,7 +54,7 @@ func generateSend(graph *ops.GraphNodeBuilder) {
 				// 将源节点的输出送到Hold指令，将Hold指令的输出送到Get指令
 				getNode.Get(holdType.HoldStream(out)).
 					// 将Get指令的输出送到目的地
-					Connect(to.Node, to.SlotIndex)
+					StreamTo(to.Node, to.SlotIndex)
 
 			case dag.EnvWorker:
 				// 如果是要送到Agent，则可以直接发送
@@ -62,7 +62,7 @@ func generateSend(graph *ops.GraphNodeBuilder) {
 				*n.Env() = *node.Env()
 
 				out.To().RemoveAt(0)
-				n.Send(out).Connect(to.Node, to.SlotIndex)
+				n.Send(out).StreamTo(to.Node, to.SlotIndex)
 			}
 		}
 
@@ -96,7 +96,7 @@ func generateSend(graph *ops.GraphNodeBuilder) {
 				// 将源节点的输出送到Hold指令，将Hold指令的输出送到Get指令
 				getNode.Get(holdNode.HoldVar(out)).
 					// 将Get指令的输出送到目的地
-					Connect(to.Node, to.SlotIndex)
+					ValueTo(to.Node, to.SlotIndex)
 
 			case dag.EnvWorker:
 				// 如果是要送到Agent，则可以直接发送
@@ -105,7 +105,7 @@ func generateSend(graph *ops.GraphNodeBuilder) {
 
 				out.To().RemoveAt(0)
 
-				t.Send(out).Connect(to.Node, to.SlotIndex)
+				t.Send(out).ValueTo(to.Node, to.SlotIndex)
 			}
 		}
 

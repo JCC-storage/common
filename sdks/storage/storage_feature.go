@@ -20,6 +20,7 @@ var _ = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[Storage
 // 存储服务支持被非MasterHub直接上传文件
 type BypassUploadFeature struct {
 	serder.Metadata `union:"BypassUpload"`
+	Type            string `json:"type"`
 	// 存放上传文件的临时目录
 	TempRoot string `json:"tempRoot"`
 }
@@ -35,6 +36,7 @@ func (f *BypassUploadFeature) String() string {
 // 存储服务支持分段上传
 type MultipartUploadFeature struct {
 	serder.Metadata `union:"MultipartUpload"`
+	Type            string `json:"type"`
 }
 
 func (f *MultipartUploadFeature) GetType() string {

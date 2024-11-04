@@ -64,17 +64,34 @@ func (v *Var) To() *EndPointSlots {
 	return &v.to
 }
 
-func (v *Var) Connect(to Node, slotIdx int) {
+func (v *Var) ValueTo(to Node, slotIdx int) {
 	v.To().Add(EndPoint{Node: to, SlotIndex: slotIdx})
 	to.InputValues().Set(slotIdx, v)
 }
 
-func (v *Var) Disconnect(node Node, slotIdx int) {
+func (v *Var) ValueNotTo(node Node, slotIdx int) {
 	v.to.Remove(EndPoint{Node: node, SlotIndex: slotIdx})
 	node.InputValues().Set(slotIdx, nil)
 }
 
-func (v *Var) DisconnectAll() {
+func (v *Var) StreamTo(to Node, slotIdx int) {
+	v.To().Add(EndPoint{Node: to, SlotIndex: slotIdx})
+	to.InputStreams().Set(slotIdx, v)
+}
+
+func (v *Var) StreamNotTo(node Node, slotIdx int) {
+	v.to.Remove(EndPoint{Node: node, SlotIndex: slotIdx})
+	node.InputStreams().Set(slotIdx, nil)
+}
+
+func (v *Var) NoInputAllValue() {
+	for _, ed := range v.to {
+		ed.Node.InputValues().Set(ed.SlotIndex, nil)
+	}
+	v.to = nil
+}
+
+func (v *Var) NoInputAllStream() {
 	for _, ed := range v.to {
 		ed.Node.InputStreams().Set(ed.SlotIndex, nil)
 	}

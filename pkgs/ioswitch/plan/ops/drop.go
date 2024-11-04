@@ -51,7 +51,7 @@ func (b *GraphNodeBuilder) NewDropStream() *DropNode {
 
 func (t *DropNode) SetInput(v *dag.Var) {
 	t.InputStreams().EnsureSize(1)
-	v.Connect(t, 0)
+	v.StreamTo(t, 0)
 }
 
 func (t *DropNode) GenerateOp() (exec.Op, error) {
