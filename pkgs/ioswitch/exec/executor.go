@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"gitlink.org.cn/cloudream/common/pkgs/future"
 	"gitlink.org.cn/cloudream/common/utils/lo2"
-	"gitlink.org.cn/cloudream/common/utils/sync2"
 )
 
 type binding struct {
@@ -69,12 +68,12 @@ func (s *Executor) runOps(ops []Op, ctx *ExecContext, cancel context.CancelFunc)
 
 			if e := arg.Execute(ctx, s); e != nil {
 				lock.Lock()
-				// 尽量不记录 ErrContextCanceled 错误，除非没有其他错误
+				// 尽量不记录 Canceled 错误，除非没有其他错误
 				if err == nil {
 					err = e
-				} else if err == sync2.ErrContextCanceled {
+				} else if err == context.Canceled {
 					err = e
-				} else if e != sync2.ErrContextCanceled {
+				} else if e != context.Canceled {
 					err = multierror.Append(err, e)
 				}
 				lock.Unlock()

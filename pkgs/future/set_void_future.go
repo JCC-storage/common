@@ -46,7 +46,7 @@ func (f *SetVoidFuture) Wait(ctx context.Context) error {
 		return v
 
 	case <-ctx.Done():
-		return ErrContextCancelled
+		return context.Canceled
 	}
 }
 

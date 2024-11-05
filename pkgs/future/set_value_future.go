@@ -57,17 +57,7 @@ func (f *SetValueFuture[T]) Chan() <-chan ChanValue1[T] {
 }
 
 // 等待直到Complete或者ctx被取消。
-// 注：返回ErrContextCancelled不代表产生结果的过程没有执行过，甚至不代表Future没有Complete
-//func (f *SetValueFuture[T]) Wait(ctx context.Context) error {
-//	select {
-//	case <-f.ch:
-//		return f.err
-//
-//	case <-ctx.Done():
-//		return ErrContextCancelled
-//	}
-//}
-
+// 注：返回context.Canceled不代表产生结果的过程没有执行过，甚至不代表Future没有Complete
 func (f *SetValueFuture[T]) Wait(ctx context.Context) (T, error) {
 	select {
 	case cv, ok := <-f.ch:
@@ -79,7 +69,7 @@ func (f *SetValueFuture[T]) Wait(ctx context.Context) (T, error) {
 
 	case <-ctx.Done():
 		var ret T
-		return ret, ErrContextCancelled
+		return ret, context.Canceled
 	}
 }
 
@@ -143,7 +133,7 @@ func (f *SetValueFuture2[T1, T2]) Wait(ctx context.Context) (T1, T2, error) {
 	case <-ctx.Done():
 		var ret1 T1
 		var ret2 T2
-		return ret1, ret2, ErrContextCancelled
+		return ret1, ret2, context.Canceled
 	}
 }
 

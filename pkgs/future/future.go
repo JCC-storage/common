@@ -5,8 +5,7 @@ import (
 	"fmt"
 )
 
-var ErrContextCancelled = fmt.Errorf("context cancelled")
-var ErrCompleted = fmt.Errorf("context cancelled")
+var ErrCompleted = fmt.Errorf("context canceled")
 
 type Future interface {
 	IsComplete() bool

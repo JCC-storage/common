@@ -29,7 +29,7 @@ func (f *Ready) Wait(ctx context.Context) error {
 		return v
 
 	case <-ctx.Done():
-		return ErrContextCancelled
+		return context.Canceled
 	}
 }
 
@@ -78,7 +78,7 @@ func (f *Ready1[T]) Wait(ctx context.Context) (T, error) {
 
 	case <-ctx.Done():
 		var ret T
-		return ret, ErrContextCancelled
+		return ret, context.Canceled
 	}
 }
 

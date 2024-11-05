@@ -7,7 +7,6 @@ import (
 )
 
 var ErrEventClosed = errors.New("event is closed")
-var ErrContextCanceled = errors.New("context canceled")
 
 type Event struct {
 	ch        chan any
@@ -37,7 +36,7 @@ func (e *Event) Wait(ctx context.Context) error {
 		return ErrEventClosed
 
 	case <-ctx.Done():
-		return ErrContextCanceled
+		return context.Canceled
 	}
 }
 
