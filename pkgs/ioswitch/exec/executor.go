@@ -44,7 +44,10 @@ func (s *Executor) Plan() *Plan {
 
 func (s *Executor) Run(ctx *ExecContext) (map[string]VarValue, error) {
 	c, cancel := context.WithCancel(ctx.Context)
-	ctx.Context = c
+	ctx = &ExecContext{
+		Context: c,
+		Values:  ctx.Values,
+	}
 
 	defer cancel()
 
