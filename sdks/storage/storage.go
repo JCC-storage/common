@@ -11,7 +11,7 @@ type Storage struct {
 	StorageID StorageID `json:"storageID" gorm:"column:StorageID; primaryKey; type:bigint; autoIncrement;"`
 	Name      string    `json:"name" gorm:"column:Name; type:varchar(256); not null"`
 	// 完全管理此存储服务的Hub的ID
-	MasterHub NodeID `json:"masterHub" gorm:"column:MasterHub; type:bigint; not null"`
+	MasterHub HubID `json:"masterHub" gorm:"column:MasterHub; type:bigint; not null"`
 	// 存储服务的地址，包含鉴权所需数据
 	Address StorageAddress `json:"address" gorm:"column:Address; type:json; not null; serializer:union"`
 	// 存储服务拥有的特别功能

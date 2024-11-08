@@ -33,9 +33,9 @@ type ObjectUpload struct {
 }
 
 type ObjectUploadInfo struct {
-	UserID       cdssdk.UserID    `json:"userID" binding:"required"`
-	PackageID    cdssdk.PackageID `json:"packageID" binding:"required"`
-	NodeAffinity *cdssdk.NodeID   `json:"nodeAffinity"`
+	UserID          cdssdk.UserID    `json:"userID" binding:"required"`
+	PackageID       cdssdk.PackageID `json:"packageID" binding:"required"`
+	StorageAffinity cdssdk.StorageID `json:"storageAffinity"`
 }
 
 type UploadingObject struct {

@@ -13,7 +13,7 @@ const (
 	ObjectPathSeparator = "/"
 )
 
-type NodeID int64
+type HubID int64
 
 type PackageID int64
 
@@ -193,28 +193,28 @@ func (Object) TableName() string {
 	return "Object"
 }
 
-type Node struct {
-	NodeID         NodeID          `gorm:"column:NodeID; primaryKey; type:bigint; autoIncrement" json:"nodeID"`
-	Name           string          `gorm:"column:Name; type:varchar(255); not null" json:"name"`
-	Address        NodeAddressInfo `gorm:"column:Address; type:json; serializer:union" json:"address"`
-	LocationID     LocationID      `gorm:"column:LocationID; type:bigint; not null" json:"locationID"`
-	State          string          `gorm:"column:State; type:varchar(255); not null" json:"state"`
-	LastReportTime *time.Time      `gorm:"column:LastReportTime; type:datetime" json:"lastReportTime"`
+type Hub struct {
+	HubID          HubID          `gorm:"column:HubID; primaryKey; type:bigint; autoIncrement" json:"hubID"`
+	Name           string         `gorm:"column:Name; type:varchar(255); not null" json:"name"`
+	Address        HubAddressInfo `gorm:"column:Address; type:json; serializer:union" json:"address"`
+	LocationID     LocationID     `gorm:"column:LocationID; type:bigint; not null" json:"locationID"`
+	State          string         `gorm:"column:State; type:varchar(255); not null" json:"state"`
+	LastReportTime *time.Time     `gorm:"column:LastReportTime; type:datetime" json:"lastReportTime"`
 }
 
-func (Node) TableName() string {
-	return "Node"
+func (Hub) TableName() string {
+	return "Hub"
 }
 
-type NodeAddressInfo interface {
+type HubAddressInfo interface {
 }
 
-var NodeAddressUnion = types.NewTypeUnion[NodeAddressInfo](
+var HubAddressUnion = types.NewTypeUnion[HubAddressInfo](
 	(*GRPCAddressInfo)(nil),
 	(*HttpAddressInfo)(nil),
 )
 
-var _ = serder.UseTypeUnionInternallyTagged(&NodeAddressUnion, "type")
+var _ = serder.UseTypeUnionInternallyTagged(&HubAddressUnion, "type")
 
 type GRPCAddressInfo struct {
 	serder.Metadata  `union:"GRPC"`
@@ -233,8 +233,8 @@ type HttpAddressInfo struct {
 	Port            int    `json:"port"`
 }
 
-func (n Node) String() string {
-	return fmt.Sprintf("%v(%v)", n.Name, n.NodeID)
+func (n Hub) String() string {
+	return fmt.Sprintf("%v(%v)", n.Name, n.HubID)
 }
 
 type PinnedObject struct {
@@ -257,15 +257,15 @@ func (Bucket) TableName() string {
 	return "Bucket"
 }
 
-type NodeConnectivity struct {
-	FromNodeID NodeID    `gorm:"column:FromNodeID; primaryKey; type:bigint" json:"fromNodeID"`
-	ToNodeID   NodeID    `gorm:"column:ToNodeID; primaryKey; type:bigint" json:"ToNodeID"`
-	Delay      *float32  `gorm:"column:Delay; type:float" json:"delay"`
-	TestTime   time.Time `gorm:"column:TestTime; type:datetime" json:"testTime"`
+type HubConnectivity struct {
+	FromHubID HubID     `gorm:"column:FromHubID; primaryKey; type:bigint" json:"fromHubID"`
+	ToHubID   HubID     `gorm:"column:ToHubID; primaryKey; type:bigint" json:"ToHubID"`
+	Delay     *float32  `gorm:"column:Delay; type:float" json:"delay"`
+	TestTime  time.Time `gorm:"column:TestTime; type:datetime" json:"testTime"`
 }
 
-func (NodeConnectivity) TableName() string {
-	return "NodeConnectivity"
+func (HubConnectivity) TableName() string {
+	return "HubConnectivity"
 }
 
 type StoragePackageCachingInfo struct {

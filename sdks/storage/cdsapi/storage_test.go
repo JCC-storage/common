@@ -77,7 +77,7 @@ func Test_Object(t *testing.T) {
 			fileData[i] = byte(i)
 		}
 
-		nodeAff := cdssdk.NodeID(2)
+		stgAff := cdssdk.StorageID(2)
 
 		pkgName := uuid.NewString()
 		createResp, err := cli.Package().Create(PackageCreate{
@@ -89,9 +89,9 @@ func Test_Object(t *testing.T) {
 
 		_, err = cli.Object().Upload(ObjectUpload{
 			ObjectUploadInfo: ObjectUploadInfo{
-				UserID:       1,
-				PackageID:    createResp.Package.PackageID,
-				NodeAffinity: &nodeAff,
+				UserID:          1,
+				PackageID:       createResp.Package.PackageID,
+				StorageAffinity: stgAff,
 			},
 			Files: iterator.Array(
 				&UploadingObject{
@@ -229,8 +229,8 @@ func Test_Cache(t *testing.T) {
 	})
 }
 
-func Test_GetNodeInfos(t *testing.T) {
-	Convey("测试获取node信息", t, func() {
+func Test_GetHubInfos(t *testing.T) {
+	Convey("测试获取hub信息", t, func() {
 		cli := NewClient(&Config{
 			URL: "http://localhost:7890",
 		})

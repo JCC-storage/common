@@ -8,18 +8,18 @@ import (
 	"gitlink.org.cn/cloudream/common/utils/http2"
 )
 
-var NodeGetNodesPath = "/node/getNodes"
+var HubGetHubsPath = "/hub/getHubs"
 
-type NodeGetNodesReq struct {
-	NodeIDs []cdssdk.NodeID `json:"nodeIDs"`
+type HubGetHubsReq struct {
+	HubIDs []cdssdk.HubID `json:"hubIDs"`
 }
 
-type NodeGetNodesResp struct {
-	Nodes []cdssdk.Node `json:"nodes"`
+type HubGetHubsResp struct {
+	Hubs []cdssdk.Hub `json:"hubs"`
 }
 
-func (c *Client) NodeGetNodes(req NodeGetNodesReq) (*NodeGetNodesResp, error) {
-	url, err := url.JoinPath(c.baseURL, NodeGetNodesPath)
+func (c *Client) HubGetHubs(req HubGetHubsReq) (*HubGetHubsResp, error) {
+	url, err := url.JoinPath(c.baseURL, HubGetHubsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (c *Client) NodeGetNodes(req NodeGetNodesReq) (*NodeGetNodesResp, error) {
 		return nil, err
 	}
 
-	jsonResp, err := ParseJSONResponse[response[NodeGetNodesResp]](resp)
+	jsonResp, err := ParseJSONResponse[response[HubGetHubsResp]](resp)
 	if err != nil {
 		return nil, err
 	}

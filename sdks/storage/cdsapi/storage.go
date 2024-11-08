@@ -53,12 +53,12 @@ func (c *Client) StorageLoadPackage(req StorageLoadPackageReq) (*StorageLoadPack
 const StorageCreatePackagePath = "/storage/createPackage"
 
 type StorageCreatePackageReq struct {
-	UserID       cdssdk.UserID    `json:"userID" binding:"required"`
-	StorageID    cdssdk.StorageID `json:"storageID" binding:"required"`
-	Path         string           `json:"path" binding:"required"`
-	BucketID     cdssdk.BucketID  `json:"bucketID" binding:"required"`
-	Name         string           `json:"name" binding:"required"`
-	NodeAffinity *cdssdk.NodeID   `json:"nodeAffinity"`
+	UserID          cdssdk.UserID    `json:"userID" binding:"required"`
+	StorageID       cdssdk.StorageID `json:"storageID" binding:"required"`
+	Path            string           `json:"path" binding:"required"`
+	BucketID        cdssdk.BucketID  `json:"bucketID" binding:"required"`
+	Name            string           `json:"name" binding:"required"`
+	StorageAffinity cdssdk.StorageID `json:"storageAffinity"`
 }
 
 type StorageCreatePackageResp struct {
