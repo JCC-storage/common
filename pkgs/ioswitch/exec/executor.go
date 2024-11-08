@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -61,23 +62,24 @@ func (s *Executor) Run(ctx *ExecContext) (map[string]VarValue, error) {
 
 func (s *Executor) runOps(ops []Op, ctx *ExecContext, cancel context.CancelFunc) error {
 	lock := sync.Mutex{}
+
 	var err error
 
 	var wg sync.WaitGroup
 	wg.Add(len(ops))
 	for i, arg := range ops {
-		go func(arg Op, index int) {
+		go func(op Op, index int) {
 			defer wg.Done()
 
-			if e := arg.Execute(ctx, s); e != nil {
+			if e := op.Execute(ctx, s); e != nil {
 				lock.Lock()
 				// 尽量不记录 Canceled 错误，除非没有其他错误
-				if err == nil {
-					err = e
-				} else if err == context.Canceled {
-					err = e
-				} else if e != context.Canceled {
-					err = multierror.Append(err, e)
+				if errors.Is(e, context.Canceled) {
+					if err == nil {
+						err = context.Canceled
+					}
+				} else {
+					err = multierror.Append(err, fmt.Errorf("%T: %w", op, e))
 				}
 				lock.Unlock()
 
