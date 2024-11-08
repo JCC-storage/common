@@ -230,8 +230,8 @@ type JobFilesUploadScheme struct {
 }
 
 type LocalFileUploadScheme struct {
-	LocalPath         string        `json:"localPath"`
-	UploadToCDSNodeID *cdssdk.HubID `json:"uploadToCDSNodeID"`
+	LocalPath           string           `json:"localPath"`
+	UploadToCDStorageID cdssdk.StorageID `json:"uploadToCDSStorageID"`
 }
 
 type JobServicesInfo struct {
@@ -244,10 +244,10 @@ type ServicePortInfo struct {
 }
 
 type JobSetServiceInfo struct {
-	Name       string        `json:"name"`
-	Port       int64         `json:"port"`
-	CDSNodeID  *cdssdk.HubID `json:"cdsNodeID"`
-	LocalJobID string        `json:"localJobID"`
+	Name         string           `json:"name"`
+	Port         int64            `json:"port"`
+	CDSStorageID cdssdk.StorageID `json:"cdsStorageID"`
+	LocalJobID   string           `json:"localJobID"`
 }
 
 type Bootstrap interface {
