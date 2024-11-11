@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"strings"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/exec"
 	"gitlink.org.cn/cloudream/common/utils/http2"
+	"gitlink.org.cn/cloudream/common/utils/io2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -41,24 +41,23 @@ func (c *Client) GetStream(req GetStreamReq) (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	contType := resp.Header.Get("Content-Type")
-	if strings.Contains(contType, http2.ContentTypeJSON) {
-		var codeResp response[any]
-		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
-			return nil, fmt.Errorf("parsing response: %w", err)
-		}
-
-		return nil, codeResp.ToError()
+	cr := http2.NewChunkedReader(resp.Body)
+	_, str, err := cr.NextPart()
+	if err != nil {
+		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
-	return resp.Body, nil
+	return io2.DelegateReadCloser(str, func() error {
+		cr.Close()
+		return nil
+	}), nil
 }
 
 const SendStreamPath = "/hubIO/sendStream"
 
 type SendStreamReq struct {
 	SendStreamInfo
-	Stream io.ReadCloser `json:"-"`
+	Stream io.ReadCloser
 }
 type SendStreamInfo struct {
 	PlanID exec.PlanID `json:"planID"`
@@ -66,45 +65,65 @@ type SendStreamInfo struct {
 }
 
 func (c *Client) SendStream(req SendStreamReq) error {
-	// targetUrl, err := url.JoinPath(c.baseURL, SendStreamPath)
-	// if err != nil {
-	// 	return err
-	// }
+	targetUrl, err := url.JoinPath(c.baseURL, SendStreamPath)
+	if err != nil {
+		return err
+	}
 
-	// infoJSON, err := serder.ObjectToJSON(req)
-	// if err != nil {
-	// 	return fmt.Errorf("info to json: %w", err)
-	// }
+	pr, pw := io.Pipe()
+	errCh := make(chan error, 1)
+	go func() {
+		cw := http2.NewChunkedWriter(pw)
 
-	// resp, err := http2.PostMultiPart(targetUrl, http2.MultiPartRequestParam{
-	// 	Form: map[string]string{"info": string(infoJSON)},
-	// 	Files: iterator.Array(&http2.IterMultiPartFile{
-	// 		FieldName: "stream",
-	// 		FileName:  "stream",
-	// 		File:      req.Stream,
-	// 	}),
-	// })
-	// if err != nil {
-	// 	return err
-	// }
+		infoJSON, err := serder.ObjectToJSONEx(req)
+		if err != nil {
+			cw.Abort(fmt.Sprintf("info to json: %v", err))
+			errCh <- fmt.Errorf("info to json: %w", err)
+			return
+		}
 
-	// contType := resp.Header.Get("Content-Type")
-	// if strings.Contains(contType, http2.ContentTypeJSON) {
-	// 	var err error
-	// 	var codeResp response[ObjectUploadResp]
-	// 	if codeResp, err = serder.JSONToObjectStreamEx[response[ObjectUploadResp]](resp.Body); err != nil {
-	// 		return fmt.Errorf("parsing response: %w", err)
-	// 	}
+		if err := cw.WriteDataPart("info", infoJSON); err != nil {
+			cw.Close()
+			errCh <- fmt.Errorf("write info: %w", err)
+			return
+		}
 
-	// 	if codeResp.Code == errorcode.OK {
-	// 		return nil
-	// 	}
+		_, err = cw.WriteStreamPart("stream", req.Stream)
+		if err != nil {
+			cw.Close()
+			errCh <- fmt.Errorf("write stream: %w", err)
+			return
+		}
 
-	// 	return codeResp.ToError()
-	// }
+		err = cw.Finish()
+		if err != nil {
+			errCh <- fmt.Errorf("finish chunked writer: %w", err)
+			return
+		}
+	}()
 
-	// return fmt.Errorf("unknow response content type: %s", contType)
-	return fmt.Errorf("not implemented")
+	resp, err := http2.PostChunked2(targetUrl, http2.Chunked2RequestParam{
+		Body: pr,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = <-errCh
+	if err != nil {
+		return err
+	}
+
+	codeResp, err := ParseJSONResponse[response[any]](resp)
+	if err != nil {
+		return err
+	}
+
+	if codeResp.Code == errorcode.OK {
+		return nil
+	}
+
+	return codeResp.ToError()
 }
 
 const ExecuteIOPlanPath = "/hubIO/executeIOPlan"

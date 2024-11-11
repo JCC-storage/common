@@ -140,6 +140,31 @@ func PostForm(url string, param RequestParam) (*http.Response, error) {
 	return defaultClient.Do(req)
 }
 
+type Chunked2RequestParam struct {
+	Header any
+	Query  any
+	Body   io.ReadCloser
+}
+
+func PostChunked2(url string, param Chunked2RequestParam) (*http.Response, error) {
+	req, err := http.NewRequest(http.MethodPost, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = prepareQuery(req, param.Query); err != nil {
+		return nil, err
+	}
+
+	if err = prepareHeader(req, param.Header); err != nil {
+		return nil, err
+	}
+
+	setHeader(req.Header, "Content-Type", ContentTypeOctetStream)
+	req.Body = param.Body
+	return defaultClient.Do(req)
+}
+
 func ParseJSONResponse[TBody any](resp *http.Response) (TBody, error) {
 	var ret TBody
 	contType := resp.Header.Get("Content-Type")
