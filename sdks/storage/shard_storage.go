@@ -18,16 +18,6 @@ var _ = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[ShardSt
 	(*LocalShardStorage)(nil),
 )), "type")
 
-type ShardStorage struct {
-	StorageID StorageID `json:"storageID" gorm:"column:StorageID; primaryKey; type:bigint"`
-	// ShardStore配置数据
-	Config ShardStoreConfig `json:"config" gorm:"column:Config; type:json; not null; serializer:union"`
-}
-
-func (ShardStorage) TableName() string {
-	return "ShardStorage"
-}
-
 type LocalShardStorage struct {
 	serder.Metadata `union:"Local"`
 	Type            string `json:"type"`
