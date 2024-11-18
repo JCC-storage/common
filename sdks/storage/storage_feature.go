@@ -13,24 +13,25 @@ type StorageFeature interface {
 }
 
 var _ = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[StorageFeature](
-	(*BypassUploadFeature)(nil),
+	(*BypassWriteFeature)(nil),
 	(*MultipartUploadFeature)(nil),
+	(*InternalServerlessCallFeature)(nil),
 )), "type")
 
 // 存储服务支持被非MasterHub直接上传文件
-type BypassUploadFeature struct {
-	serder.Metadata `union:"BypassUpload"`
+type BypassWriteFeature struct {
+	serder.Metadata `union:"BypassWrite"`
 	Type            string `json:"type"`
 	// 存放上传文件的临时目录
 	TempRoot string `json:"tempRoot"`
 }
 
-func (f *BypassUploadFeature) GetType() string {
-	return "BypassUpload"
+func (f *BypassWriteFeature) GetType() string {
+	return "BypassWrite"
 }
 
-func (f *BypassUploadFeature) String() string {
-	return "BypassUpload"
+func (f *BypassWriteFeature) String() string {
+	return "BypassWrite"
 }
 
 // 存储服务支持分段上传
@@ -45,4 +46,19 @@ func (f *MultipartUploadFeature) GetType() string {
 
 func (f *MultipartUploadFeature) String() string {
 	return "MultipartUpload"
+}
+
+// 在存储服务所在的环境中部署有内部的Serverless服务
+type InternalServerlessCallFeature struct {
+	serder.Metadata `union:"InternalServerlessCall"`
+	Type            string `json:"type"`
+	CommandDir      string `json:"commandDir"` // 存放命令文件的目录
+}
+
+func (f *InternalServerlessCallFeature) GetType() string {
+	return "InternalServerlessCall"
+}
+
+func (f *InternalServerlessCallFeature) String() string {
+	return "InternalServerlessCall"
 }
