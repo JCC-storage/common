@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"gitlink.org.cn/cloudream/common/consts/errorcode"
+	"gitlink.org.cn/cloudream/common/pkgs/iterator"
 	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
 	"gitlink.org.cn/cloudream/common/utils/http2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
@@ -116,6 +117,61 @@ func (s *PackageService) Create(req PackageCreate) (*PackageCreateResp, error) {
 	}
 
 	codeResp, err := ParseJSONResponse[response[PackageCreateResp]](resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if codeResp.Code == errorcode.OK {
+		return &codeResp.Data, nil
+	}
+
+	return nil, codeResp.ToError()
+}
+
+const PackageCreateLoadPath = "/package/createLoad"
+
+type PackageCreateLoad struct {
+	PackageCreateLoadInfo
+	Files UploadObjectIterator `json:"-"`
+}
+type PackageCreateLoadInfo struct {
+	UserID   cdssdk.UserID      `json:"userID" binding:"required"`
+	BucketID cdssdk.BucketID    `json:"bucketID" binding:"required"`
+	Name     string             `json:"name" binding:"required"`
+	LoadTo   []cdssdk.StorageID `json:"loadTo" binding:"required"`
+}
+type PackageCreateLoadResp struct {
+	Package    cdssdk.Package  `json:"package"`
+	Objects    []cdssdk.Object `json:"objects"`
+	LoadedDirs []string        `json:"loadedDirs"`
+}
+
+func (c *PackageService) CreateLoad(req PackageCreateLoad) (*PackageCreateLoadResp, error) {
+	url, err := url.JoinPath(c.baseURL, PackageCreateLoadPath)
+	if err != nil {
+		return nil, err
+	}
+
+	infoJSON, err := serder.ObjectToJSON(req)
+	if err != nil {
+		return nil, fmt.Errorf("upload info to json: %w", err)
+	}
+
+	resp, err := http2.PostMultiPart(url, http2.MultiPartRequestParam{
+		Form: map[string]string{"info": string(infoJSON)},
+		Files: iterator.Map(req.Files, func(src *UploadingObject) (*http2.IterMultiPartFile, error) {
+			return &http2.IterMultiPartFile{
+				FieldName: "files",
+				FileName:  src.Path,
+				File:      src.File,
+			}, nil
+		}),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	codeResp, err := ParseJSONResponse[response[PackageCreateLoadResp]](resp)
 	if err != nil {
 		return nil, err
 	}
