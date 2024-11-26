@@ -14,6 +14,10 @@ type Range struct {
 	Length *int64
 }
 
+func NewRange(offset int64, length int64) Range {
+	return Range{Offset: offset, Length: &length}
+}
+
 func (r *Range) Extend(other Range) {
 	newOffset := math2.Min(r.Offset, other.Offset)
 

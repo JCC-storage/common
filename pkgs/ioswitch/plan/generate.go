@@ -119,6 +119,9 @@ func buildPlan(graph *dag.Graph, blder *exec.PlanBuilder) error {
 	graph.Walk(func(node dag.Node) bool {
 		for i := 0; i < node.OutputStreams().Len(); i++ {
 			out := node.OutputStreams().Get(i)
+			if out == nil {
+				continue
+			}
 
 			if out.VarID > 0 {
 				continue
@@ -129,6 +132,9 @@ func buildPlan(graph *dag.Graph, blder *exec.PlanBuilder) error {
 
 		for i := 0; i < node.InputStreams().Len(); i++ {
 			in := node.InputStreams().Get(i)
+			if in == nil {
+				continue
+			}
 
 			if in.VarID > 0 {
 				continue
@@ -139,6 +145,9 @@ func buildPlan(graph *dag.Graph, blder *exec.PlanBuilder) error {
 
 		for i := 0; i < node.OutputValues().Len(); i++ {
 			out := node.OutputValues().Get(i)
+			if out == nil {
+				continue
+			}
 
 			if out.VarID > 0 {
 				continue
@@ -149,6 +158,9 @@ func buildPlan(graph *dag.Graph, blder *exec.PlanBuilder) error {
 
 		for i := 0; i < node.InputValues().Len(); i++ {
 			in := node.InputValues().Get(i)
+			if in == nil {
+				continue
+			}
 
 			if in.VarID > 0 {
 				continue

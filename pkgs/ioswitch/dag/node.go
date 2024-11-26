@@ -114,6 +114,31 @@ func (s *InputSlots) EnlargeOne() int {
 	return s.Len() - 1
 }
 
+func (s *InputSlots) GetVarIDs() []exec.VarID {
+	var ids []exec.VarID
+	for _, v := range s.RawArray() {
+		if v == nil {
+			continue
+		}
+		ids = append(ids, v.VarID)
+	}
+
+	return ids
+}
+
+func (s *InputSlots) GetVarIDsRanged(start, end int) []exec.VarID {
+	var ids []exec.VarID
+	for i := start; i < end; i++ {
+		v := s.Get(i)
+		if v == nil {
+			continue
+		}
+		ids = append(ids, v.VarID)
+	}
+
+	return ids
+}
+
 type OutputSlots struct {
 	VarSlots
 }
@@ -136,6 +161,31 @@ func (s *OutputSlots) SetupNew(my Node, v *Var) {
 		Node:      my,
 		SlotIndex: s.Len() - 1,
 	}
+}
+
+func (s *OutputSlots) GetVarIDs() []exec.VarID {
+	var ids []exec.VarID
+	for _, v := range s.RawArray() {
+		if v == nil {
+			continue
+		}
+		ids = append(ids, v.VarID)
+	}
+
+	return ids
+}
+
+func (s *OutputSlots) GetVarIDsRanged(start, end int) []exec.VarID {
+	var ids []exec.VarID
+	for i := start; i < end; i++ {
+		v := s.Get(i)
+		if v == nil {
+			continue
+		}
+		ids = append(ids, v.VarID)
+	}
+
+	return ids
 }
 
 type Slot struct {

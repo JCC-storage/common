@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
 	"gitlink.org.cn/cloudream/common/pkgs/types"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
@@ -33,7 +34,6 @@ type FileHash string
 /// TODO 将分散在各处的公共结构体定义集中到这里来
 
 type Redundancy interface {
-	driver.Valuer
 }
 
 var RedundancyUnion = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[Redundancy](
@@ -41,6 +41,7 @@ var RedundancyUnion = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTyp
 	(*RepRedundancy)(nil),
 	(*ECRedundancy)(nil),
 	(*LRCRedundancy)(nil),
+	(*SegmentRedundancy)(nil),
 )), "type")
 
 type NoneRedundancy struct {
@@ -160,6 +161,83 @@ func (b *LRCRedundancy) GetGroupElements(grp int) []int {
 
 	idxes = append(idxes, b.N-len(b.Groups)+grp)
 	return idxes
+}
+
+type SegmentRedundancy struct {
+	serder.Metadata `union:"segment"`
+	Type            string  `json:"type"`
+	Segments        []int64 `json:"segments"` // 每一段的大小
+}
+
+func NewSegmentRedundancy(totalSize int64, segmentCount int) *SegmentRedundancy {
+	var segs []int64
+	segLen := int64(0)
+	// 计算每一段的大小。大小不一定都相同，但总和应该等于总大小。
+	for i := 0; i < segmentCount; i++ {
+		curLen := totalSize*int64(i+1)/int64(segmentCount) - segLen
+		segs = append(segs, curLen)
+		segLen += curLen
+	}
+
+	return &SegmentRedundancy{
+		Type:     "segment",
+		Segments: segs,
+	}
+}
+
+func (r *SegmentRedundancy) SegmentCount() int {
+	return len(r.Segments)
+}
+
+func (r *SegmentRedundancy) CalcSegmentStart(index int) int64 {
+	return lo.Sum(r.Segments[:index])
+}
+
+// 计算指定位置取整到最近的段的起始位置。
+func (r *SegmentRedundancy) FloorSegmentPosition(pos int64) int64 {
+	fpos := int64(0)
+	for _, segLen := range r.Segments {
+		segEnd := fpos + segLen
+		if pos < segEnd {
+			break
+		}
+		fpos += segLen
+	}
+
+	return fpos
+}
+
+// 计算指定范围内的段索引范围，参数和返回值所代表的范围都是左闭右开的。
+// 如果end == -1，则代表计算从start到最后一个字节的范围。
+func (b *SegmentRedundancy) CalcSegmentRange(start int64, end *int64) (segIdxStart int, segIdxEnd int) {
+	segIdxStart = len(b.Segments)
+	segIdxEnd = len(b.Segments)
+
+	// 找到第一个包含start的段索引
+	segStart := int64(0)
+	for i, segLen := range b.Segments {
+		segEnd := segStart + segLen
+		if start < segEnd {
+			segIdxStart = i
+			break
+		}
+		segStart += segLen
+	}
+
+	if end != nil {
+		// 找到第一个包含end的段索引
+		segStart = int64(0)
+		for i, segLen := range b.Segments {
+			segEnd := segStart + segLen
+			if *end <= segEnd {
+				segIdxEnd = i + 1
+				break
+			}
+			segStart += segLen
+		}
+	}
+
+	return
 }
 
 const (
