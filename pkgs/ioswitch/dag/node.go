@@ -1,6 +1,7 @@
 package dag
 
 import (
+	"github.com/samber/lo"
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/exec"
 	"gitlink.org.cn/cloudream/common/utils/lo2"
 )
@@ -74,6 +75,10 @@ func (s *VarSlots) Set(idx int, val *Var) *Var {
 	return old
 }
 
+func (s *VarSlots) IndexOf(v *Var) int {
+	return lo.IndexOf(*s, v)
+}
+
 func (s *VarSlots) Append(val *Var) int {
 	*s = append(*s, val)
 	return s.Len() - 1
@@ -139,6 +144,14 @@ func (s *InputSlots) GetVarIDsRanged(start, end int) []exec.VarID {
 	return ids
 }
 
+func (s *InputSlots) ClearInput(v *Var) {
+	for i, v2 := range s.RawArray() {
+		if v2 == v {
+			s.Set(i, nil)
+		}
+	}
+}
+
 type OutputSlots struct {
 	VarSlots
 }
@@ -149,18 +162,12 @@ func (s *OutputSlots) Setup(my Node, v *Var, slotIdx int) {
 	}
 
 	s.Set(slotIdx, v)
-	*v.From() = EndPoint{
-		Node:      my,
-		SlotIndex: slotIdx,
-	}
+	v.src = my
 }
 
 func (s *OutputSlots) SetupNew(my Node, v *Var) {
 	s.Append(v)
-	*v.From() = EndPoint{
-		Node:      my,
-		SlotIndex: s.Len() - 1,
-	}
+	v.src = my
 }
 
 func (s *OutputSlots) GetVarIDs() []exec.VarID {
