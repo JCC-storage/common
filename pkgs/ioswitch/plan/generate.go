@@ -30,7 +30,7 @@ func generateSend(graph *ops.GraphNodeBuilder) {
 
 		for i := 0; i < node.OutputStreams().Len(); i++ {
 			out := node.OutputStreams().Get(i)
-			to := out.To().Get(0)
+			to := out.Dst.Get(0)
 			if to.Env().Equals(node.Env()) {
 				continue
 			}
@@ -39,7 +39,7 @@ func generateSend(graph *ops.GraphNodeBuilder) {
 			case dag.EnvDriver:
 
 				// // 如果是要送到Driver，则只能由Driver主动去拉取
-				dstNode := out.To().Get(0)
+				dstNode := out.Dst.Get(0)
 
 				getNode := graph.NewGetStream(node.Env().Worker)
 				getNode.Env().ToEnvDriver()
@@ -51,32 +51,32 @@ func generateSend(graph *ops.GraphNodeBuilder) {
 				// 将Get指令的信号送到Hold指令
 				holdNode.SetSignal(getNode.SignalVar())
 
-				out.To().RemoveAt(0)
+				out.Dst.RemoveAt(0)
 
 				// 将源节点的输出送到Hold指令，将Hold指令的输出送到Get指令
 				getNode.Get(holdNode.HoldStream(out)).
 					// 将Get指令的输出送到目的地
-					StreamTo(to, dstNode.InputStreams().IndexOf(out))
+					To(to, dstNode.InputStreams().IndexOf(out))
 
 			case dag.EnvWorker:
 				// 如果是要送到Agent，则可以直接发送
-				dstNode := out.To().Get(0)
+				dstNode := out.Dst.Get(0)
 				n := graph.NewSendStream(to.Env().Worker)
 				*n.Env() = *node.Env()
 
-				out.To().RemoveAt(0)
-				n.Send(out).StreamTo(to, dstNode.InputStreams().IndexOf(out))
+				out.Dst.RemoveAt(0)
+				n.Send(out).To(to, dstNode.InputStreams().IndexOf(out))
 			}
 		}
 
 		for i := 0; i < node.OutputValues().Len(); i++ {
 			out := node.OutputValues().Get(i)
 			// 允许Value变量不被使用
-			if out.To().Len() == 0 {
+			if out.Dst.Len() == 0 {
 				continue
 			}
 
-			to := out.To().Get(0)
+			to := out.Dst.Get(0)
 			if to.Env().Equals(node.Env()) {
 				continue
 			}
@@ -84,7 +84,7 @@ func generateSend(graph *ops.GraphNodeBuilder) {
 			switch to.Env().Type {
 			case dag.EnvDriver:
 				// // 如果是要送到Driver，则只能由Driver主动去拉取
-				dstNode := out.To().Get(0)
+				dstNode := out.Dst.Get(0)
 				getNode := graph.NewGetValue(node.Env().Worker)
 				getNode.Env().ToEnvDriver()
 
@@ -95,22 +95,22 @@ func generateSend(graph *ops.GraphNodeBuilder) {
 				// 将Get指令的信号送到Hold指令
 				holdNode.SetSignal(getNode.SignalVar())
 
-				out.To().RemoveAt(0)
+				out.Dst.RemoveAt(0)
 
 				// 将源节点的输出送到Hold指令，将Hold指令的输出送到Get指令
 				getNode.Get(holdNode.HoldVar(out)).
 					// 将Get指令的输出送到目的地
-					ValueTo(to, dstNode.InputValues().IndexOf(out))
+					To(to, dstNode.InputValues().IndexOf(out))
 
 			case dag.EnvWorker:
 				// 如果是要送到Agent，则可以直接发送
-				dstNode := out.To().Get(0)
+				dstNode := out.Dst.Get(0)
 				t := graph.NewSendValue(to.Env().Worker)
 				*t.Env() = *node.Env()
 
-				out.To().RemoveAt(0)
+				out.Dst.RemoveAt(0)
 
-				t.Send(out).ValueTo(to, dstNode.InputValues().IndexOf(out))
+				t.Send(out).To(to, dstNode.InputValues().IndexOf(out))
 			}
 		}
 

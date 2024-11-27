@@ -37,10 +37,10 @@ func (b *GraphNodeBuilder) NewStore() *StoreNode {
 	return node
 }
 
-func (t *StoreNode) Store(key string, v *dag.Var) {
+func (t *StoreNode) Store(key string, v *dag.ValueVar) {
 	t.Key = key
-	t.InputValues().EnsureSize(1)
-	v.ValueTo(t, 0)
+	t.InputValues().Init(1)
+	v.To(t, 0)
 }
 
 func (t *StoreNode) GenerateOp() (exec.Op, error) {

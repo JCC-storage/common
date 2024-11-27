@@ -1,14 +1,74 @@
 package dag
 
 import (
-	"github.com/samber/lo"
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/exec"
 	"gitlink.org.cn/cloudream/common/utils/lo2"
 )
 
-type EndPoint struct {
-	Node      Node
-	SlotIndex int // 所连接的Node的Output或Input数组的索引
+type Var2 interface {
+	GetVarID() exec.VarID
+}
+
+type StreamVar struct {
+	VarID exec.VarID
+	Src   Node
+	Dst   DstList
+}
+
+func (v *StreamVar) GetVarID() exec.VarID {
+	return v.VarID
+}
+
+func (v *StreamVar) IndexAtSrc() int {
+	return v.Src.OutputStreams().IndexOf(v)
+}
+
+func (v *StreamVar) To(to Node, slotIdx int) {
+	v.Dst.Add(to)
+	to.InputStreams().Slots.Set(slotIdx, v)
+}
+
+func (v *StreamVar) NotTo(node Node) {
+	v.Dst.Remove(node)
+	node.InputStreams().Slots.Clear(v)
+}
+
+func (v *StreamVar) ClearAllDst() {
+	for _, n := range v.Dst {
+		n.InputStreams().Slots.Clear(v)
+	}
+	v.Dst = nil
+}
+
+type ValueVar struct {
+	VarID exec.VarID
+	Src   Node
+	Dst   DstList
+}
+
+func (v *ValueVar) GetVarID() exec.VarID {
+	return v.VarID
+}
+
+func (v *ValueVar) IndexAtSrc() int {
+	return v.Src.InputValues().IndexOf(v)
+}
+
+func (v *ValueVar) To(to Node, slotIdx int) {
+	v.Dst.Add(to)
+	to.InputValues().Slots.Set(slotIdx, v)
+}
+
+func (v *ValueVar) NotTo(node Node) {
+	v.Dst.Remove(node)
+	node.InputValues().Slots.Clear(v)
+}
+
+func (v *ValueVar) ClearAllDst() {
+	for _, n := range v.Dst {
+		n.InputValues().Slots.Clear(v)
+	}
+	v.Dst = nil
 }
 
 type DstList []Node
@@ -49,60 +109,4 @@ func (s *DstList) Resize(size int) {
 
 func (s *DstList) RawArray() []Node {
 	return *s
-}
-
-type Var struct {
-	VarID exec.VarID
-	src   Node
-	dst   DstList
-}
-
-func (v *Var) From() Node {
-	return v.src
-}
-
-func (v *Var) To() *DstList {
-	return &v.dst
-}
-
-func (v *Var) StreamIndexOfFrom() int {
-	return lo.IndexOf(v.src.OutputStreams().RawArray(), v)
-}
-
-func (v *Var) ValueIndexOfFrom() int {
-	return lo.IndexOf(v.src.InputValues().RawArray(), v)
-}
-
-func (v *Var) ValueTo(to Node, slotIdx int) {
-	v.To().Add(to)
-	to.InputValues().Set(slotIdx, v)
-}
-
-func (v *Var) ValueNotTo(node Node, slotIdx int) {
-	v.dst.Remove(node)
-	node.InputValues().Set(slotIdx, nil)
-}
-
-func (v *Var) StreamTo(to Node, slotIdx int) {
-	v.To().Add(to)
-	to.InputStreams().Set(slotIdx, v)
-}
-
-func (v *Var) StreamNotTo(node Node, slotIdx int) {
-	v.dst.Remove(node)
-	node.InputStreams().Set(slotIdx, nil)
-}
-
-func (v *Var) NoInputAllValue() {
-	for _, n := range v.dst {
-		n.InputValues().ClearInput(v)
-	}
-	v.dst = nil
-}
-
-func (v *Var) NoInputAllStream() {
-	for _, n := range v.dst {
-		n.InputStreams().ClearInput(v)
-	}
-	v.dst = nil
 }

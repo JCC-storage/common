@@ -150,15 +150,15 @@ func (b *GraphNodeBuilder) NewSendStream(to exec.WorkerInfo) *SendStreamNode {
 		ToWorker: to,
 	}
 	b.AddNode(node)
+
+	node.InputStreams().Init(1)
+	node.OutputStreams().Init(node, 1)
 	return node
 }
 
-func (t *SendStreamNode) Send(v *dag.Var) *dag.Var {
-	t.InputStreams().EnsureSize(1)
-	v.StreamTo(t, 0)
-	output := t.Graph().NewVar()
-	t.OutputStreams().Setup(t, output, 0)
-	return output
+func (t *SendStreamNode) Send(v *dag.StreamVar) *dag.StreamVar {
+	v.To(t, 0)
+	return t.OutputStreams().Get(0)
 }
 
 func (t *SendStreamNode) GenerateOp() (exec.Op, error) {
@@ -183,15 +183,15 @@ func (b *GraphNodeBuilder) NewSendValue(to exec.WorkerInfo) *SendValueNode {
 		ToWorker: to,
 	}
 	b.AddNode(node)
+
+	node.InputValues().Init(1)
+	node.OutputValues().Init(node, 1)
 	return node
 }
 
-func (t *SendValueNode) Send(v *dag.Var) *dag.Var {
-	t.InputValues().EnsureSize(1)
-	v.ValueTo(t, 0)
-	output := t.Graph().NewVar()
-	t.OutputValues().Setup(t, output, 0)
-	return output
+func (t *SendValueNode) Send(v *dag.ValueVar) *dag.ValueVar {
+	v.To(t, 0)
+	return t.OutputValues().Get(0)
 }
 
 func (t *SendValueNode) GenerateOp() (exec.Op, error) {
@@ -216,19 +216,19 @@ func (b *GraphNodeBuilder) NewGetStream(from exec.WorkerInfo) *GetStreamNode {
 		FromWorker: from,
 	}
 	b.AddNode(node)
-	node.OutputValues().Setup(node, node.Graph().NewVar(), 0)
+
+	node.InputStreams().Init(1)
+	node.OutputValues().Init(node, 1)
+	node.OutputStreams().Init(node, 1)
 	return node
 }
 
-func (t *GetStreamNode) Get(v *dag.Var) *dag.Var {
-	t.InputStreams().EnsureSize(1)
-	v.StreamTo(t, 0)
-	output := t.Graph().NewVar()
-	t.OutputStreams().Setup(t, output, 0)
-	return output
+func (t *GetStreamNode) Get(v *dag.StreamVar) *dag.StreamVar {
+	v.To(t, 0)
+	return t.OutputStreams().Get(0)
 }
 
-func (t *GetStreamNode) SignalVar() *dag.Var {
+func (t *GetStreamNode) SignalVar() *dag.ValueVar {
 	return t.OutputValues().Get(0)
 }
 
@@ -255,19 +255,18 @@ func (b *GraphNodeBuilder) NewGetValue(from exec.WorkerInfo) *GetValueNode {
 		FromWorker: from,
 	}
 	b.AddNode(node)
-	node.OutputValues().Setup(node, node.Graph().NewVar(), 0)
+
+	node.InputValues().Init(1)
+	node.OutputValues().Init(node, 2)
 	return node
 }
 
-func (t *GetValueNode) Get(v *dag.Var) *dag.Var {
-	t.InputValues().EnsureSize(1)
-	v.ValueTo(t, 0)
-	output := t.Graph().NewVar()
-	t.OutputValues().Setup(t, output, 1)
-	return output
+func (t *GetValueNode) Get(v *dag.ValueVar) *dag.ValueVar {
+	v.To(t, 0)
+	return t.OutputValues().Get(1)
 }
 
-func (t *GetValueNode) SignalVar() *dag.Var {
+func (t *GetValueNode) SignalVar() *dag.ValueVar {
 	return t.OutputValues().Get(0)
 }
 
