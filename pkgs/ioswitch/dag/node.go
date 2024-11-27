@@ -96,6 +96,10 @@ func (s *VarSlots[T]) RemoveAt(idx int) {
 	(*s) = lo2.RemoveAt(*s, idx)
 }
 
+func (s *VarSlots[T]) RemoveRange(start int, cnt int) {
+	*s = lo2.RemoveRange(*s, start, cnt)
+}
+
 func (s *VarSlots[T]) Resize(size int) {
 	if s.Len() < size {
 		*s = append(*s, make([]*T, size-s.Len())...)
@@ -276,7 +280,7 @@ func (s *StreamOutputSlots) Init(my Node, size int) {
 }
 
 // 在Slots末尾增加一个StreamVar，并返回它的索引
-func (s *StreamOutputSlots) SetupNew(my Node) StreamSlot {
+func (s *StreamOutputSlots) AppendNew(my Node) StreamSlot {
 	v := my.Graph().NewStreamVar()
 	v.Src = my
 	s.Slots.Append(v)
