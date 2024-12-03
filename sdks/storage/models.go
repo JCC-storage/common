@@ -7,6 +7,7 @@ import (
 
 	"github.com/samber/lo"
 	"gitlink.org.cn/cloudream/common/pkgs/types"
+	"gitlink.org.cn/cloudream/common/utils/math2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -170,18 +171,9 @@ type SegmentRedundancy struct {
 }
 
 func NewSegmentRedundancy(totalSize int64, segmentCount int) *SegmentRedundancy {
-	var segs []int64
-	segLen := int64(0)
-	// 计算每一段的大小。大小不一定都相同，但总和应该等于总大小。
-	for i := 0; i < segmentCount; i++ {
-		curLen := totalSize*int64(i+1)/int64(segmentCount) - segLen
-		segs = append(segs, curLen)
-		segLen += curLen
-	}
-
 	return &SegmentRedundancy{
 		Type:     "segment",
-		Segments: segs,
+		Segments: math2.SplitN(totalSize, segmentCount),
 	}
 }
 

@@ -35,6 +35,11 @@ func (e *NodeEnv) ToEnvWorker(worker exec.WorkerInfo) {
 	e.Worker = worker
 }
 
+func (e *NodeEnv) CopyFrom(other *NodeEnv) {
+	e.Type = other.Type
+	e.Worker = other.Worker
+}
+
 func (e *NodeEnv) Equals(other *NodeEnv) bool {
 	if e.Type != other.Type {
 		return false
