@@ -1,6 +1,9 @@
 package lo2
 
-import "github.com/samber/lo"
+import (
+	"github.com/samber/lo"
+	"gitlink.org.cn/cloudream/common/utils/math2"
+)
 
 func Remove[T comparable](arr []T, item T) []T {
 	index := lo.IndexOf(arr, item)
@@ -23,6 +26,16 @@ func RemoveAt[T any](arr []T, index int) []T {
 	}
 
 	return append(arr[:index], arr[index+1:]...)
+}
+
+func RemoveRange[T any](arr []T, start int, length int) []T {
+	if start >= len(arr) {
+		return arr
+	}
+
+	length = math2.Min(len(arr), start+length) - start
+	copy(arr[start:], arr[start+length:])
+	return arr[:len(arr)-length]
 }
 
 func RemoveAllDefault[T comparable](arr []T) []T {

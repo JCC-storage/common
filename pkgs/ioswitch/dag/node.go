@@ -1,6 +1,7 @@
 package dag
 
 import (
+	"github.com/samber/lo"
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/exec"
 	"gitlink.org.cn/cloudream/common/utils/lo2"
 )
@@ -50,105 +51,373 @@ type Node interface {
 	Graph() *Graph
 	SetGraph(graph *Graph)
 	Env() *NodeEnv
-	InputStreams() *InputSlots
-	OutputStreams() *OutputSlots
-	InputValues() *InputSlots
-	OutputValues() *OutputSlots
+	InputStreams() *StreamInputSlots
+	OutputStreams() *StreamOutputSlots
+	InputValues() *ValueInputSlots
+	OutputValues() *ValueOutputSlots
 	GenerateOp() (exec.Op, error)
 	// String() string
 }
 
-type VarSlots []*Var
+type VarSlots[T any] []*T
 
-func (s *VarSlots) Len() int {
+func (s *VarSlots[T]) Len() int {
 	return len(*s)
 }
 
-func (s *VarSlots) Get(idx int) *Var {
+func (s *VarSlots[T]) Get(idx int) *T {
 	return (*s)[idx]
 }
 
-func (s *VarSlots) Set(idx int, val *Var) *Var {
+func (s *VarSlots[T]) Set(idx int, val *T) *T {
 	old := (*s)[idx]
 	(*s)[idx] = val
 	return old
 }
 
-func (s *VarSlots) Append(val *Var) int {
+func (s *VarSlots[T]) IndexOf(v *T) int {
+	return lo.IndexOf(*s, v)
+}
+
+func (s *VarSlots[T]) Append(val *T) int {
 	*s = append(*s, val)
 	return s.Len() - 1
 }
 
-func (s *VarSlots) RemoveAt(idx int) {
+func (s *VarSlots[T]) Clear(val *T) {
+	for i := 0; i < s.Len(); i++ {
+		if (*s)[i] == val {
+			(*s)[i] = nil
+		}
+	}
+}
+
+func (s *VarSlots[T]) RemoveAt(idx int) {
 	(*s) = lo2.RemoveAt(*s, idx)
 }
 
-func (s *VarSlots) Resize(size int) {
+func (s *VarSlots[T]) RemoveRange(start int, cnt int) {
+	*s = lo2.RemoveRange(*s, start, cnt)
+}
+
+func (s *VarSlots[T]) Resize(size int) {
 	if s.Len() < size {
-		*s = append(*s, make([]*Var, size-s.Len())...)
+		*s = append(*s, make([]*T, size-s.Len())...)
 	} else if s.Len() > size {
 		*s = (*s)[:size]
 	}
 }
 
-func (s *VarSlots) SetRawArray(arr []*Var) {
+func (s *VarSlots[T]) SetRawArray(arr []*T) {
 	*s = arr
 }
 
-func (s *VarSlots) RawArray() []*Var {
+func (s *VarSlots[T]) RawArray() []*T {
 	return *s
 }
 
-type InputSlots struct {
-	VarSlots
+type StreamInputSlots struct {
+	Slots VarSlots[StreamVar]
 }
 
-func (s *InputSlots) EnsureSize(cnt int) {
-	if s.Len() < cnt {
-		s.VarSlots = append(s.VarSlots, make([]*Var, cnt-s.Len())...)
-	}
+func (s *StreamInputSlots) Len() int {
+	return s.Slots.Len()
 }
 
-func (s *InputSlots) EnlargeOne() int {
-	s.Append(nil)
+func (s *StreamInputSlots) Get(idx int) *StreamVar {
+	return s.Slots.Get(idx)
+}
+
+func (s *StreamInputSlots) IndexOf(v *StreamVar) int {
+	return s.Slots.IndexOf(v)
+}
+
+// 初始化输入流槽。调用者应该保证没有正在使用的槽位（即Slots的每一个元素都为nil）
+func (s *StreamInputSlots) Init(cnt int) {
+	s.Slots.Resize(cnt)
+}
+
+func (s *StreamInputSlots) EnlargeOne() int {
+	s.Slots.Append(nil)
 	return s.Len() - 1
 }
 
-type OutputSlots struct {
-	VarSlots
+func (s *StreamInputSlots) ClearInputAt(my Node, idx int) {
+	v := s.Get(idx)
+	if v == nil {
+		return
+	}
+	s.Slots.Set(idx, nil)
+
+	v.Dst.Remove(my)
 }
 
-func (s *OutputSlots) Setup(my Node, v *Var, slotIdx int) {
-	if s.Len() <= slotIdx {
-		s.VarSlots = append(s.VarSlots, make([]*Var, slotIdx-s.Len()+1)...)
-	}
+func (s *StreamInputSlots) ClearAllInput(my Node) {
+	for i := 0; i < s.Len(); i++ {
+		v := s.Get(i)
+		if v == nil {
+			continue
+		}
+		s.Slots.Set(i, nil)
 
-	s.Set(slotIdx, v)
-	*v.From() = EndPoint{
-		Node:      my,
-		SlotIndex: slotIdx,
-	}
-}
-
-func (s *OutputSlots) SetupNew(my Node, v *Var) {
-	s.Append(v)
-	*v.From() = EndPoint{
-		Node:      my,
-		SlotIndex: s.Len() - 1,
+		v.Dst.Remove(my)
 	}
 }
 
-type Slot struct {
-	Var   *Var
+func (s *StreamInputSlots) GetVarIDs() []exec.VarID {
+	var ids []exec.VarID
+	for _, v := range s.Slots.RawArray() {
+		if v == nil {
+			continue
+		}
+		ids = append(ids, v.VarID)
+	}
+
+	return ids
+}
+
+func (s *StreamInputSlots) GetVarIDsRanged(start, end int) []exec.VarID {
+	var ids []exec.VarID
+	for i := start; i < end; i++ {
+		v := s.Get(i)
+		if v == nil {
+			continue
+		}
+		ids = append(ids, v.VarID)
+	}
+
+	return ids
+}
+
+type ValueInputSlots struct {
+	Slots VarSlots[ValueVar]
+}
+
+func (s *ValueInputSlots) Len() int {
+	return s.Slots.Len()
+}
+
+func (s *ValueInputSlots) Get(idx int) *ValueVar {
+	return s.Slots.Get(idx)
+}
+
+func (s *ValueInputSlots) IndexOf(v *ValueVar) int {
+	return s.Slots.IndexOf(v)
+}
+
+// 初始化输入流槽。调用者应该保证没有正在使用的槽位（即Slots的每一个元素都为nil）
+func (s *ValueInputSlots) Init(cnt int) {
+	if s.Len() < cnt {
+		s.Slots = append(s.Slots, make([]*ValueVar, cnt-s.Len())...)
+	}
+}
+
+func (s *ValueInputSlots) EnlargeOne() int {
+	s.Slots.Append(nil)
+	return s.Len() - 1
+}
+
+func (s *ValueInputSlots) ClearInputAt(my Node, idx int) {
+	v := s.Get(idx)
+	if v == nil {
+		return
+	}
+	s.Slots.Set(idx, nil)
+
+	v.Dst.Remove(my)
+}
+
+func (s *ValueInputSlots) GetVarIDs() []exec.VarID {
+	var ids []exec.VarID
+	for _, v := range s.Slots.RawArray() {
+		if v == nil {
+			continue
+		}
+		ids = append(ids, v.VarID)
+	}
+
+	return ids
+}
+
+func (s *ValueInputSlots) GetVarIDsRanged(start, end int) []exec.VarID {
+	var ids []exec.VarID
+	for i := start; i < end; i++ {
+		v := s.Get(i)
+		if v == nil {
+			continue
+		}
+		ids = append(ids, v.VarID)
+	}
+
+	return ids
+}
+
+type StreamOutputSlots struct {
+	Slots VarSlots[StreamVar]
+}
+
+func (s *StreamOutputSlots) Len() int {
+	return s.Slots.Len()
+}
+
+func (s *StreamOutputSlots) Get(idx int) *StreamVar {
+	return s.Slots.Get(idx)
+}
+
+func (s *StreamOutputSlots) IndexOf(v *StreamVar) int {
+	return s.Slots.IndexOf(v)
+}
+
+// 设置Slots大小，并为每个Slot创建一个StreamVar。
+// 调用者应该保证没有正在使用的输出流，即每一个输出流的Dst都为空。
+func (s *StreamOutputSlots) Init(my Node, size int) {
+	s.Slots.Resize(size)
+	for i := 0; i < size; i++ {
+		v := my.Graph().NewStreamVar()
+		v.Src = my
+		s.Slots.Set(i, v)
+	}
+}
+
+// 在Slots末尾增加一个StreamVar，并返回它的索引
+func (s *StreamOutputSlots) AppendNew(my Node) StreamSlot {
+	v := my.Graph().NewStreamVar()
+	v.Src = my
+	s.Slots.Append(v)
+	return StreamSlot{Var: v, Index: s.Len() - 1}
+}
+
+// 断开指定位置的输出流到指定节点的连接
+func (s *StreamOutputSlots) ClearOutputAt(idx int, dst Node) {
+	v := s.Get(idx)
+	v.Dst.Remove(dst)
+	dst.InputStreams().Slots.Clear(v)
+}
+
+// 断开所有输出流的所有连接，完全清空所有输出流。但会保留流变量
+func (s *StreamOutputSlots) ClearAllOutput(my Node) {
+	for i := 0; i < s.Len(); i++ {
+		v := s.Get(i)
+		v.ClearAllDst()
+	}
+}
+
+func (s *StreamOutputSlots) GetVarIDs() []exec.VarID {
+	var ids []exec.VarID
+	for _, v := range s.Slots.RawArray() {
+		if v == nil {
+			continue
+		}
+		ids = append(ids, v.VarID)
+	}
+
+	return ids
+}
+
+func (s *StreamOutputSlots) GetVarIDsRanged(start, end int) []exec.VarID {
+	var ids []exec.VarID
+	for i := start; i < end; i++ {
+		v := s.Get(i)
+		if v == nil {
+			continue
+		}
+		ids = append(ids, v.VarID)
+	}
+
+	return ids
+}
+
+type ValueOutputSlots struct {
+	Slots VarSlots[ValueVar]
+}
+
+func (s *ValueOutputSlots) Len() int {
+	return s.Slots.Len()
+}
+
+func (s *ValueOutputSlots) Get(idx int) *ValueVar {
+	return s.Slots.Get(idx)
+}
+
+func (s *ValueOutputSlots) IndexOf(v *ValueVar) int {
+	return s.Slots.IndexOf(v)
+}
+
+// 设置Slots大小，并为每个Slot创建一个StreamVar
+// 调用者应该保证没有正在使用的输出流，即每一个输出流的Dst都为空。
+func (s *ValueOutputSlots) Init(my Node, size int) {
+	s.Slots.Resize(size)
+	for i := 0; i < size; i++ {
+		v := my.Graph().NewValueVar()
+		v.Src = my
+		s.Slots.Set(i, v)
+	}
+}
+
+// 在Slots末尾增加一个StreamVar，并返回它的索引
+func (s *ValueOutputSlots) AppendNew(my Node) ValueSlot {
+	v := my.Graph().NewValueVar()
+	v.Src = my
+	s.Slots.Append(v)
+	return ValueSlot{Var: v, Index: s.Len() - 1}
+}
+
+// 断开指定位置的输出流到指定节点的连接
+func (s *ValueOutputSlots) ClearOutputAt(idx int, dst Node) {
+	v := s.Get(idx)
+	v.Dst.Remove(dst)
+	dst.InputValues().Slots.Clear(v)
+}
+
+// 断开所有输出流的所有连接，完全清空所有输出流。但会保留流变量
+func (s *ValueOutputSlots) ClearAllOutput(my Node) {
+	for i := 0; i < s.Len(); i++ {
+		v := s.Get(i)
+		v.ClearAllDst()
+	}
+}
+
+func (s *ValueOutputSlots) GetVarIDs() []exec.VarID {
+	var ids []exec.VarID
+	for _, v := range s.Slots.RawArray() {
+		if v == nil {
+			continue
+		}
+		ids = append(ids, v.VarID)
+	}
+
+	return ids
+}
+
+func (s *ValueOutputSlots) GetVarIDsRanged(start, end int) []exec.VarID {
+	var ids []exec.VarID
+	for i := start; i < end; i++ {
+		v := s.Get(i)
+		if v == nil {
+			continue
+		}
+		ids = append(ids, v.VarID)
+	}
+
+	return ids
+}
+
+type StreamSlot struct {
+	Var   *StreamVar
+	Index int
+}
+
+type ValueSlot struct {
+	Var   *ValueVar
 	Index int
 }
 
 type NodeBase struct {
 	env           NodeEnv
-	inputStreams  InputSlots
-	outputStreams OutputSlots
-	inputValues   InputSlots
-	outputValues  OutputSlots
+	inputStreams  StreamInputSlots
+	outputStreams StreamOutputSlots
+	inputValues   ValueInputSlots
+	outputValues  ValueOutputSlots
 	graph         *Graph
 }
 
@@ -164,18 +433,18 @@ func (n *NodeBase) Env() *NodeEnv {
 	return &n.env
 }
 
-func (n *NodeBase) InputStreams() *InputSlots {
+func (n *NodeBase) InputStreams() *StreamInputSlots {
 	return &n.inputStreams
 }
 
-func (n *NodeBase) OutputStreams() *OutputSlots {
+func (n *NodeBase) OutputStreams() *StreamOutputSlots {
 	return &n.outputStreams
 }
 
-func (n *NodeBase) InputValues() *InputSlots {
+func (n *NodeBase) InputValues() *ValueInputSlots {
 	return &n.inputValues
 }
 
-func (n *NodeBase) OutputValues() *OutputSlots {
+func (n *NodeBase) OutputValues() *ValueOutputSlots {
 	return &n.outputValues
 }

@@ -46,12 +46,13 @@ type DropNode struct {
 func (b *GraphNodeBuilder) NewDropStream() *DropNode {
 	node := &DropNode{}
 	b.AddNode(node)
+
+	node.InputStreams().Init(1)
 	return node
 }
 
-func (t *DropNode) SetInput(v *dag.Var) {
-	t.InputStreams().EnsureSize(1)
-	v.StreamTo(t, 0)
+func (t *DropNode) SetInput(v *dag.StreamVar) {
+	v.To(t, 0)
 }
 
 func (t *DropNode) GenerateOp() (exec.Op, error) {

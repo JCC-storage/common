@@ -33,3 +33,15 @@ func CeilDiv[T constraints.Integer](v T, div T) T {
 func FloorDiv[T constraints.Integer](v T, div T) T {
 	return v / div
 }
+
+func Clamp[T constraints.Integer](v, min, max T) T {
+	if v < min {
+		return min
+	}
+
+	if v > max {
+		return max
+	}
+
+	return v
+}

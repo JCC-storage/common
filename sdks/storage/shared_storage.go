@@ -18,7 +18,8 @@ var _ = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[SharedS
 )), "type")
 
 type LocalSharedStorage struct {
-	Type string `json:"type"`
+	serder.Metadata `union:"Local"`
+	Type            string `json:"type"`
 	// 调度Package时的Package的根路径
 	LoadBase string `json:"loadBase"`
 }

@@ -165,26 +165,22 @@ type HoldUntilNode struct {
 func (b *GraphNodeBuilder) NewHoldUntil() *HoldUntilNode {
 	node := &HoldUntilNode{}
 	b.AddNode(node)
+	node.InputValues().Init(1)
 	return node
 }
 
-func (t *HoldUntilNode) SetSignal(s *dag.Var) {
-	t.InputValues().EnsureSize(1)
-	s.ValueTo(t, 0)
+func (t *HoldUntilNode) SetSignal(s *dag.ValueVar) {
+	s.To(t, 0)
 }
 
-func (t *HoldUntilNode) HoldStream(str *dag.Var) *dag.Var {
-	str.StreamTo(t, t.InputStreams().EnlargeOne())
-	output := t.Graph().NewVar()
-	t.OutputStreams().SetupNew(t, output)
-	return output
+func (t *HoldUntilNode) HoldStream(str *dag.StreamVar) *dag.StreamVar {
+	str.To(t, t.InputStreams().EnlargeOne())
+	return t.OutputStreams().AppendNew(t).Var
 }
 
-func (t *HoldUntilNode) HoldVar(v *dag.Var) *dag.Var {
-	v.ValueTo(t, t.InputValues().EnlargeOne())
-	output := t.Graph().NewVar()
-	t.OutputValues().SetupNew(t, output)
-	return output
+func (t *HoldUntilNode) HoldVar(v *dag.ValueVar) *dag.ValueVar {
+	v.To(t, t.InputValues().EnlargeOne())
+	return t.OutputValues().AppendNew(t).Var
 }
 
 func (t *HoldUntilNode) GenerateOp() (exec.Op, error) {

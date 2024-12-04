@@ -33,9 +33,10 @@ type ObjectUpload struct {
 }
 
 type ObjectUploadInfo struct {
-	UserID          cdssdk.UserID    `json:"userID" binding:"required"`
-	PackageID       cdssdk.PackageID `json:"packageID" binding:"required"`
-	StorageAffinity cdssdk.StorageID `json:"storageAffinity"`
+	UserID    cdssdk.UserID      `json:"userID" binding:"required"`
+	PackageID cdssdk.PackageID   `json:"packageID" binding:"required"`
+	Affinity  cdssdk.StorageID   `json:"affinity"`
+	LoadTo    []cdssdk.StorageID `json:"loadTo"`
 }
 
 type UploadingObject struct {
@@ -46,11 +47,7 @@ type UploadingObject struct {
 type UploadObjectIterator = iterator.Iterator[*UploadingObject]
 
 type ObjectUploadResp struct {
-	Uploadeds []UploadedObject `json:"uploadeds"`
-}
-type UploadedObject struct {
-	Object *cdssdk.Object `json:"object"`
-	Error  string         `json:"error"`
+	Uploadeds []cdssdk.Object `json:"uploadeds"`
 }
 
 func (c *ObjectService) Upload(req ObjectUpload) (*ObjectUploadResp, error) {

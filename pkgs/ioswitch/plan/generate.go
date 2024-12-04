@@ -30,57 +30,61 @@ func generateSend(graph *ops.GraphNodeBuilder) {
 
 		for i := 0; i < node.OutputStreams().Len(); i++ {
 			out := node.OutputStreams().Get(i)
-			to := out.To().Get(0)
-			if to.Node.Env().Equals(node.Env()) {
+			to := out.Dst.Get(0)
+			if to.Env().Equals(node.Env()) {
 				continue
 			}
 
-			switch to.Node.Env().Type {
+			switch to.Env().Type {
 			case dag.EnvDriver:
 
 				// // 如果是要送到Driver，则只能由Driver主动去拉取
+				dstNode := out.Dst.Get(0)
+
 				getNode := graph.NewGetStream(node.Env().Worker)
 				getNode.Env().ToEnvDriver()
 
 				// // 同时需要对此变量生成HoldUntil指令，避免Plan结束时Get指令还未到达
-				holdType := graph.NewHoldUntil() //dag.NewNode(graph, &ops.HoldUntilNode{}, nil)
-				*holdType.Env() = *node.Env()
+				holdNode := graph.NewHoldUntil()
+				*holdNode.Env() = *node.Env()
 
 				// 将Get指令的信号送到Hold指令
-				holdType.SetSignal(getNode.SignalVar())
+				holdNode.SetSignal(getNode.SignalVar())
 
-				out.To().RemoveAt(0)
+				out.Dst.RemoveAt(0)
 
 				// 将源节点的输出送到Hold指令，将Hold指令的输出送到Get指令
-				getNode.Get(holdType.HoldStream(out)).
+				getNode.Get(holdNode.HoldStream(out)).
 					// 将Get指令的输出送到目的地
-					StreamTo(to.Node, to.SlotIndex)
+					To(to, dstNode.InputStreams().IndexOf(out))
 
 			case dag.EnvWorker:
 				// 如果是要送到Agent，则可以直接发送
-				n := graph.NewSendStream(to.Node.Env().Worker)
+				dstNode := out.Dst.Get(0)
+				n := graph.NewSendStream(to.Env().Worker)
 				*n.Env() = *node.Env()
 
-				out.To().RemoveAt(0)
-				n.Send(out).StreamTo(to.Node, to.SlotIndex)
+				out.Dst.RemoveAt(0)
+				n.Send(out).To(to, dstNode.InputStreams().IndexOf(out))
 			}
 		}
 
 		for i := 0; i < node.OutputValues().Len(); i++ {
 			out := node.OutputValues().Get(i)
 			// 允许Value变量不被使用
-			if out.To().Len() == 0 {
+			if out.Dst.Len() == 0 {
 				continue
 			}
 
-			to := out.To().Get(0)
-			if to.Node.Env().Equals(node.Env()) {
+			to := out.Dst.Get(0)
+			if to.Env().Equals(node.Env()) {
 				continue
 			}
 
-			switch to.Node.Env().Type {
+			switch to.Env().Type {
 			case dag.EnvDriver:
 				// // 如果是要送到Driver，则只能由Driver主动去拉取
+				dstNode := out.Dst.Get(0)
 				getNode := graph.NewGetValue(node.Env().Worker)
 				getNode.Env().ToEnvDriver()
 
@@ -91,21 +95,22 @@ func generateSend(graph *ops.GraphNodeBuilder) {
 				// 将Get指令的信号送到Hold指令
 				holdNode.SetSignal(getNode.SignalVar())
 
-				out.To().RemoveAt(0)
+				out.Dst.RemoveAt(0)
 
 				// 将源节点的输出送到Hold指令，将Hold指令的输出送到Get指令
 				getNode.Get(holdNode.HoldVar(out)).
 					// 将Get指令的输出送到目的地
-					ValueTo(to.Node, to.SlotIndex)
+					To(to, dstNode.InputValues().IndexOf(out))
 
 			case dag.EnvWorker:
 				// 如果是要送到Agent，则可以直接发送
-				t := graph.NewSendValue(to.Node.Env().Worker)
+				dstNode := out.Dst.Get(0)
+				t := graph.NewSendValue(to.Env().Worker)
 				*t.Env() = *node.Env()
 
-				out.To().RemoveAt(0)
+				out.Dst.RemoveAt(0)
 
-				t.Send(out).ValueTo(to.Node, to.SlotIndex)
+				t.Send(out).To(to, dstNode.InputValues().IndexOf(out))
 			}
 		}
 
@@ -119,6 +124,9 @@ func buildPlan(graph *dag.Graph, blder *exec.PlanBuilder) error {
 	graph.Walk(func(node dag.Node) bool {
 		for i := 0; i < node.OutputStreams().Len(); i++ {
 			out := node.OutputStreams().Get(i)
+			if out == nil {
+				continue
+			}
 
 			if out.VarID > 0 {
 				continue
@@ -129,6 +137,9 @@ func buildPlan(graph *dag.Graph, blder *exec.PlanBuilder) error {
 
 		for i := 0; i < node.InputStreams().Len(); i++ {
 			in := node.InputStreams().Get(i)
+			if in == nil {
+				continue
+			}
 
 			if in.VarID > 0 {
 				continue
@@ -139,6 +150,9 @@ func buildPlan(graph *dag.Graph, blder *exec.PlanBuilder) error {
 
 		for i := 0; i < node.OutputValues().Len(); i++ {
 			out := node.OutputValues().Get(i)
+			if out == nil {
+				continue
+			}
 
 			if out.VarID > 0 {
 				continue
@@ -149,6 +163,9 @@ func buildPlan(graph *dag.Graph, blder *exec.PlanBuilder) error {
 
 		for i := 0; i < node.InputValues().Len(); i++ {
 			in := node.InputValues().Get(i)
+			if in == nil {
+				continue
+			}
 
 			if in.VarID > 0 {
 				continue

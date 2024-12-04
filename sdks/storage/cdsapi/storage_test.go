@@ -89,9 +89,9 @@ func Test_Object(t *testing.T) {
 
 		_, err = cli.Object().Upload(ObjectUpload{
 			ObjectUploadInfo: ObjectUploadInfo{
-				UserID:          1,
-				PackageID:       createResp.Package.PackageID,
-				StorageAffinity: stgAff,
+				UserID:    1,
+				PackageID: createResp.Package.PackageID,
+				Affinity:  stgAff,
 			},
 			Files: iterator.Array(
 				&UploadingObject{

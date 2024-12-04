@@ -15,6 +15,7 @@ var Global = struct {
 	OS        string
 	Arch      string
 	BuildRoot string
+	Debug     bool
 }{
 	Arch: "amd64",
 }
@@ -50,7 +51,14 @@ func Build(args BuildArgs) error {
 	binPath := filepath.Join(fullOutputDir, args.OutputName+goBuildArgs.OutputExt)
 	fmt.Printf("building to %s\n", binPath)
 
-	goCmdArgs := []string{"build", "-o", binPath}
+	goCmdArgs := []string{"build"}
+
+	if Global.Debug {
+		goCmdArgs = append(goCmdArgs, "-gcflags", "all=-N -l")
+	}
+
+	goCmdArgs = append(goCmdArgs, "-o", binPath)
+
 	if args.EntryFile != "" {
 		goCmdArgs = append(goCmdArgs, args.EntryFile)
 	}

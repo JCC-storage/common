@@ -47,8 +47,12 @@ func (g *Graph) Walk(cb func(node Node) bool) {
 	g.Nodes = lo2.RemoveAllDefault(g.Nodes)
 }
 
-func (g *Graph) NewVar() *Var {
-	return &Var{}
+func (g *Graph) NewStreamVar() *StreamVar {
+	return &StreamVar{}
+}
+
+func (g *Graph) NewValueVar() *ValueVar {
+	return &ValueVar{}
 }
 
 func AddNode[N Node](graph *Graph, typ N) N {

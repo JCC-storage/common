@@ -28,3 +28,8 @@ func ARM64() {
 func BuildRoot(dir string) {
 	magefiles.Global.BuildRoot = dir
 }
+
+// [配置项]关闭编译优化，用于调试
+func Debug() {
+	magefiles.Global.Debug = true
+}

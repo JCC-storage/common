@@ -5,95 +5,108 @@ import (
 	"gitlink.org.cn/cloudream/common/utils/lo2"
 )
 
-type EndPoint struct {
-	Node      Node
-	SlotIndex int // 所连接的Node的Output或Input数组的索引
+type Var2 interface {
+	GetVarID() exec.VarID
 }
 
-type EndPointSlots []EndPoint
+type StreamVar struct {
+	VarID exec.VarID
+	Src   Node
+	Dst   DstList
+}
 
-func (s *EndPointSlots) Len() int {
+func (v *StreamVar) GetVarID() exec.VarID {
+	return v.VarID
+}
+
+func (v *StreamVar) IndexAtSrc() int {
+	return v.Src.OutputStreams().IndexOf(v)
+}
+
+func (v *StreamVar) To(to Node, slotIdx int) {
+	v.Dst.Add(to)
+	to.InputStreams().Slots.Set(slotIdx, v)
+}
+
+func (v *StreamVar) NotTo(node Node) {
+	v.Dst.Remove(node)
+	node.InputStreams().Slots.Clear(v)
+}
+
+func (v *StreamVar) ClearAllDst() {
+	for _, n := range v.Dst {
+		n.InputStreams().Slots.Clear(v)
+	}
+	v.Dst = nil
+}
+
+type ValueVar struct {
+	VarID exec.VarID
+	Src   Node
+	Dst   DstList
+}
+
+func (v *ValueVar) GetVarID() exec.VarID {
+	return v.VarID
+}
+
+func (v *ValueVar) IndexAtSrc() int {
+	return v.Src.InputValues().IndexOf(v)
+}
+
+func (v *ValueVar) To(to Node, slotIdx int) {
+	v.Dst.Add(to)
+	to.InputValues().Slots.Set(slotIdx, v)
+}
+
+func (v *ValueVar) NotTo(node Node) {
+	v.Dst.Remove(node)
+	node.InputValues().Slots.Clear(v)
+}
+
+func (v *ValueVar) ClearAllDst() {
+	for _, n := range v.Dst {
+		n.InputValues().Slots.Clear(v)
+	}
+	v.Dst = nil
+}
+
+type DstList []Node
+
+func (s *DstList) Len() int {
 	return len(*s)
 }
 
-func (s *EndPointSlots) Get(idx int) *EndPoint {
-	return &(*s)[idx]
+func (s *DstList) Get(idx int) Node {
+	return (*s)[idx]
 }
 
-func (s *EndPointSlots) Add(ed EndPoint) int {
-	(*s) = append((*s), ed)
+func (s *DstList) Add(n Node) int {
+	(*s) = append((*s), n)
 	return len(*s) - 1
 }
 
-func (s *EndPointSlots) Remove(ed EndPoint) {
+func (s *DstList) Remove(n Node) {
 	for i, e := range *s {
-		if e == ed {
+		if e == n {
 			(*s) = lo2.RemoveAt((*s), i)
 			return
 		}
 	}
 }
 
-func (s *EndPointSlots) RemoveAt(idx int) {
+func (s *DstList) RemoveAt(idx int) {
 	lo2.RemoveAt((*s), idx)
 }
 
-func (s *EndPointSlots) Resize(size int) {
+func (s *DstList) Resize(size int) {
 	if s.Len() < size {
-		(*s) = append((*s), make([]EndPoint, size-s.Len())...)
+		(*s) = append((*s), make([]Node, size-s.Len())...)
 	} else if s.Len() > size {
 		(*s) = (*s)[:size]
 	}
 }
 
-func (s *EndPointSlots) RawArray() []EndPoint {
+func (s *DstList) RawArray() []Node {
 	return *s
-}
-
-type Var struct {
-	VarID exec.VarID
-	from  EndPoint
-	to    EndPointSlots
-}
-
-func (v *Var) From() *EndPoint {
-	return &v.from
-}
-
-func (v *Var) To() *EndPointSlots {
-	return &v.to
-}
-
-func (v *Var) ValueTo(to Node, slotIdx int) {
-	v.To().Add(EndPoint{Node: to, SlotIndex: slotIdx})
-	to.InputValues().Set(slotIdx, v)
-}
-
-func (v *Var) ValueNotTo(node Node, slotIdx int) {
-	v.to.Remove(EndPoint{Node: node, SlotIndex: slotIdx})
-	node.InputValues().Set(slotIdx, nil)
-}
-
-func (v *Var) StreamTo(to Node, slotIdx int) {
-	v.To().Add(EndPoint{Node: to, SlotIndex: slotIdx})
-	to.InputStreams().Set(slotIdx, v)
-}
-
-func (v *Var) StreamNotTo(node Node, slotIdx int) {
-	v.to.Remove(EndPoint{Node: node, SlotIndex: slotIdx})
-	node.InputStreams().Set(slotIdx, nil)
-}
-
-func (v *Var) NoInputAllValue() {
-	for _, ed := range v.to {
-		ed.Node.InputValues().Set(ed.SlotIndex, nil)
-	}
-	v.to = nil
-}
-
-func (v *Var) NoInputAllStream() {
-	for _, ed := range v.to {
-		ed.Node.InputStreams().Set(ed.SlotIndex, nil)
-	}
-	v.to = nil
 }
