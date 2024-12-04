@@ -51,6 +51,7 @@ func (f *BypassWriteFeature) String() string {
 type MultipartUploadFeature struct {
 	serder.Metadata `union:"MultipartUpload"`
 	Type            string `json:"type"`
+	TempDir         string `json:"tempDir"`     // 临时文件存放目录
 	MinPartSize     int64  `json:"minPartSize"` // 最小分段大小
 	MaxPartSize     int64  `json:"maxPartSize"` // 最大分段大小
 }

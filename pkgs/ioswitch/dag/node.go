@@ -245,7 +245,7 @@ func (s *ValueInputSlots) GetVarIDs() []exec.VarID {
 }
 
 func (s *ValueInputSlots) GetVarIDsStart(start int) []exec.VarID {
-	return s.GetVarIDsRanged(start, s.Len()-start)
+	return s.GetVarIDsRanged(start, s.Len())
 }
 
 func (s *ValueInputSlots) GetVarIDsRanged(start, end int) []exec.VarID {

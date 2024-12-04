@@ -79,3 +79,19 @@ func (r *Range) ClampLength(maxLen int64) {
 
 	*r.Length = math2.Min(*r.Length, maxLen-r.Offset)
 }
+
+func (r *Range) Equals(other Range) bool {
+	if r.Offset != other.Offset {
+		return false
+	}
+
+	if r.Length == nil && other.Length == nil {
+		return true
+	}
+
+	if r.Length == nil || other.Length == nil {
+		return false
+	}
+
+	return *r.Length == *other.Length
+}
