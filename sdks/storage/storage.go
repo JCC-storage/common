@@ -33,13 +33,16 @@ func (s *Storage) String() string {
 
 // 存储服务地址
 type StorageType interface {
-	GetType() string
+	GetStorageType() string
 	// 输出调试用的字符串，不要包含敏感信息
 	String() string
 }
 
 var _ = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[StorageType](
 	(*LocalStorageType)(nil),
+	(*OBSType)(nil),
+	(*OSSType)(nil),
+	(*COSType)(nil),
 )), "type")
 
 type LocalStorageType struct {
@@ -47,7 +50,7 @@ type LocalStorageType struct {
 	Type            string `json:"type"`
 }
 
-func (a *LocalStorageType) GetType() string {
+func (a *LocalStorageType) GetStorageType() string {
 	return "Local"
 }
 
@@ -57,6 +60,7 @@ func (a *LocalStorageType) String() string {
 
 type OSSType struct {
 	serder.Metadata `union:"OSS"`
+	Type            string `json:"type"`
 	Region          string `json:"region"`
 	AK              string `json:"accessKeyId"`
 	SK              string `json:"secretAccessKey"`
@@ -64,16 +68,17 @@ type OSSType struct {
 	Bucket          string `json:"bucket"`
 }
 
-func (a *OSSType) GetType() string {
-	return "OSSAddress"
+func (a *OSSType) GetStorageType() string {
+	return "OSS"
 }
 
 func (a *OSSType) String() string {
-	return "OSSAddress"
+	return "OSS"
 }
 
-type OBSAddress struct {
-	serder.Metadata `union:"Local"`
+type OBSType struct {
+	serder.Metadata `union:"OBS"`
+	Type            string `json:"type"`
 	Region          string `json:"region"`
 	AK              string `json:"accessKeyId"`
 	SK              string `json:"secretAccessKey"`
@@ -81,16 +86,17 @@ type OBSAddress struct {
 	Bucket          string `json:"bucket"`
 }
 
-func (a *OBSAddress) GetType() string {
-	return "OBSAddress"
+func (a *OBSType) GetStorageType() string {
+	return "OBS"
 }
 
-func (a *OBSAddress) String() string {
-	return "OBSAddress"
+func (a *OBSType) String() string {
+	return "OBS"
 }
 
-type COSAddress struct {
-	serder.Metadata `union:"Local"`
+type COSType struct {
+	serder.Metadata `union:"COS"`
+	Type            string `json:"type"`
 	Region          string `json:"region"`
 	AK              string `json:"accessKeyId"`
 	SK              string `json:"secretAccessKey"`
@@ -98,10 +104,10 @@ type COSAddress struct {
 	Bucket          string `json:"bucket"`
 }
 
-func (a *COSAddress) GetType() string {
-	return "COSAddress"
+func (a *COSType) GetStorageType() string {
+	return "COS"
 }
 
-func (a *COSAddress) String() string {
-	return "COSAddress"
+func (a *COSType) String() string {
+	return "COS"
 }
