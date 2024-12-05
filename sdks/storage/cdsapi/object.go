@@ -25,6 +25,42 @@ func (c *Client) Object() *ObjectService {
 	}
 }
 
+const ObjectListPath = "/object/list"
+
+type ObjectList struct {
+	UserID     cdssdk.UserID    `form:"userID" binding:"required"`
+	PackageID  cdssdk.PackageID `form:"packageID" binding:"required"`
+	PathPrefix string           `form:"pathPrefix" binding:"required"`
+}
+type ObjectListResp struct {
+	Objects []cdssdk.Object `json:"objects"`
+}
+
+func (c *ObjectService) List(req ObjectList) (*ObjectListResp, error) {
+	url, err := url.JoinPath(c.baseURL, ObjectListPath)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http2.GetForm(url, http2.RequestParam{
+		Query: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	jsonResp, err := ParseJSONResponse[response[ObjectListResp]](resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if jsonResp.Code == errorcode.OK {
+		return &jsonResp.Data, nil
+	}
+
+	return nil, jsonResp.ToError()
+}
+
 const ObjectUploadPath = "/object/upload"
 
 type ObjectUpload struct {
@@ -101,7 +137,6 @@ type ObjectDownload struct {
 	ObjectID cdssdk.ObjectID `form:"objectID" json:"objectID" binding:"required"`
 	Offset   int64           `form:"offset" json:"offset,omitempty"`
 	Length   *int64          `form:"length" json:"length,omitempty"`
-	PartSize int64           `form:"partSize" json:"partSize,omitempty"`
 }
 type DownloadingObject struct {
 	Path string
