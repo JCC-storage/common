@@ -29,9 +29,6 @@ type StorageID int64
 
 type LocationID int64
 
-// 文件的SHA256哈希值，全大写的16进制字符串格式
-type FileHash string
-
 /// TODO 将分散在各处的公共结构体定义集中到这里来
 
 type Redundancy interface {
@@ -253,7 +250,7 @@ type Object struct {
 	PackageID  PackageID  `json:"packageID" gorm:"column:PackageID; type:bigint; not null"`
 	Path       string     `json:"path" gorm:"column:Path; type:varchar(1024); not null"`
 	Size       int64      `json:"size,string" gorm:"column:Size; type:bigint; not null"`
-	FileHash   FileHash   `json:"fileHash" gorm:"column:FileHash; type:char(64); not null"`
+	FileHash   FileHash   `json:"fileHash" gorm:"column:FileHash; type:char(68); not null"`
 	Redundancy Redundancy `json:"redundancy" gorm:"column:Redundancy; type: json; serializer:union"`
 	CreateTime time.Time  `json:"createTime" gorm:"column:CreateTime; type:datetime; not null"`
 	UpdateTime time.Time  `json:"updateTime" gorm:"column:UpdateTime; type:datetime; not null"`
