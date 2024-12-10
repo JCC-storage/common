@@ -125,6 +125,23 @@ func Test_Object(t *testing.T) {
 	})
 }
 
+func Test_ObjectList(t *testing.T) {
+	Convey("路径查询", t, func() {
+		cli := NewClient(&Config{
+			URL: "http://localhost:7890",
+		})
+
+		resp, err := cli.Object().List(ObjectList{
+			UserID:    1,
+			PackageID: 10,
+			Path:      "100x100K/zexema",
+		})
+		So(err, ShouldBeNil)
+		fmt.Printf("\n")
+		fmt.Printf("%+v\n", resp.Objects[0])
+	})
+}
+
 func Test_Storage(t *testing.T) {
 	Convey("上传后调度文件", t, func() {
 		cli := NewClient(&Config{
