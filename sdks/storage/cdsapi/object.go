@@ -30,7 +30,7 @@ const ObjectListPath = "/object/list"
 type ObjectList struct {
 	UserID    cdssdk.UserID    `form:"userID" binding:"required"`
 	PackageID cdssdk.PackageID `form:"packageID" binding:"required"`
-	Path      string           `form:"path" binding:"required"`
+	Path      string           `form:"path"` // 允许为空字符串
 	IsPrefix  bool             `form:"isPrefix"`
 }
 type ObjectListResp struct {
