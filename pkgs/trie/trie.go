@@ -101,6 +101,7 @@ func (n *Node[T]) RemoveSelf(cleanParent bool) {
 	n.Parent = nil
 }
 
+// 修改时需要注意允许在visitorFn中删除当前节点
 func (n *Node[T]) Iterate(visitorFn func(word string, node *Node[T], isWordNode bool) VisitCtrl) {
 	if n.WordNexts != nil {
 		for word, node := range n.WordNexts {
