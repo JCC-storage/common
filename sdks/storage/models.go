@@ -7,6 +7,7 @@ import (
 
 	"github.com/samber/lo"
 	"gitlink.org.cn/cloudream/common/pkgs/types"
+	"gitlink.org.cn/cloudream/common/utils/math2"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -27,9 +28,6 @@ type BucketID int64
 type StorageID int64
 
 type LocationID int64
-
-// 文件的SHA256哈希值，全大写的16进制字符串格式
-type FileHash string
 
 /// TODO 将分散在各处的公共结构体定义集中到这里来
 
@@ -170,18 +168,9 @@ type SegmentRedundancy struct {
 }
 
 func NewSegmentRedundancy(totalSize int64, segmentCount int) *SegmentRedundancy {
-	var segs []int64
-	segLen := int64(0)
-	// 计算每一段的大小。大小不一定都相同，但总和应该等于总大小。
-	for i := 0; i < segmentCount; i++ {
-		curLen := totalSize*int64(i+1)/int64(segmentCount) - segLen
-		segs = append(segs, curLen)
-		segLen += curLen
-	}
-
 	return &SegmentRedundancy{
 		Type:     "segment",
-		Segments: segs,
+		Segments: math2.SplitN(totalSize, segmentCount),
 	}
 }
 
@@ -261,7 +250,7 @@ type Object struct {
 	PackageID  PackageID  `json:"packageID" gorm:"column:PackageID; type:bigint; not null"`
 	Path       string     `json:"path" gorm:"column:Path; type:varchar(1024); not null"`
 	Size       int64      `json:"size,string" gorm:"column:Size; type:bigint; not null"`
-	FileHash   FileHash   `json:"fileHash" gorm:"column:FileHash; type:char(64); not null"`
+	FileHash   FileHash   `json:"fileHash" gorm:"column:FileHash; type:char(68); not null"`
 	Redundancy Redundancy `json:"redundancy" gorm:"column:Redundancy; type: json; serializer:union"`
 	CreateTime time.Time  `json:"createTime" gorm:"column:CreateTime; type:datetime; not null"`
 	UpdateTime time.Time  `json:"updateTime" gorm:"column:UpdateTime; type:datetime; not null"`

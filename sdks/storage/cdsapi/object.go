@@ -25,6 +25,43 @@ func (c *Client) Object() *ObjectService {
 	}
 }
 
+const ObjectListPath = "/object/list"
+
+type ObjectList struct {
+	UserID    cdssdk.UserID    `form:"userID" binding:"required"`
+	PackageID cdssdk.PackageID `form:"packageID" binding:"required"`
+	Path      string           `form:"path"` // 允许为空字符串
+	IsPrefix  bool             `form:"isPrefix"`
+}
+type ObjectListResp struct {
+	Objects []cdssdk.Object `json:"objects"`
+}
+
+func (c *ObjectService) List(req ObjectList) (*ObjectListResp, error) {
+	url, err := url.JoinPath(c.baseURL, ObjectListPath)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http2.GetForm(url, http2.RequestParam{
+		Query: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	jsonResp, err := ParseJSONResponse[response[ObjectListResp]](resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if jsonResp.Code == errorcode.OK {
+		return &jsonResp.Data, nil
+	}
+
+	return nil, jsonResp.ToError()
+}
+
 const ObjectUploadPath = "/object/upload"
 
 type ObjectUpload struct {
@@ -101,7 +138,6 @@ type ObjectDownload struct {
 	ObjectID cdssdk.ObjectID `form:"objectID" json:"objectID" binding:"required"`
 	Offset   int64           `form:"offset" json:"offset,omitempty"`
 	Length   *int64          `form:"length" json:"length,omitempty"`
-	PartSize int64           `form:"partSize" json:"partSize,omitempty"`
 }
 type DownloadingObject struct {
 	Path string
@@ -110,6 +146,51 @@ type DownloadingObject struct {
 
 func (c *ObjectService) Download(req ObjectDownload) (*DownloadingObject, error) {
 	url, err := url.JoinPath(c.baseURL, ObjectDownloadPath)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http2.GetJSON(url, http2.RequestParam{
+		Query: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	contType := resp.Header.Get("Content-Type")
+
+	if strings.Contains(contType, http2.ContentTypeJSON) {
+		var codeResp response[any]
+		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
+			return nil, fmt.Errorf("parsing response: %w", err)
+		}
+
+		return nil, codeResp.ToError()
+	}
+
+	_, params, err := mime.ParseMediaType(resp.Header.Get("Content-Disposition"))
+	if err != nil {
+		return nil, fmt.Errorf("parsing content disposition: %w", err)
+	}
+
+	return &DownloadingObject{
+		Path: params["filename"],
+		File: resp.Body,
+	}, nil
+}
+
+const ObjectDownloadByPathPath = "/object/downloadByPath"
+
+type ObjectDownloadByPath struct {
+	UserID    cdssdk.UserID    `form:"userID" json:"userID" binding:"required"`
+	PackageID cdssdk.PackageID `form:"packageID" json:"packageID" binding:"required"`
+	Path      string           `form:"path" json:"path" binding:"required"`
+	Offset    int64            `form:"offset" json:"offset,omitempty"`
+	Length    *int64           `form:"length" json:"length,omitempty"`
+}
+
+func (c *ObjectService) DownloadByPath(req ObjectDownloadByPath) (*DownloadingObject, error) {
+	url, err := url.JoinPath(c.baseURL, ObjectDownloadByPathPath)
 	if err != nil {
 		return nil, err
 	}
@@ -177,6 +258,42 @@ func (c *ObjectService) UpdateInfo(req ObjectUpdateInfo) (*ObjectUpdateInfoResp,
 	}
 
 	jsonResp, err := ParseJSONResponse[response[ObjectUpdateInfoResp]](resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if jsonResp.Code == errorcode.OK {
+		return &jsonResp.Data, nil
+	}
+
+	return nil, jsonResp.ToError()
+}
+
+const ObjectUpdateInfoByPathPath = "/object/updateInfoByPath"
+
+type ObjectUpdateInfoByPath struct {
+	UserID     cdssdk.UserID    `json:"userID" binding:"required"`
+	PackageID  cdssdk.PackageID `json:"packageID" binding:"required"`
+	Path       string           `json:"path" binding:"required"`
+	UpdateTime time.Time        `json:"updateTime" binding:"required"`
+}
+
+type ObjectUpdateInfoByPathResp struct{}
+
+func (c *ObjectService) UpdateInfoByPath(req ObjectUpdateInfoByPath) (*ObjectUpdateInfoByPathResp, error) {
+	url, err := url.JoinPath(c.baseURL, ObjectUpdateInfoByPathPath)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http2.PostJSON(url, http2.RequestParam{
+		Body: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	jsonResp, err := ParseJSONResponse[response[ObjectUpdateInfoByPathResp]](resp)
 	if err != nil {
 		return nil, err
 	}
@@ -258,6 +375,40 @@ func (c *ObjectService) Delete(req ObjectDelete) error {
 	}
 
 	jsonResp, err := ParseJSONResponse[response[ObjectDeleteResp]](resp)
+	if err != nil {
+		return err
+	}
+
+	if jsonResp.Code == errorcode.OK {
+		return nil
+	}
+
+	return jsonResp.ToError()
+}
+
+const ObjectDeleteByPathPath = "/object/deleteByPath"
+
+type ObjectDeleteByPath struct {
+	UserID    cdssdk.UserID    `json:"userID" binding:"required"`
+	PackageID cdssdk.PackageID `json:"packageID" binding:"required"`
+	Path      string           `json:"path" binding:"required"`
+}
+type ObjectDeleteByPathResp struct{}
+
+func (c *ObjectService) DeleteByPath(req ObjectDeleteByPath) error {
+	url, err := url.JoinPath(c.baseURL, ObjectDeleteByPathPath)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http2.PostJSON(url, http2.RequestParam{
+		Body: req,
+	})
+	if err != nil {
+		return err
+	}
+
+	jsonResp, err := ParseJSONResponse[response[ObjectDeleteByPathResp]](resp)
 	if err != nil {
 		return err
 	}

@@ -32,19 +32,12 @@ func test1(url string) {
 		return
 	}
 
-	partLen, err := strconv.ParseInt(os.Args[3], 10, 64)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
 	startTime := time.Now()
 	obj, err := cli.Object().Download(cdsapi.ObjectDownload{
 		UserID:   1,
 		ObjectID: 470790,
 		Offset:   0,
 		Length:   &openLen,
-		PartSize: partLen,
 	})
 	if err != nil {
 		fmt.Println(err)
@@ -75,7 +68,6 @@ func test2(url string) {
 		UserID:   1,
 		ObjectID: 27151,
 		Offset:   0,
-		PartSize: 100000000,
 		// Length:   &openLen,
 	})
 

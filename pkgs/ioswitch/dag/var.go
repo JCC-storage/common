@@ -5,7 +5,7 @@ import (
 	"gitlink.org.cn/cloudream/common/utils/lo2"
 )
 
-type Var2 interface {
+type Var interface {
 	GetVarID() exec.VarID
 }
 
@@ -26,6 +26,11 @@ func (v *StreamVar) IndexAtSrc() int {
 func (v *StreamVar) To(to Node, slotIdx int) {
 	v.Dst.Add(to)
 	to.InputStreams().Slots.Set(slotIdx, v)
+}
+
+func (v *StreamVar) ToSlot(slot StreamInputSlot) {
+	v.Dst.Add(slot.Node)
+	slot.Node.InputStreams().Slots.Set(slot.Index, v)
 }
 
 func (v *StreamVar) NotTo(node Node) {
@@ -57,6 +62,11 @@ func (v *ValueVar) IndexAtSrc() int {
 func (v *ValueVar) To(to Node, slotIdx int) {
 	v.Dst.Add(to)
 	to.InputValues().Slots.Set(slotIdx, v)
+}
+
+func (v *ValueVar) ToSlot(slot ValueInputSlot) {
+	v.Dst.Add(slot.Node)
+	slot.Node.InputValues().Slots.Set(slot.Index, v)
 }
 
 func (v *ValueVar) NotTo(node Node) {

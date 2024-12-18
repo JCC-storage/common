@@ -21,7 +21,7 @@ func Test_objectToStringMap(t *testing.T) {
 			Omit: nil,
 		}
 
-		mp, err := objectToStringMap(a)
+		mp, err := objectToStringMap(a, "json")
 		So(err, ShouldBeNil)
 
 		So(mp, ShouldResemble, map[string]string{

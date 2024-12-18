@@ -175,12 +175,12 @@ func (t *HoldUntilNode) SetSignal(s *dag.ValueVar) {
 
 func (t *HoldUntilNode) HoldStream(str *dag.StreamVar) *dag.StreamVar {
 	str.To(t, t.InputStreams().EnlargeOne())
-	return t.OutputStreams().AppendNew(t).Var
+	return t.OutputStreams().AppendNew(t).Var()
 }
 
 func (t *HoldUntilNode) HoldVar(v *dag.ValueVar) *dag.ValueVar {
 	v.To(t, t.InputValues().EnlargeOne())
-	return t.OutputValues().AppendNew(t).Var
+	return t.OutputValues().AppendNew(t).Var()
 }
 
 func (t *HoldUntilNode) GenerateOp() (exec.Op, error) {

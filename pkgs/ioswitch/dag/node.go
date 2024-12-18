@@ -35,6 +35,11 @@ func (e *NodeEnv) ToEnvWorker(worker exec.WorkerInfo) {
 	e.Worker = worker
 }
 
+func (e *NodeEnv) CopyFrom(other *NodeEnv) {
+	e.Type = other.Type
+	e.Worker = other.Worker
+}
+
 func (e *NodeEnv) Equals(other *NodeEnv) bool {
 	if e.Type != other.Type {
 		return false
@@ -239,6 +244,10 @@ func (s *ValueInputSlots) GetVarIDs() []exec.VarID {
 	return ids
 }
 
+func (s *ValueInputSlots) GetVarIDsStart(start int) []exec.VarID {
+	return s.GetVarIDsRanged(start, s.Len())
+}
+
 func (s *ValueInputSlots) GetVarIDsRanged(start, end int) []exec.VarID {
 	var ids []exec.VarID
 	for i := start; i < end; i++ {
@@ -280,11 +289,11 @@ func (s *StreamOutputSlots) Init(my Node, size int) {
 }
 
 // 在Slots末尾增加一个StreamVar，并返回它的索引
-func (s *StreamOutputSlots) AppendNew(my Node) StreamSlot {
+func (s *StreamOutputSlots) AppendNew(my Node) StreamOutputSlot {
 	v := my.Graph().NewStreamVar()
 	v.Src = my
 	s.Slots.Append(v)
-	return StreamSlot{Var: v, Index: s.Len() - 1}
+	return StreamOutputSlot{Node: my, Index: s.Len() - 1}
 }
 
 // 断开指定位置的输出流到指定节点的连接
@@ -355,11 +364,11 @@ func (s *ValueOutputSlots) Init(my Node, size int) {
 }
 
 // 在Slots末尾增加一个StreamVar，并返回它的索引
-func (s *ValueOutputSlots) AppendNew(my Node) ValueSlot {
+func (s *ValueOutputSlots) AppendNew(my Node) ValueOutputSlot {
 	v := my.Graph().NewValueVar()
 	v.Src = my
 	s.Slots.Append(v)
-	return ValueSlot{Var: v, Index: s.Len() - 1}
+	return ValueOutputSlot{Node: my, Index: s.Len() - 1}
 }
 
 // 断开指定位置的输出流到指定节点的连接
@@ -402,16 +411,6 @@ func (s *ValueOutputSlots) GetVarIDsRanged(start, end int) []exec.VarID {
 	return ids
 }
 
-type StreamSlot struct {
-	Var   *StreamVar
-	Index int
-}
-
-type ValueSlot struct {
-	Var   *ValueVar
-	Index int
-}
-
 type NodeBase struct {
 	env           NodeEnv
 	inputStreams  StreamInputSlots
@@ -447,4 +446,40 @@ func (n *NodeBase) InputValues() *ValueInputSlots {
 
 func (n *NodeBase) OutputValues() *ValueOutputSlots {
 	return &n.outputValues
+}
+
+type StreamOutputSlot struct {
+	Node  Node
+	Index int
+}
+
+func (s StreamOutputSlot) Var() *StreamVar {
+	return s.Node.OutputStreams().Get(s.Index)
+}
+
+type StreamInputSlot struct {
+	Node  Node
+	Index int
+}
+
+func (s StreamInputSlot) Var() *StreamVar {
+	return s.Node.InputStreams().Get(s.Index)
+}
+
+type ValueOutputSlot struct {
+	Node  Node
+	Index int
+}
+
+func (s ValueOutputSlot) Var() *ValueVar {
+	return s.Node.OutputValues().Get(s.Index)
+}
+
+type ValueInputSlot struct {
+	Node  Node
+	Index int
+}
+
+func (s ValueInputSlot) Var() *ValueVar {
+	return s.Node.InputValues().Get(s.Index)
 }

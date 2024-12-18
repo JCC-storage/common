@@ -12,8 +12,8 @@ type Storage struct {
 	Name      string    `json:"name" gorm:"column:Name; type:varchar(256); not null"`
 	// 完全管理此存储服务的Hub的ID
 	MasterHub HubID `json:"masterHub" gorm:"column:MasterHub; type:bigint; not null"`
-	// 存储服务的地址，包含鉴权所需数据
-	Address StorageAddress `json:"address" gorm:"column:Address; type:json; not null; serializer:union"`
+	// 存储服务的类型，包含地址信息以及鉴权所需数据
+	Type StorageType `json:"type" gorm:"column:Type; type:json; not null; serializer:union"`
 	// 分片存储服务的配置数据
 	ShardStore ShardStoreConfig `json:"shardStore" gorm:"column:ShardStore; type:json; serializer:union"`
 	// 共享存储服务的配置数据
@@ -32,31 +32,35 @@ func (s *Storage) String() string {
 }
 
 // 存储服务地址
-type StorageAddress interface {
-	GetType() string
+type StorageType interface {
+	GetStorageType() string
 	// 输出调试用的字符串，不要包含敏感信息
 	String() string
 }
 
-var _ = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[StorageAddress](
-	(*LocalStorageAddress)(nil),
+var _ = serder.UseTypeUnionInternallyTagged(types.Ref(types.NewTypeUnion[StorageType](
+	(*LocalStorageType)(nil),
+	(*OBSType)(nil),
+	(*OSSType)(nil),
+	(*COSType)(nil),
 )), "type")
 
-type LocalStorageAddress struct {
+type LocalStorageType struct {
 	serder.Metadata `union:"Local"`
 	Type            string `json:"type"`
 }
 
-func (a *LocalStorageAddress) GetType() string {
+func (a *LocalStorageType) GetStorageType() string {
 	return "Local"
 }
 
-func (a *LocalStorageAddress) String() string {
+func (a *LocalStorageType) String() string {
 	return "Local"
 }
 
-type OSSAddress struct {
-	serder.Metadata `union:"Local"`
+type OSSType struct {
+	serder.Metadata `union:"OSS"`
+	Type            string `json:"type"`
 	Region          string `json:"region"`
 	AK              string `json:"accessKeyId"`
 	SK              string `json:"secretAccessKey"`
@@ -64,16 +68,17 @@ type OSSAddress struct {
 	Bucket          string `json:"bucket"`
 }
 
-func (a *OSSAddress) GetType() string {
-	return "OSSAddress"
+func (a *OSSType) GetStorageType() string {
+	return "OSS"
 }
 
-func (a *OSSAddress) String() string {
-	return "OSSAddress"
+func (a *OSSType) String() string {
+	return "OSS"
 }
 
-type OBSAddress struct {
-	serder.Metadata `union:"Local"`
+type OBSType struct {
+	serder.Metadata `union:"OBS"`
+	Type            string `json:"type"`
 	Region          string `json:"region"`
 	AK              string `json:"accessKeyId"`
 	SK              string `json:"secretAccessKey"`
@@ -81,16 +86,17 @@ type OBSAddress struct {
 	Bucket          string `json:"bucket"`
 }
 
-func (a *OBSAddress) GetType() string {
-	return "OBSAddress"
+func (a *OBSType) GetStorageType() string {
+	return "OBS"
 }
 
-func (a *OBSAddress) String() string {
-	return "OBSAddress"
+func (a *OBSType) String() string {
+	return "OBS"
 }
 
-type COSAddress struct {
-	serder.Metadata `union:"Local"`
+type COSType struct {
+	serder.Metadata `union:"COS"`
+	Type            string `json:"type"`
 	Region          string `json:"region"`
 	AK              string `json:"accessKeyId"`
 	SK              string `json:"secretAccessKey"`
@@ -98,10 +104,10 @@ type COSAddress struct {
 	Bucket          string `json:"bucket"`
 }
 
-func (a *COSAddress) GetType() string {
-	return "COSAddress"
+func (a *COSType) GetStorageType() string {
+	return "COS"
 }
 
-func (a *COSAddress) String() string {
-	return "COSAddress"
+func (a *COSType) String() string {
+	return "COS"
 }

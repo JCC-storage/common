@@ -385,7 +385,7 @@ func PostMultiPart(url string, param MultiPartRequestParam) (*http.Response, err
 			defer muWriter.Close()
 
 			if param.Form != nil {
-				mp, err := objectToStringMap(param.Form)
+				mp, err := objectToStringMap(param.Form, "json")
 				if err != nil {
 					return fmt.Errorf("formValues object to map failed, err: %w", err)
 				}
@@ -477,7 +477,7 @@ func prepareQuery(req *http.Request, query any) error {
 	mp, ok := query.(map[string]string)
 	if !ok {
 		var err error
-		if mp, err = objectToStringMap(query); err != nil {
+		if mp, err = objectToStringMap(query, "form"); err != nil {
 			return fmt.Errorf("query object to map: %w", err)
 		}
 	}
@@ -499,7 +499,7 @@ func prepareHeader(req *http.Request, header any) error {
 	mp, ok := header.(map[string]string)
 	if !ok {
 		var err error
-		if mp, err = objectToStringMap(header); err != nil {
+		if mp, err = objectToStringMap(header, "json"); err != nil {
 			return fmt.Errorf("header object to map: %w", err)
 		}
 	}
@@ -543,7 +543,7 @@ func prepareFormBody(req *http.Request, body any) error {
 	mp, ok := body.(map[string]string)
 	if !ok {
 		var err error
-		if mp, err = objectToStringMap(body); err != nil {
+		if mp, err = objectToStringMap(body, "json"); err != nil {
 			return fmt.Errorf("body object to map: %w", err)
 		}
 	}
@@ -577,10 +577,10 @@ func setValue(values ul.Values, key, value string) ul.Values {
 	return values
 }
 
-func objectToStringMap(obj any) (map[string]string, error) {
+func objectToStringMap(obj any, tag string) (map[string]string, error) {
 	anyMap := make(map[string]any)
 	dec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		TagName:          "json",
+		TagName:          tag,
 		Result:           &anyMap,
 		WeaklyTypedInput: true,
 	})
