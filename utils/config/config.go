@@ -3,10 +3,9 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/imdario/mergo"
 	"os"
 	"path/filepath"
-
-	"github.com/imdario/mergo"
 )
 
 // Load 从本地文件读取配置，加载配置文件
@@ -32,6 +31,9 @@ func DefaultLoad(modeulName string, defCfg interface{}) error {
 	// TODO 可以考虑根据环境变量读取不同的配置
 	// filepath.Join用于将多个路径组合成一个路径
 	configFilePath := filepath.Join(filepath.Dir(execPath), "..", "confs", fmt.Sprintf("%s.config.json", modeulName))
+
+	configFilePath = "D:\\Work\\Codes\\workspace\\workspace\\scheduler\\common\\assets\\confs\\middleware.json"
+
 	return Load(configFilePath, defCfg)
 }
 

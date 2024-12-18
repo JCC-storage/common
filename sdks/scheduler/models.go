@@ -38,6 +38,8 @@ type ECSInstanceID string
 type NodeID int64
 type Address string
 
+type ClusterID string
+
 type JobSetInfo struct {
 	Jobs []JobInfo `json:"jobs"`
 }
@@ -54,6 +56,7 @@ var JobInfoTypeUnion = types.NewTypeUnion[JobInfo](
 	(*UpdateMultiInstanceJobInfo)(nil),
 	(*FinetuningJobInfo)(nil),
 	(*DataPreprocessJobInfo)(nil),
+	(*PCMJobInfo)(nil),
 )
 var _ = serder.UseTypeUnionInternallyTagged(&JobInfoTypeUnion, "type")
 
@@ -74,6 +77,98 @@ type NormalJobInfo struct {
 	Resources    JobResourcesInfo `json:"resources"`
 	Services     JobServicesInfo  `json:"services"`
 	ModelJobInfo ModelJobInfo     `json:"modelJobInfo"`
+}
+
+type PCMJobInfo struct {
+	serder.Metadata `union:"PCM"`
+	JobInfoBase
+	Type         string       `json:"type"`
+	Files        JobFilesInfo `json:"files"`
+	JobResources JobResources `json:"jobResources"`
+}
+
+type JobResources struct {
+	ScheduleStrategy string        `json:"scheduleStrategy"` //任务分配策略：负载均衡、积分优先、随机分配等
+	Clusters         []ClusterInfo `json:"clusters"`
+}
+
+type ClusterInfo struct {
+	ClusterID ClusterID      `json:"clusterID"`
+	Resources []Resource     `json:"resources"`
+	Runtime   JobRuntimeInfo `json:"runtime"`
+}
+
+type Resource struct {
+	Resource []JobResource `json:"resource"`
+}
+
+type JobResource interface {
+	Noop()
+}
+
+var JobResourceTypeUnion = types.NewTypeUnion[JobResource](
+	(*CPU)(nil),
+	(*GPU)(nil),
+	(*NPU)(nil),
+	(*MLU)(nil),
+	(*DCU)(nil),
+	(*Memory)(nil),
+	(*PRICE)(nil),
+)
+
+var _ = serder.UseTypeUnionInternallyTagged(&JobResourceTypeUnion, "type")
+
+type JobResourceBase struct{}
+
+func (d *JobResourceBase) Noop() {}
+
+type CPU struct {
+	serder.Metadata `union:"CPU"`
+	JobResourceBase
+	Type   string `json:"type"`
+	Number int64  `json:"number"`
+}
+
+type GPU struct {
+	serder.Metadata `union:"GPU"`
+	JobResourceBase
+	Type   string `json:"type"`
+	Number int64  `json:"number"`
+}
+
+type NPU struct {
+	serder.Metadata `union:"NPU"`
+	JobResourceBase
+	Type   string `json:"type"`
+	Number int64  `json:"number"`
+}
+
+type Memory struct {
+	serder.Metadata `union:"Memory"`
+	JobResourceBase
+	Type   string `json:"type"`
+	Number int64  `json:"number"`
+}
+
+type DCU struct {
+	serder.Metadata `union:"DCU"`
+	JobResourceBase
+	Type   string `json:"type"`
+	Number int64  `json:"number"`
+}
+
+type MLU struct {
+	serder.Metadata `union:"MLU"`
+	JobResourceBase
+	Type   string `json:"type"`
+	Number int64  `json:"number"`
+}
+
+type PRICE struct {
+	serder.Metadata `union:"PRICE"`
+	JobResourceBase
+	Type   string `json:"type"`
+	Number int64  `json:"number"`
 }
 
 // FinetuningJobInfo 模型微调
@@ -154,6 +249,7 @@ type JobFilesInfo struct {
 	Dataset JobFileInfo `json:"dataset"`
 	Code    JobFileInfo `json:"code"`
 	Image   JobFileInfo `json:"image"`
+	Model   JobFileInfo `json:"model"`
 }
 
 type JobFileInfo interface {
@@ -165,12 +261,20 @@ var FileInfoTypeUnion = types.NewTypeUnion[JobFileInfo](
 	(*LocalJobFileInfo)(nil),
 	(*DataReturnJobFileInfo)(nil),
 	(*ImageJobFileInfo)(nil),
+	(*BindingJobFileInfo)(nil),
 )
 var _ = serder.UseTypeUnionInternallyTagged(&FileInfoTypeUnion, "type")
 
 type JobFileInfoBase struct{}
 
 func (i *JobFileInfoBase) Noop() {}
+
+type BindingJobFileInfo struct {
+	serder.Metadata `union:"Binding"`
+	JobFileInfoBase
+	Type      string `json:"type"`
+	BindingID int64  `json:"bindingID"`
+}
 
 type PackageJobFileInfo struct {
 	serder.Metadata `union:"Package"`
@@ -203,6 +307,7 @@ type ImageJobFileInfo struct {
 type JobRuntimeInfo struct {
 	Command string   `json:"command"`
 	Envs    []KVPair `json:"envs"`
+	Params  []KVPair `json:"params"`
 }
 
 type KVPair struct {

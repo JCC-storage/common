@@ -11,7 +11,12 @@ import (
 )
 
 type GetClusterInfoReq struct {
-	IDs []ClusterID `json:"ids"`
+	IDs []schsdk.ClusterID `json:"clusterIDs"`
+}
+
+type GetClusterInfoResp struct {
+	Data    []ClusterDetail `json:"data"`
+	TraceId string          `json:"traceId"`
 }
 
 func (c *Client) GetClusterInfo(req GetClusterInfoReq) ([]ClusterDetail, error) {
@@ -19,7 +24,8 @@ func (c *Client) GetClusterInfo(req GetClusterInfoReq) ([]ClusterDetail, error) 
 	if err != nil {
 		return nil, err
 	}
-	resp, err := http2.GetJSON(targetUrl, http2.RequestParam{Body: req})
+
+	resp, err := http2.PostJSON(targetUrl, http2.RequestParam{Body: req})
 	if err != nil {
 		return nil, err
 	}
@@ -42,8 +48,8 @@ func (c *Client) GetClusterInfo(req GetClusterInfoReq) ([]ClusterDetail, error) 
 }
 
 type CreateJobReq struct {
-	DataDistribute DataDistribute          `json:"dataDistribute"`
-	Resources      schsdk.JobResourcesInfo `json:"resources"`
+	JobResources   schsdk.JobResources `json:"jobResources"`
+	DataDistribute DataDistribute      `json:"dataDistribute"`
 }
 
 type DataDistribute struct {
@@ -53,33 +59,33 @@ type DataDistribute struct {
 	Model   []ModelDistribute   `json:"model"`
 }
 
+type DataDetail struct {
+	ClusterID schsdk.ClusterID `json:"clusterID"`
+	JsonData  string           `json:"jsonData"`
+}
+
 type DatasetDistribute struct {
 	DataName  string           `json:"dataName"`
 	PackageID cdssdk.PackageID `json:"packageID"`
-	Clusters  []ClusterID      `json:"clusters"`
+	Clusters  []DataDetail     `json:"clusters"`
 }
 
 type CodeDistribute struct {
 	DataName  string           `json:"dataName"`
 	PackageID cdssdk.PackageID `json:"packageID"`
-	Clusters  []ClusterID      `json:"clusters"`
+	Clusters  []DataDetail     `json:"clusters"`
 }
 
 type ImageDistribute struct {
 	DataName  string           `json:"dataName"`
 	PackageID cdssdk.PackageID `json:"packageID"`
-	Clusters  []ClusterID      `json:"clusters"`
+	Clusters  []DataDetail     `json:"clusters"`
 }
 
 type ModelDistribute struct {
 	DataName  string           `json:"dataName"`
 	PackageID cdssdk.PackageID `json:"packageID"`
-	Clusters  []ClusterID      `json:"clusters"`
-}
-
-type Cluster struct {
-	ClusterID ClusterID        `json:"clusterID"`
-	StorageID cdssdk.StorageID `json:"storageID"`
+	Clusters  []DataDetail     `json:"clusters"`
 }
 
 type CreateJobResp struct {
@@ -88,35 +94,40 @@ type CreateJobResp struct {
 }
 
 type ScheduleData struct {
-	DataType    string           `json:"dataType"`
-	PackageID   cdssdk.PackageID `json:"packageID"`
-	StorageType string           `json:"storageType"`
-	ClusterIDs  []ClusterID      `json:"clusterIDs"`
+	DataType    string             `json:"dataType"`
+	PackageID   cdssdk.PackageID   `json:"packageID"`
+	StorageType string             `json:"storageType"`
+	ClusterIDs  []schsdk.ClusterID `json:"clusterIDs"`
 }
 
-func (c *Client) CreateJob(req CreateJobReq) (CreateJobResp, error) {
+func (c *Client) CreateJob(req CreateJobReq) (*CreateJobResp, error) {
+	targetUrl, err := url.JoinPath(c.baseURL, "/jobSet/submit")
+	if err != nil {
+		return nil, err
+	}
 
-}
+	resp, err := http2.PostJSON(targetUrl, http2.RequestParam{
+		Body: req,
+	})
+	if err != nil {
+		return nil, err
+	}
 
-type DataScheduleReq struct {
-	PackageID   cdssdk.PackageID `json:"packageID"`
-	StorageType string           `json:"storageType"`
-	Clusters    []Cluster        `json:"clusters"`
-}
+	contType := resp.Header.Get("Content-Type")
+	if strings.Contains(contType, http2.ContentTypeJSON) {
+		var codeResp response[CreateJobResp]
+		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
+			return nil, fmt.Errorf("parsing response: %w", err)
+		}
 
-type DataScheduleResp struct {
-	Results []DataScheduleResult `json:"results"`
-}
+		if codeResp.Code == ResponseCodeOK {
+			return &codeResp.Data, nil
+		}
 
-type DataScheduleResult struct {
-	ClusterID       ClusterID        `json:"clusterID"`
-	PackageID       cdssdk.PackageID `json:"packageID"`
-	PackageFullPath string           `json:"packageFullPath"`
-	Status          bool             `json:"status"`
-	Msg             string           `json:"msg"`
-}
+		return nil, codeResp.ToError()
+	}
 
-func (c *Client) DataSchedule(req DataScheduleReq) (DataScheduleResp, error) {
+	return nil, fmt.Errorf("unknow response content type: %s", contType)
 
 }
 
@@ -125,12 +136,47 @@ type RunJobReq struct {
 	ScheduledDatas []DataScheduleResults `json:"scheduledDatas"`
 }
 
+type DataScheduleResult struct {
+	Clusters        DataDetail       `json:"clusters"`
+	PackageID       cdssdk.PackageID `json:"packageID"`
+	PackageFullPath string           `json:"packageFullPath"`
+	Status          bool             `json:"status"`
+	Msg             string           `json:"msg"`
+}
+
 type DataScheduleResults struct {
 	DataType string               `json:"dataType"`
 	Results  []DataScheduleResult `json:"results"`
 }
 
 func (c *Client) RunJob(req RunJobReq) error {
+	targetUrl, err := url.JoinPath(c.baseURL, "/jobSet/submit")
+	if err != nil {
+		return err
+	}
+
+	resp, err := http2.PostJSON(targetUrl, http2.RequestParam{
+		Body: req,
+	})
+	if err != nil {
+		return err
+	}
+
+	contType := resp.Header.Get("Content-Type")
+	if strings.Contains(contType, http2.ContentTypeJSON) {
+		var codeResp response[string]
+		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
+			return fmt.Errorf("parsing response: %w", err)
+		}
+
+		if codeResp.Code == ResponseCodeOK {
+			return nil
+		}
+
+		return codeResp.ToError()
+	}
+
+	return fmt.Errorf("unknow response content type: %s", contType)
 
 }
 
@@ -140,5 +186,28 @@ type CancelJobReq struct {
 }
 
 func (c *Client) CancelJob(req CancelJobReq) error {
+	targetUrl, err := url.JoinPath(c.baseURL, "/queryResources")
+	if err != nil {
+		return err
+	}
+	resp, err := http2.GetJSON(targetUrl, http2.RequestParam{Body: req})
+	if err != nil {
+		return err
+	}
+	contType := resp.Header.Get("Content-Type")
+	if strings.Contains(contType, http2.ContentTypeJSON) {
 
+		var codeResp response[string]
+		if err := serder.JSONToObjectStream(resp.Body, &codeResp); err != nil {
+			return fmt.Errorf("parsing response: %w", err)
+		}
+
+		if codeResp.Code == ResponseCodeOK {
+			return nil
+		}
+
+		return codeResp.ToError()
+	}
+
+	return fmt.Errorf("unknow response content type: %s", contType)
 }
