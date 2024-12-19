@@ -70,17 +70,19 @@ type RabbitMQTransport struct {
 	closed chan any
 }
 
-func NewRabbitMQTransport(url string, key string, exchange string) (*RabbitMQTransport, error) {
+func NewRabbitMQTransport(cfg Config, key string, exchange string) (*RabbitMQTransport, error) {
 	config := amqp.Config{
+		Vhost: cfg.VHost,
 		Dial: func(network, addr string) (net.Conn, error) {
 			return net.DialTimeout(network, addr, 60*time.Second) // 设置连接超时时间为 60 秒
 		},
 	}
+	url := fmt.Sprintf("amqp://%s:%s@%s", cfg.Account, cfg.Password, cfg.Address)
 	connection, err := amqp.DialConfig(url, config)
 
 	//connection, err := amqp.Dial(url)
 	if err != nil {
-		return nil, fmt.Errorf("connecting to %s: %w", url, err)
+		return nil, fmt.Errorf("connecting to %s: %w", cfg.Address, err)
 	}
 
 	channel, err := connection.Channel()
