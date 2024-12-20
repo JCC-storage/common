@@ -221,6 +221,44 @@ func (c *PackageService) Delete(req PackageDelete) error {
 	return fmt.Errorf("unknow response content type: %s", contType)
 }
 
+const PackageClonePath = "/package/clone"
+
+type PackageClone struct {
+	UserID    cdssdk.UserID    `json:"userID" binding:"required"`
+	PackageID cdssdk.PackageID `json:"packageID" binding:"required"`
+	BucketID  cdssdk.BucketID  `json:"bucketID" binding:"required"`
+	Name      string           `json:"name" binding:"required"`
+}
+
+type PackageCloneResp struct {
+	Package cdssdk.Package `json:"package"`
+}
+
+func (c *PackageService) Clone(req PackageClone) (*PackageCloneResp, error) {
+	url, err := url.JoinPath(c.baseURL, PackageClonePath)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http2.PostJSON(url, http2.RequestParam{
+		Body: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	codeResp, err := ParseJSONResponse[response[PackageCloneResp]](resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if codeResp.Code == errorcode.OK {
+		return &codeResp.Data, nil
+	}
+
+	return nil, codeResp.ToError()
+}
+
 const PackageListBucketPackagesPath = "/package/listBucketPackages"
 
 type PackageListBucketPackages struct {
