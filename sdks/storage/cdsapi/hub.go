@@ -15,7 +15,7 @@ type HubGetHubsReq struct {
 }
 
 type HubGetHubsResp struct {
-	Hubs []cdssdk.Hub `json:"hubs"`
+	Hubs []*cdssdk.Hub `json:"hubs"`
 }
 
 func (c *Client) HubGetHubs(req HubGetHubsReq) (*HubGetHubsResp, error) {

@@ -245,24 +245,3 @@ func Test_Cache(t *testing.T) {
 		So(err, ShouldBeNil)
 	})
 }
-
-func Test_GetHubInfos(t *testing.T) {
-	Convey("测试获取hub信息", t, func() {
-		cli := NewClient(&Config{
-			URL: "http://localhost:7890",
-		})
-		resp1, err := cli.Package().GetCachedStorages(PackageGetCachedStoragesReq{
-			PackageID: 11,
-			UserID:    1,
-		})
-		So(err, ShouldBeNil)
-		fmt.Printf("resp1: %v\n", resp1)
-
-		resp2, err := cli.Package().GetLoadedStorages(PackageGetLoadedStoragesReq{
-			PackageID: 11,
-			UserID:    1,
-		})
-		So(err, ShouldBeNil)
-		fmt.Printf("resp2: %v\n", resp2)
-	})
-}

@@ -135,15 +135,15 @@ type PackageCreateLoad struct {
 	Files UploadObjectIterator `json:"-"`
 }
 type PackageCreateLoadInfo struct {
-	UserID   cdssdk.UserID      `json:"userID" binding:"required"`
-	BucketID cdssdk.BucketID    `json:"bucketID" binding:"required"`
-	Name     string             `json:"name" binding:"required"`
-	LoadTo   []cdssdk.StorageID `json:"loadTo" binding:"required"`
+	UserID     cdssdk.UserID      `json:"userID" binding:"required"`
+	BucketID   cdssdk.BucketID    `json:"bucketID" binding:"required"`
+	Name       string             `json:"name" binding:"required"`
+	LoadTo     []cdssdk.StorageID `json:"loadTo"`
+	LoadToPath []string           `json:"loadToPath"`
 }
 type PackageCreateLoadResp struct {
-	Package    cdssdk.Package  `json:"package"`
-	Objects    []cdssdk.Object `json:"objects"`
-	LoadedDirs []string        `json:"loadedDirs"`
+	Package cdssdk.Package  `json:"package"`
+	Objects []cdssdk.Object `json:"objects"`
 }
 
 func (c *PackageService) CreateLoad(req PackageCreateLoad) (*PackageCreateLoadResp, error) {
@@ -319,41 +319,6 @@ func (c *PackageService) GetCachedStorages(req PackageGetCachedStoragesReq) (*Pa
 	}
 
 	codeResp, err := ParseJSONResponse[response[PackageGetCachedStoragesResp]](resp)
-	if err != nil {
-		return nil, err
-	}
-
-	if codeResp.Code == errorcode.OK {
-		return &codeResp.Data, nil
-	}
-
-	return nil, codeResp.ToError()
-}
-
-const PackageGetLoadedStoragesPath = "/package/getLoadedStorages"
-
-type PackageGetLoadedStoragesReq struct {
-	PackageID cdssdk.PackageID `form:"packageID" json:"packageID" binding:"required"`
-	UserID    cdssdk.UserID    `form:"userID" json:"userID" binding:"required"`
-}
-
-type PackageGetLoadedStoragesResp struct {
-	StorageIDs []cdssdk.StorageID `json:"storageIDs"`
-}
-
-func (c *PackageService) GetLoadedStorages(req PackageGetLoadedStoragesReq) (*PackageGetLoadedStoragesResp, error) {
-	url, err := url.JoinPath(c.baseURL, PackageGetLoadedStoragesPath)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := http2.GetJSON(url, http2.RequestParam{
-		Query: req,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	codeResp, err := ParseJSONResponse[response[PackageGetLoadedStoragesResp]](resp)
 	if err != nil {
 		return nil, err
 	}

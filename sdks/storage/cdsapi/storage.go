@@ -17,13 +17,9 @@ type StorageLoadPackageReq struct {
 	UserID    cdssdk.UserID    `json:"userID" binding:"required"`
 	PackageID cdssdk.PackageID `json:"packageID" binding:"required"`
 	StorageID cdssdk.StorageID `json:"storageID" binding:"required"`
+	RootPath  string           `json:"rootPath"`
 }
-type StorageLoadPackageResp struct {
-	FullPath    string `json:"fullPath"` // TODO 临时保留给中期测试的前端使用，后续会删除
-	PackagePath string `json:"packagePath"`
-	LocalBase   string `json:"localBase"`
-	RemoteBase  string `json:"remoteBase"`
-}
+type StorageLoadPackageResp struct{}
 
 func (c *Client) StorageLoadPackage(req StorageLoadPackageReq) (*StorageLoadPackageResp, error) {
 	url, err := url.JoinPath(c.baseURL, StorageLoadPackagePath)
