@@ -70,10 +70,11 @@ type ObjectUpload struct {
 }
 
 type ObjectUploadInfo struct {
-	UserID    cdssdk.UserID      `json:"userID" binding:"required"`
-	PackageID cdssdk.PackageID   `json:"packageID" binding:"required"`
-	Affinity  cdssdk.StorageID   `json:"affinity"`
-	LoadTo    []cdssdk.StorageID `json:"loadTo"`
+	UserID     cdssdk.UserID      `json:"userID" binding:"required"`
+	PackageID  cdssdk.PackageID   `json:"packageID" binding:"required"`
+	Affinity   cdssdk.StorageID   `json:"affinity"`
+	LoadTo     []cdssdk.StorageID `json:"loadTo"`
+	LoadToPath []string           `json:"loadToPath"`
 }
 
 type UploadingObject struct {
