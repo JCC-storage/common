@@ -62,6 +62,41 @@ func (c *ObjectService) List(req ObjectList) (*ObjectListResp, error) {
 	return nil, jsonResp.ToError()
 }
 
+const ObjectListByIDsPath = "/object/listByIDs"
+
+type ObjectListByIDs struct {
+	UserID    cdssdk.UserID     `json:"userID" binding:"required"`
+	ObjectIDs []cdssdk.ObjectID `json:"objectIDs" binding:"required"`
+}
+type ObjectListByIDsResp struct {
+	Objects []*cdssdk.Object `json:"object"` // 与ObjectIDs一一对应，如果某个ID不存在，则对应位置为nil
+}
+
+func (c *ObjectService) ListByIDs(req ObjectListByIDs) (*ObjectListByIDsResp, error) {
+	url, err := url.JoinPath(c.baseURL, ObjectListByIDsPath)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http2.PostJSON(url, http2.RequestParam{
+		Body: req,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	jsonResp, err := ParseJSONResponse[response[ObjectListByIDsResp]](resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if jsonResp.Code == errorcode.OK {
+		return &jsonResp.Data, nil
+	}
+
+	return nil, jsonResp.ToError()
+}
+
 const ObjectUploadPath = "/object/upload"
 
 type ObjectUpload struct {
