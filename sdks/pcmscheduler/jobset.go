@@ -65,25 +65,25 @@ type DataDetail struct {
 }
 
 type DatasetDistribute struct {
-	DataName  string           `json:"dataName"`
+	//DataName  string           `json:"dataName"`
 	PackageID cdssdk.PackageID `json:"packageID"`
 	Clusters  []DataDetail     `json:"clusters"`
 }
 
 type CodeDistribute struct {
-	DataName  string           `json:"dataName"`
+	//DataName  string           `json:"dataName"`
 	PackageID cdssdk.PackageID `json:"packageID"`
 	Clusters  []DataDetail     `json:"clusters"`
 }
 
 type ImageDistribute struct {
-	DataName  string           `json:"dataName"`
+	//DataName  string           `json:"dataName"`
 	PackageID cdssdk.PackageID `json:"packageID"`
 	Clusters  []DataDetail     `json:"clusters"`
 }
 
 type ModelDistribute struct {
-	DataName  string           `json:"dataName"`
+	//DataName  string           `json:"dataName"`
 	PackageID cdssdk.PackageID `json:"packageID"`
 	Clusters  []DataDetail     `json:"clusters"`
 }

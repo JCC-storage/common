@@ -3,6 +3,7 @@ package sch
 import (
 	"gitlink.org.cn/cloudream/common/pkgs/types"
 	schsdk "gitlink.org.cn/cloudream/common/sdks/scheduler"
+	cdssdk "gitlink.org.cn/cloudream/common/sdks/storage"
 	"gitlink.org.cn/cloudream/common/utils/serder"
 )
 
@@ -20,6 +21,10 @@ const (
 	DATASET = "dataset"
 	IMAGE   = "image"
 	MODEL   = "model"
+
+	OrderByName = "name"
+	OrderBySize = "size"
+	OrderByTime = "time"
 )
 
 type TaskID int64
@@ -191,7 +196,6 @@ type BiasPriority struct {
 
 type UploadParams struct {
 	DataType       string         `json:"dataType"`
-	DataName       string         `json:"dataName"`
 	UploadInfo     UploadInfo     `json:"uploadInfo"`
 	UploadPriority UploadPriority `json:"uploadPriority"`
 }
@@ -219,6 +223,7 @@ type RemoteUploadInfo struct {
 	UploadInfoBase
 	Type           string             `json:"type"`
 	Url            string             `json:"url"`
+	DataName       string             `json:"dataName"`
 	TargetClusters []schsdk.ClusterID `json:"targetClusters"`
 }
 
@@ -254,3 +259,14 @@ type SpecifyCluster struct {
 type UploadPriorityBase struct{}
 
 func (d *UploadPriorityBase) Noop() {}
+
+type QueryData struct {
+	DataType string        `json:"dataType" binding:"required"`
+	UserID   cdssdk.UserID `json:"userID" binding:"required"`
+	//ClusterIDs  []schsdk.ClusterID `json:"clusterIDs"`
+	Path        string           `json:"path"`
+	PackageID   cdssdk.PackageID `json:"packageID" binding:"required"`
+	CurrentPage int              `json:"currentPage" binding:"required"`
+	PageSize    int              `json:"pageSize" binding:"required"`
+	OrderBy     string           `json:"orderBy" binding:"required"`
+}

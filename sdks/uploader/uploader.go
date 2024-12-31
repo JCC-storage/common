@@ -10,32 +10,42 @@ import (
 	"gitlink.org.cn/cloudream/common/utils/serder"
 	"net/url"
 	"strings"
-	"time"
 )
 
 type DataID int64
+type FolderID int64
 
 type Cluster struct {
-	DataID    DataID           `gorm:"column:dataID" json:"dataID"`
-	ClusterID schsdk.ClusterID `gorm:"column:clusterID" json:"clusterID"`
-	StorageID cdssdk.StorageID `gorm:"column:storageID" json:"storageID"`
+	PackageID cdssdk.PackageID `gorm:"column:package_id" json:"dataID"`
+	ClusterID schsdk.ClusterID `gorm:"column:cluster_id" json:"clusterID"`
+	StorageID cdssdk.StorageID `gorm:"column:storage_id" json:"storageID"`
 }
 
 func (Cluster) TableName() string {
-	return "UploadedCluster" // 确保和数据库中的表名一致
+	return "uploadedCluster" // 确保和数据库中的表名一致
 }
 
-type UploadedData struct {
-	ID              DataID           `gorm:"column:id;primaryKey" json:"id"`
-	UserID          cdssdk.UserID    `gorm:"column:userID" json:"userID"`
-	Name            string           `gorm:"column:name" json:"name"`
-	DataType        string           `gorm:"column:dataType" json:"dataType"`
-	PackageID       cdssdk.PackageID `gorm:"column:packageID" json:"packageID"`
-	JsonData        string           `gorm:"column:jsonData" json:"jsonData"` // JSON 数据字段
-	BindingID       DataID           `gorm:"column:bindingID" json:"bindingID"`
-	UploadTime      time.Time        `gorm:"column:uploadTime" json:"uploadTime"`
-	UploadedCluster []Cluster        `gorm:"foreignKey:dataID;references:id" json:"clusters"`    // 关联 Cluster 数据
-	BlockChain      []BlockChain     `gorm:"foreignKey:dataID;references:id" json:"blockChains"` // 关联 BlockChain 数据
+type Package struct {
+	UserID          cdssdk.UserID    `gorm:"column:user_id" json:"userID"`
+	PackageID       cdssdk.PackageID `gorm:"column:package_id" json:"packageID"`
+	PackageName     string           `gorm:"column:package_name" json:"packageName"`
+	DataType        string           `gorm:"column:data_type" json:"dataType"`
+	JsonData        string           `gorm:"column:json_data" json:"jsonData"` // JSON 数据字段
+	BindingID       DataID           `gorm:"column:binding_id" json:"bindingID"`
+	Objects         []cdssdk.Object  `gorm:"column:objects" json:"objects"`
+	UploadedCluster []Cluster        `gorm:"column:uploadedCluster" json:"uploadedCluster"`
+	//UploadedCluster []Cluster `gorm:"foreignKey:package_id;references:package_id" json:"clusters"` // 关联 Cluster 数据
+	//BlockChain      []BlockChain     `gorm:"foreignKey:package_id;references:package_id" json:"blockChains"` // 关联 BlockChain 数据
+}
+
+type PackageDAO struct {
+	UserID          cdssdk.UserID    `gorm:"column:user_id" json:"userID"`
+	PackageID       cdssdk.PackageID `gorm:"column:package_id" json:"packageID"`
+	PackageName     string           `gorm:"column:package_name" json:"packageName"`
+	DataType        string           `gorm:"column:data_type" json:"dataType"`
+	JsonData        string           `gorm:"column:json_data" json:"jsonData"` // JSON 数据字段
+	BindingID       DataID           `gorm:"column:binding_id" json:"bindingID"`
+	UploadedCluster []Cluster        `gorm:"foreignKey:package_id;references:package_id" json:"clusters"` // 关联 Cluster 数据
 }
 
 type DataScheduleReq struct {
@@ -147,8 +157,9 @@ type UploadTargetBase struct{}
 func (d *UploadTargetBase) Noop() {}
 
 type UploadResp struct {
-	PackageID cdssdk.PackageID `json:"packageID"`
-	JsonData  string           `json:"jsonData"`
+	PackageID cdssdk.PackageID  `json:"packageID"`
+	ObjectIDs []cdssdk.ObjectID `json:"objectIDs"`
+	JsonData  string            `json:"jsonData"`
 }
 
 func (c *Client) Upload(req UploadReq) (*UploadResp, error) {

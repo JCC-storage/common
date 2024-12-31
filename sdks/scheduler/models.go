@@ -18,6 +18,9 @@ const (
 	FileInfoTypeResource  = "Resource"
 	FileInfoTypeImage     = "Image"
 
+	FILE   = "file"
+	FOLDER = "folder"
+
 	MemoryUtilization = "MemoryUtilization"
 	GPUUtilization    = "GPUUtilization"
 	CPUUtilization    = "CPUUtilization"
