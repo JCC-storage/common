@@ -3,6 +3,7 @@ package ops
 import (
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/dag"
 	"gitlink.org.cn/cloudream/common/pkgs/ioswitch/exec"
+	"gitlink.org.cn/cloudream/common/utils/math2"
 )
 
 type FromDriverNode struct {
@@ -40,7 +41,7 @@ func (t *FromDriverNode) GenerateOp() (exec.Op, error) {
 type ToDriverNode struct {
 	dag.NodeBase
 	Handle *exec.DriverReadStream
-	Range  exec.Range
+	Range  math2.Range
 }
 
 func (b *GraphNodeBuilder) NewToDriver(handle *exec.DriverReadStream) *ToDriverNode {

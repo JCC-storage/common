@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"gitlink.org.cn/cloudream/common/pkgs/future"
 	"gitlink.org.cn/cloudream/common/utils/io2"
+	"gitlink.org.cn/cloudream/common/utils/math2"
 )
 
 type Driver struct {
@@ -104,7 +105,7 @@ func (e *Driver) execute() {
 
 type DriverWriteStream struct {
 	ID        VarID
-	RangeHint *Range
+	RangeHint *math2.Range
 }
 
 type DriverReadStream struct {

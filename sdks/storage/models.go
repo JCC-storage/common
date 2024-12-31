@@ -327,7 +327,7 @@ func (Bucket) TableName() string {
 type HubConnectivity struct {
 	FromHubID HubID     `gorm:"column:FromHubID; primaryKey; type:bigint" json:"fromHubID"`
 	ToHubID   HubID     `gorm:"column:ToHubID; primaryKey; type:bigint" json:"ToHubID"`
-	Delay     *float32  `gorm:"column:Delay; type:float" json:"delay"`
+	Latency   *float32  `gorm:"column:Latency; type:float" json:"latency"`
 	TestTime  time.Time `gorm:"column:TestTime; type:datetime" json:"testTime"`
 }
 
